@@ -12,7 +12,10 @@ from models import db, User, Post
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "postmester-dev-secret-change-in-prod")
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///postmester.db")
+
+# Brug absolut sti til SQLite så Railway kan finde den
+_db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "postmester.db")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", f"sqlite:///{_db_path}")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 
@@ -32,7 +35,7 @@ TONES = {"professionel": "professionel og tillidsfuld", "venlig": "venlig og ufo
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 
 def allowed_file(filename):
@@ -228,7 +231,7 @@ def admin():
 @login_required
 @admin_required
 def admin_set_plan():
-    user = User.query.get(int(request.form["user_id"]))
+    user = db.session.get(User, int(request.form["user_id"]))
     if user:
         user.plan = request.form["plan"]
         db.session.commit()
