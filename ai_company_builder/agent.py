@@ -22,8 +22,12 @@ Du har følgende faser at gennemgå:
 4. OUTREACH    — Skriv personlige outreach-emails til potentielle kunder
 5. ITERATE     — Evaluer fremskridt og justér strategi
 
+VIGTIGT — afprøvede idéer der IKKE virkede:
+- Fakturering/bogføring for freelancere (FakturaBot) — for konkurrencepræget, Billy/Dinero dominerer
+
 Regler:
 - Vær konkret og handlingsorienteret. Undgå vage planer.
+- Undgå idéer der ligner dem ovenfor.
 - Brug tools aktivt. Søg på nettet, generer kode, skriv emails.
 - Hold styr på din state og fremskridt.
 - Rapportér kortfattet hvad du gør og hvorfor.
