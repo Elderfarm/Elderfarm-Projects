@@ -162,7 +162,11 @@
           <li>✓ Månedlig synlighedsrapport</li>
           <li class="muted">✗ SMS til kunder</li>
         </ul>
-        <a href="{{ url_for('register') }}" class="price-cta">Prøv 14 dage gratis</a>
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('upgrade', plan='starter') }}" class="price-cta">Betal med kort →</a>
+        {% else %}
+          <a href="{{ url_for('register') }}" class="price-cta">Opret konto og betal →</a>
+        {% endif %}
       </div>
       <div class="price-card">
         <div class="price-name">Pro</div>
@@ -174,7 +178,11 @@
           <li>✓ Hjemmeside-widget</li>
           <li>✓ Prioriteret support</li>
         </ul>
-        <a href="{{ url_for('register') }}" class="price-cta outline">Kom i gang</a>
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('upgrade', plan='pro') }}" class="price-cta outline">Betal med kort →</a>
+        {% else %}
+          <a href="{{ url_for('register') }}" class="price-cta outline">Opret konto og betal →</a>
+        {% endif %}
       </div>
     </div>
   </section>

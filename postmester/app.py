@@ -1,6 +1,7 @@
 import os
 import base64
 import bcrypt
+import stripe
 import anthropic
 from datetime import datetime
 from functools import wraps
@@ -9,6 +10,8 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.utils import secure_filename
 from pathlib import Path
 from models import db, User, Post
+
+stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "postmester-dev-secret-change-in-prod")
@@ -225,6 +228,83 @@ def admin():
         "mrr": mrr,
     }
     return render_template("admin.html", users=users, recent_posts=recent_posts, stats=stats)
+
+
+# ── Stripe payment ────────────────────────────────────
+
+STRIPE_PLANS = {
+    "starter": os.environ.get("STRIPE_PRICE_STARTER", ""),
+    "pro":     os.environ.get("STRIPE_PRICE_PRO", ""),
+}
+
+@app.route("/upgrade/<plan>")
+@login_required
+def upgrade(plan):
+    if plan not in STRIPE_PLANS or not stripe.api_key:
+        flash("Betaling er ikke sat op endnu — kontakt os på hej@postmester.dk", "error")
+        return redirect(url_for("dashboard"))
+
+    price_id = STRIPE_PLANS[plan]
+    if not price_id:
+        flash("Betaling er ikke sat op endnu — kontakt os på hej@postmester.dk", "error")
+        return redirect(url_for("dashboard"))
+
+    try:
+        checkout = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            mode="subscription",
+            line_items=[{"price": price_id, "quantity": 1}],
+            customer_email=current_user.email,
+            metadata={"user_id": current_user.id, "plan": plan},
+            success_url=url_for("upgrade_success", plan=plan, _external=True),
+            cancel_url=url_for("dashboard", _external=True),
+            locale="da",
+        )
+        return redirect(checkout.url)
+    except Exception as e:
+        flash(f"Betalingsfejl: {str(e)}", "error")
+        return redirect(url_for("dashboard"))
+
+
+@app.route("/upgrade/success/<plan>")
+@login_required
+def upgrade_success(plan):
+    if plan in ("starter", "pro"):
+        current_user.plan = plan
+        db.session.commit()
+    flash(f"Tillykke! Du er nu opgraderet til {plan.capitalize()} 🎉", "success")
+    return redirect(url_for("dashboard"))
+
+
+@app.route("/stripe/webhook", methods=["POST"])
+def stripe_webhook():
+    payload = request.data
+    sig = request.headers.get("Stripe-Signature", "")
+    webhook_secret = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+
+    try:
+        event = stripe.Webhook.construct_event(payload, sig, webhook_secret)
+    except Exception:
+        return "", 400
+
+    if event["type"] == "checkout.session.completed":
+        session_obj = event["data"]["object"]
+        user_id = int(session_obj["metadata"].get("user_id", 0))
+        plan = session_obj["metadata"].get("plan", "")
+        user = db.session.get(User, user_id)
+        if user and plan in ("starter", "pro"):
+            user.plan = plan
+            db.session.commit()
+
+    elif event["type"] in ("customer.subscription.deleted", "customer.subscription.paused"):
+        session_obj = event["data"]["object"]
+        email = session_obj.get("customer_email", "")
+        user = User.query.filter_by(email=email).first()
+        if user:
+            user.plan = "gratis"
+            db.session.commit()
+
+    return "", 200
 
 
 @app.route("/admin/set-plan", methods=["POST"])

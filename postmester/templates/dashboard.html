@@ -81,7 +81,7 @@
           <li>✓ 12 sæsonskabeloner</li>
           <li>✓ Månedlig rapport</li>
         </ul>
-        <a href="mailto:hej@postmester.dk?subject=Opgradér til Starter" class="dash-upgrade-btn">Vælg Starter</a>
+        <a href="{{ url_for('upgrade', plan='starter') }}" class="dash-upgrade-btn">Betal med kort →</a>
       </div>
       <div class="dash-price-card featured">
         <div class="dash-price-badge">Mest populær</div>
@@ -93,7 +93,7 @@
           <li>✓ AI svarer på kommentarer</li>
           <li>✓ Prioriteret support</li>
         </ul>
-        <a href="mailto:hej@postmester.dk?subject=Opgradér til Pro" class="dash-upgrade-btn">Vælg Pro</a>
+        <a href="{{ url_for('upgrade', plan='pro') }}" class="dash-upgrade-btn">Betal med kort →</a>
       </div>
     </div>
   </div>
