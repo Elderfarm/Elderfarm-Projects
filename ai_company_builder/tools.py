@@ -184,10 +184,13 @@ def _build_landing_page(inputs: dict, state: dict) -> str:
     price = inputs.get("price", "")
 
     features_html = "\n".join(
-        f'<li class="feature-item">✓ {f}</li>' for f in features
+        '<li class="feature-item">✓ ' + f + '</li>' for f in features
     )
 
     price_html = f'<p class="price">{price}</p>' if price else ""
+
+    desc_html = "".join(f"<p>{para.strip()}</p>" for para in description.split("\n") if para.strip())
+    year = datetime.now().year
 
     html = f"""<!DOCTYPE html>
 <html lang="da">
@@ -222,7 +225,7 @@ def _build_landing_page(inputs: dict, state: dict) -> str:
   </section>
 
   <section class="description">
-    {"".join(f"<p>{para.strip()}</p>" for para in description.split("\n") if para.strip())}
+    {desc_html}
   </section>
 
   <section class="features">
@@ -239,7 +242,7 @@ def _build_landing_page(inputs: dict, state: dict) -> str:
   </section>
 
   <footer>
-    <p>© {datetime.now().year} {company_name}. Alle rettigheder forbeholdes.</p>
+    <p>© {year} {company_name}. Alle rettigheder forbeholdes.</p>
   </footer>
 </body>
 </html>"""
