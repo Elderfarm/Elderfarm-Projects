@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Admin — PostMester{% endblock %}
+
+{% block content %}
+<div class="dash-page">
+  <div class="dash-statbar">
+    <div class="dash-greeting">⚙️ Admin Dashboard</div>
+    <div class="dash-plan">
+      <span class="plan-badge plan-pro">ADMIN</span>
+    </div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="admin-kpis">
+    <div class="kpi-card">
+      <div class="kpi-num">{{ stats.total_users }}</div>
+      <div class="kpi-label">Brugere i alt</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-num">{{ stats.users_today }}</div>
+      <div class="kpi-label">Nye i dag</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-num">{{ stats.total_posts }}</div>
+      <div class="kpi-label">Opslag genereret</div>
+    </div>
+    <div class="kpi-card highlight">
+      <div class="kpi-num">{{ stats.paid_users }}</div>
+      <div class="kpi-label">Betalende kunder</div>
+    </div>
+    <div class="kpi-card highlight">
+      <div class="kpi-num">{{ stats.mrr }} kr</div>
+      <div class="kpi-label">MRR</div>
+    </div>
+  </div>
+
+  <!-- USER TABLE -->
+  <div class="admin-section">
+    <h2 class="dash-section-title">Alle brugere</h2>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Navn / Firma</th>
+            <th>Email</th>
+            <th>Plan</th>
+            <th>Opslag</th>
+            <th>Tilmeldt</th>
+            <th>Skift plan</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr>
+            <td>
+              <div class="user-name">{{ user.name or '—' }}</div>
+              <div class="user-company">{{ user.company or '' }}</div>
+            </td>
+            <td><a href="mailto:{{ user.email }}">{{ user.email }}</a></td>
+            <td><span class="plan-badge plan-{{ user.plan }}">{{ user.plan }}</span></td>
+            <td>{{ user.posts | length }}</td>
+            <td>{{ user.created_at.strftime('%d. %b') }}</td>
+            <td>
+              <form method="POST" action="/admin/set-plan">
+                <input type="hidden" name="user_id" value="{{ user.id }}">
+                <select name="plan" onchange="this.form.submit()" class="plan-select">
+                  <option value="gratis" {% if user.plan == 'gratis' %}selected{% endif %}>Gratis</option>
+                  <option value="starter" {% if user.plan == 'starter' %}selected{% endif %}>Starter</option>
+                  <option value="pro" {% if user.plan == 'pro' %}selected{% endif %}>Pro</option>
+                </select>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- RECENT POSTS -->
+  <div class="admin-section">
+    <h2 class="dash-section-title">Seneste opslag</h2>
+    <div class="post-list">
+      {% for post in recent_posts %}
+      <div class="post-item">
+        <div class="post-item-meta">
+          <span class="post-platform">{{ post.user.email }}</span>
+          <span class="post-tone">{{ post.platform }}</span>
+          <span class="post-date">{{ post.created_at.strftime('%d. %b %H:%M') }}</span>
+        </div>
+        <div class="post-description">{{ post.description }}</div>
+        <div class="post-text" style="font-size:0.85rem">{{ post.post_text[:200] }}...</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

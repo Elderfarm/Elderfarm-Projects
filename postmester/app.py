@@ -2,6 +2,8 @@ import os
 import base64
 import bcrypt
 import anthropic
+from datetime import datetime
+from functools import wraps
 from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
@@ -181,6 +183,53 @@ def delete_post(post_id):
     db.session.delete(post)
     db.session.commit()
     return redirect(url_for("dashboard"))
+
+
+# ── Admin ──────────────────────────────────────────────
+
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@postmester.dk")
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.email != ADMIN_EMAIL:
+            return redirect(url_for("index"))
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route("/admin")
+@login_required
+@admin_required
+def admin():
+    users = User.query.order_by(User.created_at.desc()).all()
+    recent_posts = Post.query.order_by(Post.created_at.desc()).limit(20).all()
+
+    paid = [u for u in users if u.plan != "gratis"]
+    mrr = sum(79 if u.plan == "starter" else 149 for u in paid)
+
+    today = datetime.utcnow().date()
+    users_today = sum(1 for u in users if u.created_at.date() == today)
+
+    stats = {
+        "total_users": len(users),
+        "users_today": users_today,
+        "total_posts": Post.query.count(),
+        "paid_users": len(paid),
+        "mrr": mrr,
+    }
+    return render_template("admin.html", users=users, recent_posts=recent_posts, stats=stats)
+
+
+@app.route("/admin/set-plan", methods=["POST"])
+@login_required
+@admin_required
+def admin_set_plan():
+    user = User.query.get(int(request.form["user_id"]))
+    if user:
+        user.plan = request.form["plan"]
+        db.session.commit()
+    return redirect(url_for("admin"))
 
 
 if __name__ == "__main__":

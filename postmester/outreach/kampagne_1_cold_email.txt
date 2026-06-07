@@ -1,0 +1,104 @@
+POSTMESTER — OUTREACH KAMPAGNE 1
+Mål: 50 emails på 2 dage
+Kanal: Kold email til håndværkere fundet via CVR.dk / Google Maps
+====================================================================
+
+SÅDAN FINDER DU LEADS (gratis, 30 min):
+1. Gå til cvr.dev og søg på branchekode:
+   - 433200 = Malervirksomheder
+   - 432200 = VVS-installatører
+   - 431100 = Elinstallatører
+   - 161000 = Tømrer/snedker
+2. Filtrer på: Aktive virksomheder, 1-10 ansatte, Danmark
+3. Find email via virksomhedens hjemmeside eller Google Maps
+
+====================================================================
+EMAIL SKABELON A — "Jeg lavede et opslag til dig"
+(Bedst konverterende format — vis dem noget konkret)
+====================================================================
+
+EMNE: Jeg lavede et Facebook-opslag til [Firmanavn] 🔨
+
+Hej [Navn],
+
+Jeg fandt jer på Google og lavede et hurtigt eksempel på et opslag
+PostMester ville generere til jeres Facebook-side:
+
+---
+[INDSÆT HER — brug PostMester.dk til at generere et opslag
+baseret på deres branche, f.eks. "VVS-firma i Odense, badeværelse"]
+---
+
+Det tog 45 sekunder at skrive.
+
+PostMester er et dansk AI-værktøj der gør præcis dette for jeres
+virksomhed — I tager et foto af et job, skriver to ord, og så
+poster AI'en et professionelt opslag på Facebook.
+
+Gratis at prøve: postmester.dk
+
+Vil I have resten af eksemplet, eller har I 5 min til en hurtig snak?
+
+Mvh
+[Dit navn]
+PostMester
+
+
+====================================================================
+EMAIL SKABELON B — "Jeres konkurrent" (høj åbningsrate)
+====================================================================
+
+EMNE: [Konkurrent] i [by] har 34 Google-anmeldelser. I har [X].
+
+Hej [Navn],
+
+Jeg vil ikke spilde jeres tid — kort version:
+
+Virksomheder med aktive Facebook-sider og mange Google-anmeldelser
+får 2-3x flere henvendelser end dem uden.
+
+PostMester hjælper håndværkere med begge dele automatisk:
+→ AI skriver Facebook-opslag fra et foto på 60 sekunder
+→ Sender SMS til kunder efter et job: "Vil du give os en anmeldelse?"
+
+Prøv det gratis på postmester.dk — 2 opslag/md uden kreditkort.
+
+Mvh
+[Dit navn]
+
+
+====================================================================
+EMAIL SKABELON C — Opfølgning (send dag 4 til dem der ikke svarede)
+====================================================================
+
+EMNE: Hurtigt opfølgende spørgsmål 👷
+
+Hej igen,
+
+Sendte jer en mail fornylig om PostMester — vil bare sikre den
+ikke druknede i indbakken.
+
+Én hurtig ting: hvad er jeres største frustration med markedsføring
+og synlighed online i dag?
+
+Svar bare med ét ord — det hjælper mig enormt.
+
+Mvh
+[Dit navn]
+
+
+====================================================================
+TRACKING (kopier og udfyld)
+====================================================================
+
+Dag | Firma                  | Email               | Skabelon | Svar
+----|------------------------|---------------------|----------|-----
+1   |                        |                     | A        |
+2   |                        |                     | A        |
+3   |                        |                     | B        |
+...
+
+MÅL: 50 emails sendt inden for 2 dage
+Forventede svar: 3-5 (6-10% svarrate er normalt for kold email)
+Forventede gratis-tilmeldinger: 8-12
+Forventede betalende kunder: 1-2 (= 79-298 kr MRR fra dag 1)
