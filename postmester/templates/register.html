@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Opret konto — PostMester{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">🔨</div>
+    <h1 class="auth-title">Opret gratis konto</h1>
+    <p class="auth-sub">2 opslag gratis hver måned — ingen kreditkort</p>
+
+    <form method="POST" class="auth-form">
+      <div class="field-group">
+        <label class="field-label" for="name">Dit navn</label>
+        <input type="text" id="name" name="name" class="auth-input" placeholder="Lars Nielsen" autofocus>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="company">Firmanavn <span class="field-optional">(valgfrit)</span></label>
+        <input type="text" id="company" name="company" class="auth-input" placeholder="Nielsen Tømrer ApS">
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="email">Email</label>
+        <input type="email" id="email" name="email" class="auth-input" placeholder="lars@nielsentomrer.dk" required>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="password">Password <span class="field-optional">(min. 6 tegn)</span></label>
+        <input type="password" id="password" name="password" class="auth-input" placeholder="••••••••" required minlength="6">
+      </div>
+      <button type="submit" class="auth-btn">Opret konto gratis →</button>
+    </form>
+
+    <p class="auth-switch">Har du allerede en konto? <a href="{{ url_for('login') }}">Log ind her</a></p>
+  </div>
+</div>
+{% endblock %}

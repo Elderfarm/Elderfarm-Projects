@@ -1,165 +1,136 @@
-<!DOCTYPE html>
-<html lang="da">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <title>PostMester — AI-opslag til håndværkere</title>
-  <link rel="stylesheet" href="/static/css/style.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}PostMester — AI-opslag til håndværkere{% endblock %}
 
-  <!-- HEADER -->
-  <header class="header">
-    <div class="header-inner">
-      <div class="logo">🔨 PostMester</div>
-      <div class="header-badge">GRATIS I DAG</div>
-    </div>
-  </header>
+{% block content %}
 
   <!-- HERO -->
   <section class="hero">
     <h1>Ét foto.<br>To ord.<br>Klar til Facebook.</h1>
     <p class="hero-sub">AI skriver dine opslag på 10 sekunder — du deler dem</p>
-    <a href="#app" class="hero-cta">Prøv det nu — det er gratis ↓</a>
+    {% if current_user.is_authenticated %}
+      <a href="#app" class="hero-cta">Lav et opslag nu ↓</a>
+    {% else %}
+      <a href="{{ url_for('register') }}" class="hero-cta">Prøv gratis — ingen kreditkort ↓</a>
+    {% endif %}
   </section>
 
   <!-- STEPS -->
   <section class="steps">
-    <div class="step">
-      <div class="step-num">1</div>
-      <div class="step-text">Tag et foto af dit arbejde</div>
-    </div>
+    <div class="step"><div class="step-num">1</div><div class="step-text">Tag et foto af dit arbejde</div></div>
     <div class="step-arrow">→</div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <div class="step-text">Beskriv jobbet kort</div>
-    </div>
+    <div class="step"><div class="step-num">2</div><div class="step-text">Beskriv jobbet kort</div></div>
     <div class="step-arrow">→</div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div class="step-text">Kopiér og del opslaget</div>
-    </div>
+    <div class="step"><div class="step-num">3</div><div class="step-text">Kopiér og del opslaget</div></div>
   </section>
 
-  <!-- APP -->
+  <!-- APP / LOGIN GATE -->
   <section class="app-section" id="app">
-    <div class="app-card">
+    {% if current_user.is_authenticated %}
 
-      <!-- FORM -->
-      <form id="postForm" enctype="multipart/form-data">
-
-        <!-- FOTO UPLOAD -->
-        <div class="field-group">
-          <label class="field-label">📷 Upload et foto <span class="field-optional">(valgfrit — men giver bedre opslag)</span></label>
-          <div class="upload-zone" id="uploadZone">
-            <input type="file" name="photo" id="photoInput" accept="image/*" capture="environment">
-            <div class="upload-placeholder" id="uploadPlaceholder">
-              <div class="upload-icon">📸</div>
-              <div class="upload-text">Tryk her for at tage et foto</div>
-              <div class="upload-sub">eller træk et billede hertil</div>
-            </div>
-            <img id="photoPreview" class="photo-preview hidden" alt="Forhåndsvisning">
-            <button type="button" class="remove-photo hidden" id="removePhoto">✕ Fjern foto</button>
-          </div>
+      <!-- USAGE BANNER -->
+      {% if current_user.plan == 'gratis' %}
+        <div class="usage-banner">
+          <span>🎟 Du har <strong>{{ current_user.posts_remaining() }} opslag</strong> tilbage denne måned på gratis-planen.</span>
+          <a href="{{ url_for('dashboard') }}#priser">Opgradér til Starter for ubegrænset →</a>
         </div>
+      {% endif %}
 
-        <!-- BESKRIVELSE -->
-        <div class="field-group">
-          <label class="field-label" for="description">✏️ Beskriv jobbet kort</label>
-          <textarea
-            id="description"
-            name="description"
-            class="description-input"
-            placeholder="F.eks: Nyt badeværelse i Odense, fliser og brus&#10;eller: Malet stue og gang i Roskilde, hvide vægge"
-            rows="3"
-            maxlength="300"
-          ></textarea>
-          <div class="char-count"><span id="charCount">0</span>/300</div>
-        </div>
+      <div class="app-card">
+        <form id="postForm" enctype="multipart/form-data">
 
-        <!-- PLATFORM + TONE -->
-        <div class="options-row">
-          <div class="field-group half">
-            <label class="field-label">📱 Platform</label>
-            <div class="pill-group" id="platformGroup">
-              <button type="button" class="pill active" data-value="facebook">Facebook</button>
-              <button type="button" class="pill" data-value="instagram">Instagram</button>
-              <button type="button" class="pill" data-value="both">Begge</button>
+          <!-- FOTO UPLOAD -->
+          <div class="field-group">
+            <label class="field-label">📷 Upload et foto <span class="field-optional">(valgfrit — men giver bedre opslag)</span></label>
+            <div class="upload-zone" id="uploadZone">
+              <input type="file" name="photo" id="photoInput" accept="image/*" capture="environment">
+              <div class="upload-placeholder" id="uploadPlaceholder">
+                <div class="upload-icon">📸</div>
+                <div class="upload-text">Tryk her for at tage et foto</div>
+                <div class="upload-sub">eller træk et billede hertil</div>
+              </div>
+              <img id="photoPreview" class="photo-preview hidden" alt="Forhåndsvisning">
+              <button type="button" class="remove-photo hidden" id="removePhoto">✕ Fjern foto</button>
             </div>
-            <input type="hidden" name="platform" id="platformInput" value="facebook">
           </div>
 
-          <div class="field-group half">
-            <label class="field-label">🎨 Tone</label>
-            <div class="pill-group" id="toneGroup">
-              <button type="button" class="pill active" data-value="professionel">Professionel</button>
-              <button type="button" class="pill" data-value="venlig">Venlig</button>
-              <button type="button" class="pill" data-value="salgsorienteret">Salg</button>
-            </div>
-            <input type="hidden" name="tone" id="toneInput" value="professionel">
+          <!-- BESKRIVELSE -->
+          <div class="field-group">
+            <label class="field-label" for="description">✏️ Beskriv jobbet kort</label>
+            <textarea
+              id="description" name="description" class="description-input"
+              placeholder="F.eks: Nyt badeværelse i Odense, fliser og brus&#10;eller: Malet stue og gang i Roskilde, hvide vægge"
+              rows="3" maxlength="300"></textarea>
+            <div class="char-count"><span id="charCount">0</span>/300</div>
           </div>
-        </div>
 
-        <!-- SUBMIT -->
-        <button type="submit" class="generate-btn" id="generateBtn">
-          <span class="btn-text">✨ Generer opslag</span>
-          <span class="btn-loading hidden">
-            <span class="spinner"></span> Skriver opslag...
-          </span>
-        </button>
+          <!-- PLATFORM + TONE -->
+          <div class="options-row">
+            <div class="field-group half">
+              <label class="field-label">📱 Platform</label>
+              <div class="pill-group" id="platformGroup">
+                <button type="button" class="pill active" data-value="facebook">Facebook</button>
+                <button type="button" class="pill" data-value="instagram">Instagram</button>
+                <button type="button" class="pill" data-value="both">Begge</button>
+              </div>
+              <input type="hidden" name="platform" id="platformInput" value="facebook">
+            </div>
+            <div class="field-group half">
+              <label class="field-label">🎨 Tone</label>
+              <div class="pill-group" id="toneGroup">
+                <button type="button" class="pill active" data-value="professionel">Professionel</button>
+                <button type="button" class="pill" data-value="venlig">Venlig</button>
+                <button type="button" class="pill" data-value="salgsorienteret">Salg</button>
+              </div>
+              <input type="hidden" name="tone" id="toneInput" value="professionel">
+            </div>
+          </div>
 
-      </form>
-
-      <!-- RESULT -->
-      <div class="result hidden" id="result">
-        <div class="result-header">
-          <div class="result-label">🎉 Dit opslag er klar!</div>
-          <button class="regenerate-btn" id="regenerateBtn">↺ Generer nyt</button>
-        </div>
-
-        <div class="result-post" id="resultPost"></div>
-
-        <div class="result-hashtags" id="resultHashtags"></div>
-
-        <div class="result-actions">
-          <button class="copy-btn" id="copyBtn">
-            <span id="copyBtnText">📋 Kopiér opslag</span>
+          <button type="submit" class="generate-btn" id="generateBtn">
+            <span class="btn-text">✨ Generer opslag</span>
+            <span class="btn-loading hidden"><span class="spinner"></span> Skriver opslag...</span>
           </button>
-          <button class="copy-btn secondary" id="copyAllBtn">
-            <span id="copyAllBtnText">📋 Kopiér med hashtags</span>
-          </button>
+        </form>
+
+        <!-- RESULT -->
+        <div class="result hidden" id="result">
+          <div class="result-header">
+            <div class="result-label">🎉 Dit opslag er klar!</div>
+            <button class="regenerate-btn" id="regenerateBtn">↺ Generer nyt</button>
+          </div>
+          <div class="result-post" id="resultPost"></div>
+          <div class="result-hashtags hidden" id="resultHashtags"></div>
+          <div class="result-actions">
+            <button class="copy-btn" id="copyBtn"><span id="copyBtnText">📋 Kopiér opslag</span></button>
+            <button class="copy-btn secondary" id="copyAllBtn"><span id="copyAllBtnText">📋 Kopiér med hashtags</span></button>
+          </div>
+          <div class="share-hint">
+            💡 <strong>Tip:</strong> Gå til <a href="{{ url_for('dashboard') }}">Mine opslag</a> for at se alle dine tidligere opslag
+          </div>
         </div>
 
-        <div class="share-hint">
-          💡 <strong>Tip:</strong> Kopiér opslaget og gå direkte til Facebook-appen for at dele det med dit foto
-        </div>
+        <div class="error-box hidden" id="errorBox"><span id="errorText"></span></div>
       </div>
 
-      <!-- ERROR -->
-      <div class="error-box hidden" id="errorBox">
-        <span id="errorText"></span>
+    {% else %}
+      <!-- NOT LOGGED IN -->
+      <div class="app-card login-gate">
+        <div class="gate-icon">🔒</div>
+        <h2 class="gate-title">Opret en gratis konto for at komme i gang</h2>
+        <p class="gate-sub">2 opslag gratis hver måned — ingen kreditkort, ingen binding</p>
+        <div class="gate-actions">
+          <a href="{{ url_for('register') }}" class="generate-btn" style="text-decoration:none; display:block; text-align:center;">Opret gratis konto →</a>
+          <p class="gate-login">Har du allerede en konto? <a href="{{ url_for('login') }}">Log ind her</a></p>
+        </div>
       </div>
-
-    </div>
+    {% endif %}
   </section>
 
   <!-- SOCIAL PROOF -->
   <section class="proof">
     <div class="proof-inner">
-      <div class="proof-item">
-        <div class="proof-num">40.000+</div>
-        <div class="proof-label">håndværksfirmaer i Danmark</div>
-      </div>
-      <div class="proof-item">
-        <div class="proof-num">10 sek</div>
-        <div class="proof-label">fra foto til færdigt opslag</div>
-      </div>
-      <div class="proof-item">
-        <div class="proof-num">Gratis</div>
-        <div class="proof-label">ingen kreditkort krævet</div>
-      </div>
+      <div class="proof-item"><div class="proof-num">40.000+</div><div class="proof-label">håndværksfirmaer i Danmark</div></div>
+      <div class="proof-item"><div class="proof-num">10 sek</div><div class="proof-label">fra foto til færdigt opslag</div></div>
+      <div class="proof-item"><div class="proof-num">Gratis</div><div class="proof-label">ingen kreditkort krævet</div></div>
     </div>
   </section>
 
@@ -167,7 +138,6 @@
   <section class="pricing" id="priser">
     <h2>Simpel pris. Ingen overraskelser.</h2>
     <div class="pricing-grid">
-
       <div class="price-card">
         <div class="price-name">Gratis</div>
         <div class="price-amount">0 kr<span>/md</span></div>
@@ -178,9 +148,8 @@
           <li class="muted">✗ Automatisk planlægning</li>
           <li class="muted">✗ SMS til kunder</li>
         </ul>
-        <a href="#app" class="price-cta outline">Start gratis</a>
+        <a href="{{ url_for('register') }}" class="price-cta outline">Start gratis</a>
       </div>
-
       <div class="price-card featured">
         <div class="price-badge">Mest populær</div>
         <div class="price-name">Starter</div>
@@ -193,9 +162,8 @@
           <li>✓ Månedlig synlighedsrapport</li>
           <li class="muted">✗ SMS til kunder</li>
         </ul>
-        <a href="#app" class="price-cta">Prøv 14 dage gratis</a>
+        <a href="{{ url_for('register') }}" class="price-cta">Prøv 14 dage gratis</a>
       </div>
-
       <div class="price-card">
         <div class="price-name">Pro</div>
         <div class="price-amount">149 kr<span>/md</span></div>
@@ -206,19 +174,15 @@
           <li>✓ Hjemmeside-widget</li>
           <li>✓ Prioriteret support</li>
         </ul>
-        <a href="#app" class="price-cta outline">Kom i gang</a>
+        <a href="{{ url_for('register') }}" class="price-cta outline">Kom i gang</a>
       </div>
-
     </div>
   </section>
 
-  <!-- FOOTER -->
   <footer class="footer">
     <div class="footer-logo">🔨 PostMester</div>
     <p>AI-drevet markedsføring til danske håndværkere</p>
-    <p class="footer-small">© 2025 PostMester · <a href="#">Privatlivspolitik</a> · <a href="#">Kontakt</a></p>
+    <p class="footer-small">© 2025 PostMester · <a href="#">Privatlivspolitik</a> · <a href="mailto:hej@postmester.dk">Kontakt</a></p>
   </footer>
 
-  <script src="/static/js/app.js"></script>
-</body>
-</html>
+{% endblock %}

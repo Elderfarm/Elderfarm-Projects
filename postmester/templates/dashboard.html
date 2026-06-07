@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Mine opslag — PostMester{% endblock %}
+
+{% block content %}
+<div class="dash-page">
+
+  <!-- STAT BAR -->
+  <div class="dash-statbar">
+    <div class="dash-greeting">
+      Hej {{ current_user.name or current_user.email.split('@')[0] }} 👋
+      {% if current_user.company %}<span class="dash-company">· {{ current_user.company }}</span>{% endif %}
+    </div>
+    <div class="dash-plan">
+      <span class="plan-badge plan-{{ current_user.plan }}">{{ current_user.plan|capitalize }}</span>
+      {% if current_user.plan == 'gratis' %}
+        <span class="plan-usage">{{ current_user.posts_remaining() }} opslag tilbage denne måned</span>
+        <a href="#priser" class="plan-upgrade">Opgradér →</a>
+      {% else %}
+        <span class="plan-usage">Ubegrænsede opslag</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- NEW POST SHORTCUT -->
+  <div class="dash-new">
+    <a href="{{ url_for('index') }}#app" class="dash-new-btn">✨ Lav nyt opslag</a>
+  </div>
+
+  <!-- POST HISTORY -->
+  <div class="dash-section">
+    <h2 class="dash-section-title">Dine seneste opslag</h2>
+
+    {% if posts %}
+      <div class="post-list">
+        {% for post in posts %}
+        <div class="post-item" id="post-{{ post.id }}">
+          <div class="post-item-meta">
+            <span class="post-platform post-platform-{{ post.platform }}">
+              {{ {'facebook': '📘 Facebook', 'instagram': '📸 Instagram', 'both': '📘📸 Begge'}[post.platform] }}
+            </span>
+            <span class="post-tone">{{ post.tone|capitalize }}</span>
+            <span class="post-date">{{ post.created_at.strftime('%d. %b %Y') }}</span>
+          </div>
+          <div class="post-description">{{ post.description }}</div>
+          <div class="post-text">{{ post.post_text }}</div>
+          {% if post.hashtags %}
+            <div class="post-hashtags">{{ post.hashtags }}</div>
+          {% endif %}
+          <div class="post-actions">
+            <button class="post-copy-btn" onclick="copyPost(this, `{{ post.post_text|replace('`', "'") }}`, `{{ (post.hashtags or '')|replace('`', "'") }}`)">
+              📋 Kopiér opslag
+            </button>
+            <form method="POST" action="{{ url_for('delete_post', post_id=post.id) }}" style="display:inline" onsubmit="return confirm('Slet dette opslag?')">
+              <button type="submit" class="post-delete-btn">🗑</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="dash-empty">
+        <div class="dash-empty-icon">📭</div>
+        <p>Du har ingen opslag endnu.</p>
+        <a href="{{ url_for('index') }}#app" class="dash-new-btn">Lav dit første opslag →</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- PRICING (only for gratis) -->
+  {% if current_user.plan == 'gratis' %}
+  <div class="dash-upgrade" id="priser">
+    <h2>Opgradér og få ubegrænsede opslag</h2>
+    <div class="dash-pricing-row">
+      <div class="dash-price-card">
+        <div class="dash-price-name">Starter</div>
+        <div class="dash-price-amount">79 kr<span>/md</span></div>
+        <div class="dash-price-eq">= en kop kaffe om ugen</div>
+        <ul>
+          <li>✓ Ubegrænsede opslag</li>
+          <li>✓ Automatisk planlægning</li>
+          <li>✓ 12 sæsonskabeloner</li>
+          <li>✓ Månedlig rapport</li>
+        </ul>
+        <a href="mailto:hej@postmester.dk?subject=Opgradér til Starter" class="dash-upgrade-btn">Vælg Starter</a>
+      </div>
+      <div class="dash-price-card featured">
+        <div class="dash-price-badge">Mest populær</div>
+        <div class="dash-price-name">Pro</div>
+        <div class="dash-price-amount">149 kr<span>/md</span></div>
+        <ul>
+          <li>✓ Alt i Starter</li>
+          <li>✓ SMS → Google-anmeldelser</li>
+          <li>✓ AI svarer på kommentarer</li>
+          <li>✓ Prioriteret support</li>
+        </ul>
+        <a href="mailto:hej@postmester.dk?subject=Opgradér til Pro" class="dash-upgrade-btn">Vælg Pro</a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+function copyPost(btn, postText, hashtags) {
+  const full = hashtags ? postText + '\n\n' + hashtags : postText;
+  navigator.clipboard.writeText(full).then(() => {
+    btn.textContent = '✅ Kopieret!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '📋 Kopiér opslag';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+</script>
+{% endblock %}
