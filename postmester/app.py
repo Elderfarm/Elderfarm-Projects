@@ -185,6 +185,88 @@ def generate():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/reply", methods=["POST"])
+@login_required
+def reply():
+    if current_user.plan != "pro":
+        return jsonify({"error": "AI kommentar-svar kræver Pro-plan."}), 403
+
+    comment = request.form.get("comment", "").strip()
+    context = request.form.get("context", "").strip()
+    if not comment:
+        return jsonify({"error": "Indsæt en kommentar"}), 400
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return jsonify({"error": "ANTHROPIC_API_KEY ikke sat"}), 500
+
+    client = anthropic.Anthropic(api_key=api_key)
+    prompt = f"""Du er en venlig håndværksmester der svarer på en kommentar på Facebook/Instagram.
+{f'Kontekst om virksomheden: {context}' if context else ''}
+
+Kommentar fra følger: "{comment}"
+
+Skriv 3 korte, professionelle og venlige svar på dansk. Hvert svar må max være 2-3 sætninger.
+Format: Svar 1: ...\nSvar 2: ...\nSvar 3: ..."""
+
+    resp = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=400,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    text = resp.content[0].text.strip()
+    replies = []
+    for line in text.split("\n"):
+        line = line.strip()
+        if line.startswith("Svar"):
+            parts = line.split(":", 1)
+            if len(parts) == 2:
+                replies.append(parts[1].strip())
+    if not replies:
+        replies = [text]
+    return jsonify({"replies": replies})
+
+
+@app.route("/report")
+@login_required
+def report():
+    if current_user.plan == "gratis":
+        flash("Månedlig rapport kræver Starter eller Pro", "error")
+        return redirect(url_for("dashboard"))
+
+    now = datetime.utcnow()
+    posts_month = Post.query.filter(
+        Post.user_id == current_user.id,
+        db.extract("month", Post.created_at) == now.month,
+        db.extract("year", Post.created_at) == now.year,
+    ).all()
+
+    total = Post.query.filter_by(user_id=current_user.id).count()
+
+    platform_counts = {}
+    tone_counts = {}
+    for p in posts_month:
+        platform_counts[p.platform] = platform_counts.get(p.platform, 0) + 1
+        tone_counts[p.tone] = tone_counts.get(p.tone, 0) + 1
+
+    top_platform = max(platform_counts, key=platform_counts.get) if platform_counts else "—"
+    top_tone = max(tone_counts, key=tone_counts.get) if tone_counts else "—"
+
+    platform_labels = {"facebook": "Facebook", "instagram": "Instagram", "both": "Begge"}
+    tone_labels = {"professionel": "Professionel", "venlig": "Venlig", "salgsorienteret": "Salgsorienteret"}
+
+    stats = {
+        "posts_this_month": len(posts_month),
+        "total_posts": total,
+        "top_platform": platform_labels.get(top_platform, top_platform),
+        "top_tone": tone_labels.get(top_tone, top_tone),
+        "platform_counts": {platform_labels.get(k, k): v for k, v in platform_counts.items()},
+        "tone_counts": {tone_labels.get(k, k): v for k, v in tone_counts.items()},
+        "month_name": ["januar","februar","marts","april","maj","juni","juli","august","september","oktober","november","december"][now.month - 1],
+    }
+    return render_template("report.html", stats=stats)
+
+
 @app.route("/post/<int:post_id>/delete", methods=["POST"])
 @login_required
 def delete_post(post_id):

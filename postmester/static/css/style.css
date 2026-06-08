@@ -677,6 +677,75 @@ body {
 .user-company { font-size: 0.78rem; color: var(--grey); }
 .plan-select { border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 0.82rem; background: var(--white); cursor: pointer; font-family: inherit; }
 
+/* ── Season templates ────────────────────────────────── */
+.template-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tpl-btn {
+  padding: 7px 13px;
+  border-radius: 20px;
+  border: 2px solid var(--border);
+  background: var(--white);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--dark);
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.tpl-btn:hover { border-color: var(--orange); color: var(--orange); background: var(--orange-light); }
+.tpl-btn.active { border-color: var(--orange); background: var(--orange); color: white; }
+
+/* ── Dashboard actions ───────────────────────────────── */
+.dash-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+.dash-action-btn {
+  display: inline-block;
+  background: var(--white);
+  color: var(--dark);
+  font-weight: 600;
+  padding: 12px 22px;
+  border-radius: 12px;
+  text-decoration: none;
+  font-size: 0.95rem;
+  border: 2px solid var(--border);
+  transition: all 0.12s;
+}
+.dash-action-btn:hover { border-color: var(--orange); color: var(--orange); }
+.dash-action-btn.pro { border-color: #A78BFA; color: #6D28D9; background: #F5F3FF; }
+.dash-action-btn.pro:hover { background: #EDE9FE; }
+
+/* ── Comment reply section ───────────────────────────── */
+.dash-section { margin-bottom: 32px; }
+.dash-section-sub { font-size: 0.9rem; color: var(--grey); margin-bottom: 16px; margin-top: -8px; }
+.reply-card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; }
+.reply-results { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+.reply-item { background: var(--light-grey); border-radius: 12px; padding: 16px 18px; border-left: 3px solid #A78BFA; }
+.reply-num { font-size: 0.75rem; font-weight: 700; color: #6D28D9; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+.reply-text { font-size: 0.93rem; line-height: 1.6; color: var(--dark); margin-bottom: 10px; }
+
+/* ── Report page ─────────────────────────────────────── */
+.report-header { margin-bottom: 24px; }
+.back-link { font-size: 0.88rem; color: var(--grey); text-decoration: none; display: inline-block; margin-bottom: 12px; }
+.back-link:hover { color: var(--orange); }
+.report-title { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 6px; }
+.report-sub { color: var(--grey); font-size: 0.95rem; }
+.report-kpis { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 28px; }
+.report-kpi { background: var(--white); border-radius: 14px; padding: 20px 22px; flex: 1; min-width: 130px; box-shadow: var(--shadow); text-align: center; border-top: 3px solid var(--border); }
+.report-kpi.highlight { border-top-color: var(--orange); }
+.report-kpi-num { font-size: 1.8rem; font-weight: 800; color: var(--dark); line-height: 1.1; }
+.report-kpi-label { font-size: 0.78rem; color: var(--grey); margin-top: 6px; }
+.report-section { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; margin-bottom: 16px; }
+.bar-chart { display: flex; flex-direction: column; gap: 14px; }
+.bar-row { display: flex; align-items: center; gap: 12px; }
+.bar-label { font-size: 0.88rem; font-weight: 500; min-width: 110px; color: var(--dark); }
+.bar-track { flex: 1; height: 12px; background: var(--light-grey); border-radius: 6px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--orange); border-radius: 6px; transition: width 0.6s ease; min-width: 4px; }
+.bar-count { font-size: 0.85rem; font-weight: 700; color: var(--dark); min-width: 24px; text-align: right; }
+.report-tip { background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 12px; padding: 16px 20px; font-size: 0.9rem; color: #92400E; margin-top: 16px; }
+
 /* ── FAQ ──────────────────────────────────────────────── */
 .faq-section { background: var(--white); padding: 56px 20px; border-top: 1px solid var(--border); }
 .faq-inner { max-width: 680px; margin: 0 auto; }

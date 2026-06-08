@@ -38,6 +38,27 @@
       <div class="app-card">
         <form id="postForm" enctype="multipart/form-data">
 
+          <!-- SÆSONSKABELONER (Starter+) -->
+          {% if current_user.plan in ('starter', 'pro') %}
+          <div class="field-group">
+            <label class="field-label">📋 Sæsonskabeloner <span class="field-optional">— klik for at udfylde automatisk</span></label>
+            <div class="template-grid" id="templateGrid">
+              <button type="button" class="tpl-btn" data-text="Sommertilbud på flise- og badeværelsesrenovering. Book nu og få 10% rabat i juli">☀️ Sommertilbud</button>
+              <button type="button" class="tpl-btn" data-text="Efteråret er her — perfekt tidspunkt at male huset inden vinteren sætter ind">🍂 Efterårsmaling</button>
+              <button type="button" class="tpl-btn" data-text="Vinterservice af vvs og varmeanlæg — undgå dyre overraskelser i kulden">❄️ Vinterservice</button>
+              <button type="button" class="tpl-btn" data-text="Forårspudsning af facade og udendørsarealer — klar til sommer">🌱 Forårspudsning</button>
+              <button type="button" class="tpl-btn" data-text="Julegave til hjemmet: nyt køkken eller badeværelse — book i december og spar">🎄 Juletilbud</button>
+              <button type="button" class="tpl-btn" data-text="Nyt år, nyt projekt! Vi er klar til din renovering i januar">🎊 Nytårstilbud</button>
+              <button type="button" class="tpl-btn" data-text="Påsketilbud: gratis tilstandsrapport ved alle større renoveringsopgaver">🐣 Påsketilbud</button>
+              <button type="button" class="tpl-btn" data-text="Vi har ledige tider næste uge — kontakt os for et hurtigt tilbud">📅 Ledige tider</button>
+              <button type="button" class="tpl-btn" data-text="Kig på dette flotte resultat vi netop har leveret til en glad kunde">⭐ Vis et job</button>
+              <button type="button" class="tpl-btn" data-text="Hjælp os med at nå nye kunder — giv os en Google-anmeldelse">📝 Bed om anmeldelse</button>
+              <button type="button" class="tpl-btn" data-text="Vi er din lokale håndværker i området — hurtig respons og fair priser">📍 Lokal ekspert</button>
+              <button type="button" class="tpl-btn" data-text="Månedstilbud: 15% rabat på alle maleropgaver i denne måned">🔖 Månedstilbud</button>
+            </div>
+          </div>
+          {% endif %}
+
           <!-- FOTO UPLOAD -->
           <div class="field-group">
             <label class="field-label">📷 Upload et foto <span class="field-optional">(valgfrit — men giver bedre opslag)</span></label>

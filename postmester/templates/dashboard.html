@@ -21,9 +21,15 @@
     </div>
   </div>
 
-  <!-- NEW POST SHORTCUT -->
-  <div class="dash-new">
+  <!-- QUICK ACTIONS -->
+  <div class="dash-actions">
     <a href="{{ url_for('index') }}#app" class="dash-new-btn">✨ Lav nyt opslag</a>
+    {% if current_user.plan in ('starter', 'pro') %}
+      <a href="{{ url_for('report') }}" class="dash-action-btn">📊 Månedlig rapport</a>
+    {% endif %}
+    {% if current_user.plan == 'pro' %}
+      <a href="#kommentarsvar" class="dash-action-btn pro">💬 AI kommentarsvar</a>
+    {% endif %}
   </div>
 
   <!-- POST HISTORY -->
@@ -99,6 +105,32 @@
   </div>
   {% endif %}
 
+  <!-- AI KOMMENTAR-SVAR (Pro) -->
+  {% if current_user.plan == 'pro' %}
+  <div class="dash-section dash-reply-section" id="kommentarsvar">
+    <h2 class="dash-section-title">💬 AI svar på kommentarer</h2>
+    <p class="dash-section-sub">Indsæt en kommentar fra Facebook eller Instagram — AI skriver 3 svarforslag på 5 sekunder.</p>
+    <div class="reply-card">
+      <div class="field-group">
+        <label class="field-label">Kommentar fra følger</label>
+        <textarea id="replyComment" class="description-input" rows="3" maxlength="500"
+          placeholder="F.eks: Hvad koster et nyt badeværelse? Sender gerne et tilbud tak"></textarea>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Om din virksomhed <span class="field-optional">(valgfrit)</span></label>
+        <input type="text" id="replyContext" class="description-input" style="height:auto;padding:12px 16px"
+          placeholder="F.eks: VVS-firma i Aarhus, specialister i badeværelser" maxlength="200">
+      </div>
+      <button class="generate-btn" id="replyBtn" onclick="generateReplies()">
+        <span id="replyBtnText">✨ Generer svarforslag</span>
+        <span id="replyBtnLoading" class="hidden"><span class="spinner"></span> Skriver svar...</span>
+      </button>
+      <div id="replyResults" class="reply-results hidden"></div>
+      <div id="replyError" class="error-box hidden"></div>
+    </div>
+  </div>
+  {% endif %}
+
 </div>
 
 <script>
@@ -111,6 +143,56 @@ function copyPost(btn, postText, hashtags) {
       btn.textContent = '📋 Kopiér opslag';
       btn.classList.remove('copied');
     }, 2000);
+  });
+}
+
+async function generateReplies() {
+  const comment = document.getElementById('replyComment').value.trim();
+  const context = document.getElementById('replyContext').value.trim();
+  const btn = document.getElementById('replyBtn');
+  const btnText = document.getElementById('replyBtnText');
+  const btnLoading = document.getElementById('replyBtnLoading');
+  const results = document.getElementById('replyResults');
+  const errorBox = document.getElementById('replyError');
+
+  if (!comment) { errorBox.textContent = 'Indsæt en kommentar'; errorBox.classList.remove('hidden'); return; }
+
+  btn.disabled = true;
+  btnText.classList.add('hidden');
+  btnLoading.classList.remove('hidden');
+  results.classList.add('hidden');
+  errorBox.classList.add('hidden');
+
+  try {
+    const fd = new FormData();
+    fd.append('comment', comment);
+    fd.append('context', context);
+    const resp = await fetch('/reply', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (!resp.ok || data.error) throw new Error(data.error || 'Fejl');
+
+    results.innerHTML = data.replies.map((r, i) => `
+      <div class="reply-item">
+        <div class="reply-num">Svar ${i+1}</div>
+        <div class="reply-text">${r}</div>
+        <button class="post-copy-btn" onclick="copyReply(this, \`${r.replace(/`/g,"'")}\`)">📋 Kopiér</button>
+      </div>`).join('');
+    results.classList.remove('hidden');
+  } catch(e) {
+    errorBox.textContent = e.message;
+    errorBox.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btnText.classList.remove('hidden');
+    btnLoading.classList.add('hidden');
+  }
+}
+
+function copyReply(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✅ Kopieret!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋 Kopiér'; btn.classList.remove('copied'); }, 2000);
   });
 }
 </script>

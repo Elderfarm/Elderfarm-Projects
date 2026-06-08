@@ -85,6 +85,21 @@ function setupPills(groupId, inputId) {
 setupPills('platformGroup', 'platformInput');
 setupPills('toneGroup', 'toneInput');
 
+// ── Season templates ───────────────────────────────────
+const templateGrid = document.getElementById('templateGrid');
+if (templateGrid) {
+  templateGrid.querySelectorAll('.tpl-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      descriptionInput.value = btn.dataset.text;
+      charCount.textContent = btn.dataset.text.length;
+      descriptionInput.focus();
+      templateGrid.querySelectorAll('.tpl-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      descriptionInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  });
+}
+
 // ── Form submit ────────────────────────────────────────
 form.addEventListener('submit', async (e) => {
   e.preventDefault();

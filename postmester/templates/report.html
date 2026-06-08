@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Månedlig rapport — PostMester{% endblock %}
+
+{% block content %}
+<div class="dash-page">
+
+  <div class="report-header">
+    <a href="{{ url_for('dashboard') }}" class="back-link">← Tilbage til dashboard</a>
+    <h1 class="report-title">📊 Rapport for {{ stats.month_name|capitalize }}</h1>
+    <p class="report-sub">Overblik over dine opslag og aktivitet denne måned</p>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="report-kpis">
+    <div class="report-kpi">
+      <div class="report-kpi-num">{{ stats.posts_this_month }}</div>
+      <div class="report-kpi-label">Opslag denne måned</div>
+    </div>
+    <div class="report-kpi highlight">
+      <div class="report-kpi-num">{{ stats.total_posts }}</div>
+      <div class="report-kpi-label">Opslag i alt</div>
+    </div>
+    <div class="report-kpi">
+      <div class="report-kpi-num">{{ stats.top_platform }}</div>
+      <div class="report-kpi-label">Foretrukken platform</div>
+    </div>
+    <div class="report-kpi">
+      <div class="report-kpi-num">{{ stats.top_tone }}</div>
+      <div class="report-kpi-label">Mest brugt tone</div>
+    </div>
+  </div>
+
+  {% if stats.posts_this_month > 0 %}
+
+  <!-- PLATFORM FORDELING -->
+  <div class="report-section">
+    <h2 class="dash-section-title">Platform-fordeling</h2>
+    <div class="bar-chart">
+      {% set max_val = stats.platform_counts.values()|list|max %}
+      {% for label, count in stats.platform_counts.items() %}
+      <div class="bar-row">
+        <div class="bar-label">{{ label }}</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width: {{ (count / max_val * 100)|int }}%"></div>
+        </div>
+        <div class="bar-count">{{ count }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- TONE FORDELING -->
+  <div class="report-section">
+    <h2 class="dash-section-title">Tone-fordeling</h2>
+    <div class="bar-chart">
+      {% set max_tone = stats.tone_counts.values()|list|max %}
+      {% for label, count in stats.tone_counts.items() %}
+      <div class="bar-row">
+        <div class="bar-label">{{ label }}</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width: {{ (count / max_tone * 100)|int }}%"></div>
+        </div>
+        <div class="bar-count">{{ count }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- TIP -->
+  <div class="report-tip">
+    <strong>💡 PostMester tip:</strong>
+    {% if stats.posts_this_month >= 8 %}
+      Fantastisk! Du poster jævnligt — det giver 3x mere synlighed på Facebook.
+    {% elif stats.posts_this_month >= 4 %}
+      Godt arbejde! Prøv at nå 8+ opslag næste måned for endnu mere synlighed.
+    {% else %}
+      Prøv at lave mindst 4 opslag om måneden — det øger din synlighed markant.
+    {% endif %}
+  </div>
+
+  {% else %}
+  <div class="dash-empty">
+    <div class="dash-empty-icon">📭</div>
+    <p>Du har ikke lavet nogen opslag denne måned endnu.</p>
+    <a href="{{ url_for('index') }}#app" class="dash-new-btn" style="margin-top:16px;display:inline-block">Lav dit første opslag →</a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
