@@ -142,7 +142,11 @@ form.addEventListener('submit', async (e) => {
     }
 
   } catch (err) {
-    showError(err.message);
+    if (err.message && (err.message.includes('opslag denne måned') || err.message.includes('Opgradér'))) {
+      showUpgradeModal();
+    } else {
+      showError(err.message);
+    }
   } finally {
     setLoading(false);
   }
@@ -251,6 +255,20 @@ function showError(msg) {
 function hideError() {
   errorBox.classList.add('hidden');
 }
+
+function showUpgradeModal() {
+  document.getElementById('upgradeModal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeUpgradeModal() {
+  document.getElementById('upgradeModal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('upgradeModal').addEventListener('click', (e) => {
+  if (e.target.id === 'upgradeModal') closeUpgradeModal();
+});
 
 async function schedulePost() {
   if (!currentPostId) return;

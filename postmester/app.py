@@ -537,6 +537,45 @@ def setup_admin(token):
 
 
 
+# In-memory rate limiting for demo
+_demo_requests = {}
+
+@app.route("/demo", methods=["POST"])
+def demo():
+    ip = request.remote_addr
+    today = datetime.utcnow().date().isoformat()
+    key = f"{ip}:{today}"
+
+    # Clean old entries
+    if len(_demo_requests) > 1000:
+        _demo_requests.clear()
+
+    count = _demo_requests.get(key, 0)
+    if count >= 10:
+        return jsonify({"error": "Du har prøvet demo for mange gange i dag. Opret en gratis konto for at fortsætte."}), 429
+    _demo_requests[key] = count + 1
+
+    description = request.form.get("description", "").strip()
+    if not description or len(description) < 5:
+        return jsonify({"error": "Beskriv venligst jobbet kort"}), 400
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return jsonify({"error": "API ikke tilgængelig"}), 500
+
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=400,
+            system="Du er en ekspert i dansk social media markedsføring for håndværksvirksomheder. Skriv et kort, engagerende Facebook-opslag på naturligt dansk. Max 3 afsnit, 2-3 emojis, slut med call-to-action. Skriv KUN selve opslaget.",
+            messages=[{"role": "user", "content": f"Skriv et Facebook-opslag til en dansk håndværksvirksomhed om: {description}"}]
+        )
+        return jsonify({"post": resp.content[0].text.strip()})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()

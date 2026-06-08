@@ -1124,3 +1124,48 @@ body {
 .post-social-btn.ig { background: linear-gradient(135deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); color: white; }
 .post-social-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .posted-badge { font-size: 0.78rem; font-weight: 700; color: var(--green); background: #F0FDF4; border: 1px solid #BBF7D0; padding: 4px 10px; border-radius: 20px; }
+
+/* ── Upgrade modal ───────────────────────────────────── */
+.upgrade-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+.upgrade-modal {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 36px 28px;
+  max-width: 560px;
+  width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.25s ease;
+}
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.upgrade-modal-icon { font-size: 3rem; margin-bottom: 12px; }
+.upgrade-modal-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.01em; }
+.upgrade-modal-sub { color: var(--grey); font-size: 0.95rem; margin-bottom: 24px; line-height: 1.6; }
+.upgrade-modal-plans { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; text-align: left; }
+.upgrade-modal-plan { flex: 1; min-width: 180px; max-width: 220px; border: 2px solid var(--border); border-radius: 14px; padding: 20px 18px; }
+.upgrade-modal-plan.featured { border-color: var(--orange); box-shadow: 0 0 0 3px var(--orange-light); }
+.upgrade-plan-name { font-size: 0.85rem; font-weight: 700; color: var(--grey); margin-bottom: 4px; }
+.upgrade-plan-price { font-size: 1.7rem; font-weight: 800; color: var(--dark); margin-bottom: 2px; }
+.upgrade-plan-price span { font-size: 0.9rem; font-weight: 400; color: var(--grey); }
+.upgrade-plan-features { list-style: none; font-size: 0.82rem; margin: 12px 0 16px; display: flex; flex-direction: column; gap: 5px; }
+.upgrade-plan-features li { color: var(--dark); }
+.upgrade-plan-btn { display: block; text-align: center; padding: 11px; background: var(--orange); color: white; border-radius: 10px; font-weight: 700; font-size: 0.88rem; text-decoration: none; transition: background 0.12s; }
+.upgrade-plan-btn:hover { background: var(--orange-dark); }
+.upgrade-plan-btn.outline { background: var(--white); color: var(--orange); border: 2px solid var(--orange); }
+.upgrade-plan-btn.outline:hover { background: var(--orange-light); }
+.upgrade-modal-close { background: none; border: none; color: var(--grey); font-size: 0.88rem; cursor: pointer; margin-top: 4px; font-family: inherit; text-decoration: underline; }
+.upgrade-modal-close:hover { color: var(--dark); }
+
+/* ── Demo card ───────────────────────────────────────── */
+.demo-card { border: 2px solid var(--orange); }
+.demo-label { background: var(--orange); color: white; font-weight: 700; font-size: 0.9rem; padding: 10px 16px; border-radius: 10px; margin-bottom: 20px; text-align: center; }
