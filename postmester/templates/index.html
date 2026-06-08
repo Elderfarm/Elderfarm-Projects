@@ -124,6 +124,10 @@
             <button class="copy-btn" id="copyBtn"><span id="copyBtnText">📋 Kopiér opslag</span></button>
             <button class="copy-btn secondary" id="copyAllBtn"><span id="copyAllBtnText">📋 Kopiér med hashtags</span></button>
           </div>
+          <div class="result-share">
+            <button class="share-btn share-fb" id="shareFbBtn">📘 Del på Facebook</button>
+            <button class="share-btn share-ig" id="shareIgBtn">📸 Del på Instagram</button>
+          </div>
           {% if current_user.is_authenticated and current_user.plan in ('starter','pro') %}
           <div class="schedule-hint hidden" id="scheduleHint">
             <label>🗓 Planlæg dette opslag:</label>

@@ -153,6 +153,41 @@ regenerateBtn.addEventListener('click', () => {
   form.dispatchEvent(new Event('submit'));
 });
 
+// ── Share buttons ──────────────────────────────────────
+document.getElementById('shareFbBtn').addEventListener('click', () => {
+  const full = currentHashtags ? currentPost + '\n\n' + currentHashtags : currentPost;
+  navigator.clipboard.writeText(full).then(() => {
+    window.open('https://www.facebook.com/', '_blank');
+    showShareToast('📘 Tekst kopieret! Indsæt det i dit Facebook-opslag.');
+  });
+});
+
+document.getElementById('shareIgBtn').addEventListener('click', () => {
+  const full = currentHashtags ? currentPost + '\n\n' + currentHashtags : currentPost;
+  if (navigator.share) {
+    navigator.share({ text: full }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(full).then(() => {
+      window.open('https://www.instagram.com/', '_blank');
+      showShareToast('📸 Tekst kopieret! Opret et nyt opslag på Instagram og indsæt.');
+    });
+  }
+});
+
+function showShareToast(msg) {
+  let toast = document.getElementById('shareToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'shareToast';
+    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:white;padding:14px 24px;border-radius:12px;font-size:0.9rem;font-weight:600;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.3);max-width:90vw;text-align:center;transition:opacity 0.3s';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 3500);
+}
+
 // ── Copy ───────────────────────────────────────────────
 copyBtn.addEventListener('click', () => {
   copyToClipboard(currentPost, copyBtn, 'copyBtnText', '✅ Kopieret!', '📋 Kopiér opslag');
