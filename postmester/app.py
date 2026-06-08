@@ -318,6 +318,30 @@ def admin_set_plan():
     return redirect(url_for("admin"))
 
 
+@app.route("/setup/<token>")
+def setup_admin(token):
+    expected = os.environ.get("SETUP_TOKEN", "")
+    if not expected or token != expected:
+        return "Ikke tilladt", 403
+
+    EMAIL = "antont16@gmail.com"
+    PASSWORD = "PostMester2025!"
+    NAME = "Anton"
+
+    existing = User.query.filter_by(email=EMAIL).first()
+    pw_hash = bcrypt.hashpw(PASSWORD.encode(), bcrypt.gensalt()).decode()
+    if existing:
+        existing.plan = "pro"
+        existing.password_hash = pw_hash
+        db.session.commit()
+        return f"✅ Opdateret: {EMAIL} → plan=pro"
+    else:
+        user = User(email=EMAIL, password_hash=pw_hash, name=NAME, plan="pro")
+        db.session.add(user)
+        db.session.commit()
+        return f"✅ Oprettet: {EMAIL} → plan=pro<br>Log ind med: {EMAIL} / {PASSWORD}"
+
+
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
