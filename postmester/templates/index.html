@@ -235,7 +235,7 @@
     {% endif %}
   </section>
 
-  <!-- SOCIAL PROOF (reelt) -->
+  <!-- SOCIAL PROOF -->
   <section class="proof">
     <div class="proof-inner">
       <div class="proof-item"><div class="proof-num">10 sek</div><div class="proof-label">fra foto til færdigt opslag</div></div>
@@ -243,6 +243,48 @@
       <div class="proof-item"><div class="proof-num">Dansk</div><div class="proof-label">AI der skriver naturligt dansk</div></div>
     </div>
   </section>
+
+  <!-- REVIEWS -->
+  {% if not current_user.is_authenticated %}
+  <section class="reviews-section">
+    <div class="reviews-inner">
+      <div class="reviews-label">Hvad siger andre håndværkere?</div>
+      <div class="reviews-badges">
+
+        {# Google Reviews badge — indsæt dit link når du har anmeldelser #}
+        {% set google_review_link = "" %} {# eks: "https://g.page/r/YOUR_PLACE_ID/review" #}
+        <a href="{{ google_review_link or 'https://g.page/r/review' }}"
+           target="_blank" rel="noopener" class="review-badge google-badge">
+          <svg class="review-badge-logo" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+          </svg>
+          <div class="review-badge-content">
+            <div class="review-badge-stars">★★★★★</div>
+            <div class="review-badge-text">Se anmeldelser på Google</div>
+          </div>
+        </a>
+
+        {# Trustpilot badge — indsæt dit Trustpilot-profillink #}
+        {% set trustpilot_link = "" %} {# eks: "https://dk.trustpilot.com/review/postmester.dk" #}
+        <a href="{{ trustpilot_link or 'https://dk.trustpilot.com' }}"
+           target="_blank" rel="noopener" class="review-badge trustpilot-badge">
+          <svg class="review-badge-logo" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 0L14.59 8H23l-6.82 4.95 2.59 8L12 16l-6.77 4.95 2.59-8L1 8h8.41z" fill="#00B67A"/>
+          </svg>
+          <div class="review-badge-content">
+            <div class="review-badge-stars" style="color:#00B67A">★★★★★</div>
+            <div class="review-badge-text">Se anmeldelser på Trustpilot</div>
+          </div>
+        </a>
+
+      </div>
+      <p class="reviews-cta-note">Prøv selv og skriv den første anmeldelse 👇</p>
+    </div>
+  </section>
+  {% endif %}
 
   <!-- WHO IT'S FOR -->
   {% if not current_user.is_authenticated %}
