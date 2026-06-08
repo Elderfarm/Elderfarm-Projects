@@ -1,29 +1,92 @@
 {% extends "base.html" %}
-{% block title %}PostMester — AI-opslag til håndværkere{% endblock %}
+{% block title %}PostMester — AI-opslag til håndværkere på 10 sekunder{% endblock %}
 
 {% block content %}
 
   <!-- HERO -->
   <section class="hero">
-    <h1>Ét foto.<br>To ord.<br>Klar til Facebook.</h1>
-    <p class="hero-sub">AI skriver dine opslag på 10 sekunder — du deler dem</p>
+    <div class="hero-eyebrow">🔨 Bygget til danske håndværkere</div>
+    <h1>Stop med at miste kunder til håndværkeren<br>der er aktiv på Facebook</h1>
+    <p class="hero-sub">PostMester skriver dine opslag automatisk. Tag et foto, skriv to ord — færdigt på 10 sekunder.</p>
     {% if current_user.is_authenticated %}
       <a href="#app" class="hero-cta">Lav et opslag nu ↓</a>
     {% else %}
       <a href="{{ url_for('register') }}" class="hero-cta">Prøv gratis — ingen kreditkort ↓</a>
+      <a href="#demo" class="hero-cta-secondary">Se hvordan det virker ↓</a>
     {% endif %}
+    <div class="hero-trust">
+      <span>✓ Gratis at starte</span>
+      <span>✓ Ingen binding</span>
+      <span>✓ Virker på 10 sekunder</span>
+    </div>
   </section>
+
+  <!-- PROBLEM -->
+  {% if not current_user.is_authenticated %}
+  <section class="problem-section">
+    <div class="problem-inner">
+      <h2 class="problem-title">Kender du det her?</h2>
+      <div class="problem-grid">
+        <div class="problem-item">
+          <div class="problem-icon">😤</div>
+          <p>Du er træt efter en lang arbejdsdag — det sidste du gider er at sidde og skrive til Facebook</p>
+        </div>
+        <div class="problem-item">
+          <div class="problem-icon">📱</div>
+          <p>Du ved du burde poste billeder af dit arbejde — men det sker bare aldrig</p>
+        </div>
+        <div class="problem-item">
+          <div class="problem-icon">😟</div>
+          <p>Din konkurrent er aktiv på sociale medier og får nye kunder — du ikke</p>
+        </div>
+      </div>
+      <div class="problem-solution-bridge">
+        <strong>PostMester løser det på 10 sekunder.</strong><br>
+        Ingen skrivning. Ingen forberedelse. Bare et foto og to ord.
+      </div>
+    </div>
+  </section>
+  {% endif %}
 
   <!-- STEPS -->
   <section class="steps">
     <div class="step"><div class="step-num">1</div><div class="step-text">Tag et foto af dit arbejde</div></div>
     <div class="step-arrow">→</div>
-    <div class="step"><div class="step-num">2</div><div class="step-text">Beskriv jobbet kort</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-text">Beskriv jobbet med to ord</div></div>
     <div class="step-arrow">→</div>
-    <div class="step"><div class="step-num">3</div><div class="step-text">Kopiér og del opslaget</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-text">Kopiér og del på 10 sekunder</div></div>
   </section>
 
-  <!-- APP / LOGIN GATE -->
+  <!-- EXAMPLE POSTS -->
+  {% if not current_user.is_authenticated %}
+  <section class="example-section">
+    <div class="example-inner">
+      <div class="example-label">Sådan ser et færdigt opslag ud</div>
+      <div class="example-cards">
+        <div class="example-card">
+          <div class="example-meta">📘 Facebook · Professionel tone</div>
+          <div class="example-input">Input: <em>"Nyt badeværelse, Odense, fliser og brus"</em></div>
+          <div class="example-post">
+            Vi er netop færdige med endnu et flot badeværelse i Odense! 🚿✨<br><br>
+            Kunden ønskede et moderne look med store fliser og en luksuriøs brusesektion — og det er præcis, hvad vi har leveret.<br><br>
+            Drømmer du om et nyt badeværelse? Vi har ledige tider i næste måned. Ring eller skriv til os for et uforpligtende tilbud 👇
+          </div>
+        </div>
+        <div class="example-card">
+          <div class="example-meta">📸 Instagram · Venlig tone</div>
+          <div class="example-input">Input: <em>"Malet stue og gang, Roskilde, hvide vægge"</em></div>
+          <div class="example-post">
+            Friske hvide vægge giver et helt nyt liv til hjemmet! 🎨🏠<br><br>
+            Vi har netop leveret en stue- og gangrenovering i Roskilde — kunden var super glad for resultatet.<br><br>
+            Har din stue brug for et løft? Vi giver gerne et tilbud — skriv til os i dag! 😊
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- APP / DEMO -->
   <section class="app-section" id="app">
     {% if current_user.is_authenticated %}
 
@@ -146,7 +209,7 @@
 
     {% else %}
       <!-- LIVE DEMO FOR NON-LOGGED-IN -->
-      <div class="app-card demo-card">
+      <div class="app-card demo-card" id="demo">
         <div class="demo-label">👇 Prøv det selv — se et rigtigt opslag på 10 sekunder</div>
         <div class="field-group">
           <label class="field-label">✏️ Beskriv et job kort</label>
@@ -154,15 +217,15 @@
             placeholder="F.eks: Nyt badeværelse i Odense, fliser og brus"></textarea>
         </div>
         <button class="generate-btn" id="demoBtn" onclick="runDemo()">
-          <span id="demoBtnText">✨ Se dit opslag</span>
+          <span id="demoBtnText">✨ Se dit opslag gratis</span>
           <span id="demoBtnLoading" class="hidden"><span class="spinner"></span> Skriver opslag...</span>
         </button>
         <div id="demoResult" class="hidden" style="margin-top:20px">
           <div class="result-label" style="margin-bottom:10px">🎉 Sådan ser dit opslag ud!</div>
           <div class="result-post" id="demoPost" style="margin-bottom:16px"></div>
-          <div style="background:var(--orange-light);border-radius:12px;padding:18px 20px;text-align:center">
-            <p style="font-weight:700;font-size:1rem;margin-bottom:8px">Vil du gemme dette opslag og dele det?</p>
-            <p style="color:var(--grey);font-size:0.88rem;margin-bottom:16px">Opret en gratis konto — tager 30 sekunder</p>
+          <div style="background:var(--orange-light);border-radius:12px;padding:20px;text-align:center">
+            <p style="font-weight:700;font-size:1rem;margin-bottom:6px">Vil du gemme dette og lave ubegrænsede opslag?</p>
+            <p style="color:var(--grey);font-size:0.88rem;margin-bottom:16px">Opret en gratis konto — tager 30 sekunder. Ingen kreditkort.</p>
             <a href="{{ url_for('register') }}" class="generate-btn" style="text-decoration:none;display:block;text-align:center;margin-bottom:10px;padding:15px">Opret gratis konto og gem opslaget →</a>
             <p style="font-size:0.82rem;color:var(--grey)">Har du allerede en konto? <a href="{{ url_for('login') }}" style="color:var(--orange);font-weight:600">Log ind her</a></p>
           </div>
@@ -172,18 +235,39 @@
     {% endif %}
   </section>
 
-  <!-- SOCIAL PROOF -->
+  <!-- SOCIAL PROOF (reelt) -->
   <section class="proof">
     <div class="proof-inner">
-      <div class="proof-item"><div class="proof-num">40.000+</div><div class="proof-label">håndværksfirmaer i Danmark</div></div>
       <div class="proof-item"><div class="proof-num">10 sek</div><div class="proof-label">fra foto til færdigt opslag</div></div>
       <div class="proof-item"><div class="proof-num">Gratis</div><div class="proof-label">ingen kreditkort krævet</div></div>
+      <div class="proof-item"><div class="proof-num">Dansk</div><div class="proof-label">AI der skriver naturligt dansk</div></div>
     </div>
   </section>
 
+  <!-- WHO IT'S FOR -->
+  {% if not current_user.is_authenticated %}
+  <section class="for-section">
+    <div class="for-inner">
+      <h2>PostMester er til dig, der er</h2>
+      <div class="for-grid">
+        <div class="for-item">🔨 Tømrer</div>
+        <div class="for-item">🎨 Maler</div>
+        <div class="for-item">🔧 VVS'er</div>
+        <div class="for-item">⚡ Elektriker</div>
+        <div class="for-item">🧱 Murer</div>
+        <div class="for-item">🪟 Snedker</div>
+        <div class="for-item">🏗 Anlægsgartner</div>
+        <div class="for-item">🔩 Smed</div>
+      </div>
+      <p class="for-sub">— og alle andre selvstændige håndværkere der vil have flere kunder via sociale medier, uden at bruge timer på markedsføring.</p>
+    </div>
+  </section>
+  {% endif %}
+
   <!-- PRICING -->
   <section class="pricing" id="priser">
-    <h2>Simpel pris. Ingen overraskelser.</h2>
+    <h2>Simpel pris. Ingen binding. Stop når du vil.</h2>
+    <p class="pricing-sub">De fleste håndværkere starter gratis og opgraderer inden for den første uge.</p>
     <div class="pricing-grid">
       <div class="price-card">
         <div class="price-name">Gratis</div>
@@ -196,12 +280,13 @@
           <li class="muted">✗ SMS til kunder</li>
         </ul>
         <a href="{{ url_for('register') }}" class="price-cta outline">Start gratis</a>
+        <div class="price-guarantee">Ingen kreditkort</div>
       </div>
       <div class="price-card featured">
         <div class="price-badge">Mest populær</div>
         <div class="price-name">Starter</div>
         <div class="price-amount">79 kr<span>/md</span></div>
-        <div class="price-eq">= en kop kaffe om ugen</div>
+        <div class="price-eq">= én kop kaffe om ugen</div>
         <ul class="price-features">
           <li>✓ Ubegrænsede opslag</li>
           <li>✓ Automatisk planlægning</li>
@@ -214,6 +299,7 @@
         {% else %}
           <a href="{{ url_for('register') }}" class="price-cta">Opret konto og betal →</a>
         {% endif %}
+        <div class="price-guarantee">✓ Ingen binding · Stop når du vil</div>
       </div>
       <div class="price-card">
         <div class="price-name">Pro</div>
@@ -222,7 +308,6 @@
           <li>✓ Alt i Starter</li>
           <li>✓ SMS → Google-anmeldelser</li>
           <li>✓ AI svarer på kommentarer</li>
-          <li>✓ Hjemmeside-widget</li>
           <li>✓ Prioriteret support</li>
         </ul>
         {% if current_user.is_authenticated %}
@@ -230,6 +315,7 @@
         {% else %}
           <a href="{{ url_for('register') }}" class="price-cta outline">Opret konto og betal →</a>
         {% endif %}
+        <div class="price-guarantee">✓ Ingen binding · Stop når du vil</div>
       </div>
     </div>
   </section>
@@ -240,33 +326,61 @@
       <h2>Ofte stillede spørgsmål</h2>
       <div class="faq-list">
         <details class="faq-item">
-          <summary>Skal jeg være god til teknik?</summary>
-          <p>Nej. Hvis du kan tage et foto og skrive to ord, kan du bruge PostMester. Det er bygget til travle håndværkere — ikke til it-folk.</p>
+          <summary>Skal jeg være god til teknik eller markedsføring?</summary>
+          <p>Nej. PostMester er bygget til travle håndværkere — ikke til it-folk. Hvis du kan tage et foto og skrive to ord, kan du bruge det. Resten klarer AI'en.</p>
         </details>
         <details class="faq-item">
-          <summary>Hvad sker der når mine 2 gratis opslag er brugt?</summary>
-          <p>Du kan opgradere til Starter (79 kr/md) for ubegrænsede opslag. Ingen binding — du kan stoppe når som helst.</p>
+          <summary>Ser opslaget fake eller robotagtigt ud?</summary>
+          <p>Prøv demo'en øverst på siden og bedøm selv. AI'en skriver på naturligt, uformelt dansk — på samme måde som du selv ville skrive, bare hurtigere og bedre.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Virker det til alle typer håndværk?</summary>
+          <p>Ja. Tømrer, maler, vvs'er, elektriker, murer, snedker, anlægsgartner — alle typer håndværk fungerer. Du beskriver bare jobbet, og AI tilpasser opslaget.</p>
         </details>
         <details class="faq-item">
           <summary>Poster PostMester automatisk på min Facebook?</summary>
-          <p>På Starter og Pro-planen kan du planlægge opslag til automatisk offentliggørelse. På gratis-planen kopierer du opslaget og deler det selv — det tager 10 sekunder.</p>
+          <p>På Starter og Pro kan du planlægge opslag til automatisk udgivelse. På gratis kopierer du opslaget og deler det selv — det tager 10 sekunder.</p>
         </details>
         <details class="faq-item">
-          <summary>Hvad er SMS til Google-anmeldelser?</summary>
-          <p>På Pro-planen sender PostMester automatisk en SMS til din kunde efter et afsluttet job: "Hej Lars, tusind tak for opgaven — vil du give os en anmeldelse på Google?" Flere anmeldelser = flere nye kunder.</p>
+          <summary>Hvad sker der når mine 2 gratis opslag er brugt?</summary>
+          <p>Du kan opgradere til Starter (79 kr/md) for ubegrænsede opslag. Ingen binding — du kan stoppe når som helst med et klik.</p>
         </details>
         <details class="faq-item">
           <summary>Kan jeg prøve det uden kreditkort?</summary>
-          <p>Ja. Gratis-planen kræver ingen betaling overhovedet — opret en konto og prøv det med det samme.</p>
+          <p>Ja. Gratis-planen kræver ingen betaling overhovedet. Opret en konto og prøv det med det samme — ingen kreditkort, ingen forpligtelse.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Hvad er SMS til Google-anmeldelser?</summary>
+          <p>En Pro-funktion: når du er færdig med et job, sender du kunden en SMS med dit Google anmeldelseslink. Flere anmeldelser betyder flere nye kunder fra Google.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Er mine kunders data og fotos sikre?</summary>
+          <p>Ja. Fotos bruges kun til at generere opslaget. Vi sælger aldrig data videre og overholder dansk GDPR-lovgivning.</p>
         </details>
       </div>
     </div>
   </section>
 
+  <!-- FINAL CTA -->
+  {% if not current_user.is_authenticated %}
+  <section class="final-cta-section">
+    <div class="final-cta-inner">
+      <h2>Klar til dit første opslag?</h2>
+      <p>Det tager 30 sekunder at oprette en konto. Ingen kreditkort krævet.</p>
+      <a href="{{ url_for('register') }}" class="hero-cta" style="display:inline-block;margin-top:8px">Opret gratis konto →</a>
+      <div class="hero-trust" style="justify-content:center;margin-top:16px">
+        <span>✓ Gratis at starte</span>
+        <span>✓ Ingen binding</span>
+        <span>✓ Dansk support</span>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
   <footer class="footer">
     <div class="footer-logo">🔨 PostMester</div>
     <p>AI-drevet markedsføring til danske håndværkere</p>
-    <p class="footer-small">© 2025 PostMester · <a href="#">Privatlivspolitik</a> · <a href="mailto:hej@postmester.dk">Kontakt</a></p>
+    <p class="footer-small">© 2025 PostMester · <a href="#">Privatlivspolitik</a> · <a href="mailto:hej@postmester.dk">hej@postmester.dk</a> · <a href="#">Kontakt</a></p>
   </footer>
 
 <!-- UPGRADE MODAL -->
@@ -286,6 +400,7 @@
           <li>✓ Månedlig rapport</li>
         </ul>
         <a href="/upgrade/starter" class="upgrade-plan-btn">Opgrader nu →</a>
+        <div style="font-size:0.78rem;color:#888;margin-top:8px">Ingen binding · Stop når du vil</div>
       </div>
       <div class="upgrade-modal-plan">
         <div class="upgrade-plan-name">Pro</div>
