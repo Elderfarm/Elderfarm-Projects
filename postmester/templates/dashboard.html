@@ -41,6 +41,24 @@
   {# ── 3. FEATURE CARDS GRID ──────────────────────────────── #}
   <div class="feature-grid">
 
+    {# Tilbudsgenerator #}
+    {% if current_user.plan in ('starter', 'pro') %}
+    <div class="feature-card">
+      <div class="feature-card-icon">📋</div>
+      <div class="feature-card-title">Tilbudsgenerator</div>
+      <div class="feature-card-desc">Professionelt tilbud på 10 sekunder</div>
+      <a href="{{ url_for('quote_page') }}" class="feature-card-btn">Lav tilbud →</a>
+    </div>
+    {% else %}
+    <div class="feature-card locked">
+      <div class="feature-card-lock">🔒</div>
+      <div class="feature-card-icon">📋</div>
+      <div class="feature-card-title">Tilbudsgenerator</div>
+      <div class="feature-card-desc">Skriv professionelle tilbud automatisk</div>
+      <a href="{{ url_for('upgrade', plan='starter') }}" class="feature-card-btn outline">Oplås med Starter →</a>
+    </div>
+    {% endif %}
+
     {# Månedlig rapport #}
     {% if current_user.plan in ('starter', 'pro') %}
     <div class="feature-card">

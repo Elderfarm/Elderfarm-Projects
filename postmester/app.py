@@ -265,6 +265,72 @@ def send_sms():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/tilbud")
+@login_required
+def quote_page():
+    if current_user.plan not in ("starter", "pro"):
+        flash("Tilbudsgenerator kræver Starter eller Pro", "error")
+        return redirect(url_for("dashboard"))
+    return render_template("quote.html")
+
+
+@app.route("/tilbud/generer", methods=["POST"])
+@login_required
+def generate_quote():
+    if current_user.plan not in ("starter", "pro"):
+        return jsonify({"error": "Tilbudsgenerator kræver Starter eller Pro"}), 403
+
+    client_name = request.form.get("client_name", "").strip()
+    client_email = request.form.get("client_email", "").strip()
+    client_address = request.form.get("client_address", "").strip()
+    description = request.form.get("description", "").strip()
+    price = request.form.get("price", "").strip()
+    validity_days = request.form.get("validity_days", "14").strip()
+    tone = request.form.get("tone", "professionel").strip()
+
+    if not client_name or not description:
+        return jsonify({"error": "Kundenavn og opgavebeskrivelse er påkrævet"}), 400
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return jsonify({"error": "ANTHROPIC_API_KEY ikke sat"}), 500
+
+    tone_map = {
+        "professionel": "professionel og præcis",
+        "venlig": "venlig og personlig",
+        "kortfattet": "kortfattet og direkte",
+    }
+    tone_label = tone_map.get(tone, "professionel og præcis")
+    company = current_user.company or current_user.name or "vores firma"
+
+    prompt = f"""Du er en erfaren dansk håndværksmester der skriver professionelle tilbud til kunder.
+
+Skriv brødteksten til et tilbud med følgende detaljer:
+- Kunde: {client_name}
+- Virksomhed der sender tilbud: {company}
+- Opgave: {description}
+{f'- Adresse: {client_address}' if client_address else ''}
+{f'- Pris: {price} kr ekskl. moms' if price else ''}
+- Gyldighed: {validity_days} dage
+- Tone: {tone_label}
+
+Skriv KUN brødteksten (ikke overskrift, ikke pris-tabel, ikke signatur).
+Strukturér med: 1) Kort tak for henvendelsen 2) Hvad tilbuddet dækker 3) Hvad der er inkluderet 4) Eventuelle forbehold 5) Opfordring til at acceptere.
+Max 200 ord. Naturligt dansk."""
+
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=500,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        body = resp.content[0].text.strip()
+        return jsonify({"body": body})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/review-request", methods=["POST"])
 @login_required
 def review_request():

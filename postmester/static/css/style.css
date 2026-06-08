@@ -1277,3 +1277,70 @@ body {
 .review-badge-stars { font-size: 1.1rem; color: #FFA500; letter-spacing: 2px; line-height: 1; }
 .review-badge-text { font-size: 0.82rem; color: var(--grey); font-weight: 500; margin-top: 2px; }
 .reviews-cta-note { font-size: 0.85rem; color: var(--grey); }
+
+/* ── Quote / Tilbud ──────────────────────────────────── */
+.quote-print-area {
+  font-family: 'Inter', sans-serif;
+  color: #1A1A1A;
+  line-height: 1.6;
+}
+.quote-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--orange);
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.quote-company-name { font-size: 1.2rem; font-weight: 800; color: var(--orange); }
+.quote-company-sub { font-size: 0.85rem; color: var(--grey); margin-top: 2px; }
+.quote-meta { text-align: right; }
+.quote-title { font-size: 1.6rem; font-weight: 800; letter-spacing: 0.05em; color: var(--dark); }
+.quote-date, .quote-number { font-size: 0.82rem; color: var(--grey); margin-top: 2px; }
+.quote-to {
+  background: var(--light-grey);
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-size: 0.9rem;
+  margin-bottom: 24px;
+  line-height: 1.7;
+}
+.quote-body {
+  font-size: 0.95rem;
+  line-height: 1.8;
+  margin-bottom: 24px;
+  white-space: pre-wrap;
+}
+.quote-price-box { margin-bottom: 20px; }
+.quote-price-table {
+  width: 100%;
+  max-width: 340px;
+  margin-left: auto;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+.quote-price-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.quote-price-table td:last-child { text-align: right; font-weight: 600; }
+.quote-total td {
+  padding-top: 12px;
+  font-size: 1.05rem;
+  border-bottom: none;
+  border-top: 2px solid var(--orange);
+}
+.quote-footer-text {
+  font-size: 0.82rem;
+  color: var(--grey);
+  margin-bottom: 32px;
+  font-style: italic;
+}
+.quote-signature {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  font-size: 0.88rem;
+  color: var(--dark);
+}

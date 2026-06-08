@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% block title %}Tilbudsgenerator — PostMester{% endblock %}
+
+{% block content %}
+<div class="dash-page" style="max-width:720px">
+
+  <div class="dash-overview">
+    <div class="dash-overview-top">
+      <div class="dash-greeting-block">
+        <span class="dash-greeting-text">📋 Tilbudsgenerator</span>
+        <span class="plan-badge plan-{{ current_user.plan }}">{{ current_user.plan|capitalize }}</span>
+      </div>
+    </div>
+    <p style="color:var(--grey);font-size:0.9rem;margin-top:4px">Beskriv jobbet — AI skriver et professionelt tilbud klar til at sende til kunden.</p>
+  </div>
+
+  <div class="app-card">
+    <div class="field-group">
+      <label class="field-label">🏢 Kundens navn / firma</label>
+      <input type="text" id="clientName" class="description-input" style="height:auto;padding:12px 16px"
+        placeholder="F.eks: Lars Hansen eller Hansen El ApS" maxlength="100">
+    </div>
+
+    <div class="options-row">
+      <div class="field-group half">
+        <label class="field-label">📧 Kundens email <span class="field-optional">(valgfrit)</span></label>
+        <input type="email" id="clientEmail" class="description-input" style="height:auto;padding:12px 16px"
+          placeholder="lars@email.dk" maxlength="200">
+      </div>
+      <div class="field-group half">
+        <label class="field-label">📍 Adresse / by <span class="field-optional">(valgfrit)</span></label>
+        <input type="text" id="clientAddress" class="description-input" style="height:auto;padding:12px 16px"
+          placeholder="F.eks: Odense" maxlength="100">
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">🔨 Beskriv opgaven</label>
+      <textarea id="quoteDescription" class="description-input" rows="4" maxlength="800"
+        placeholder="F.eks: Renovering af badeværelse ca. 8 kvm. Ny bruseniche med fliser, nyt toilet og håndvask. Alt VVS inkluderet. Arbejde inkl. materialer."></textarea>
+      <div class="char-count"><span id="quoteCharCount">0</span>/800</div>
+    </div>
+
+    <div class="options-row">
+      <div class="field-group half">
+        <label class="field-label">💰 Pris (DKK ekskl. moms)</label>
+        <input type="number" id="quotePrice" class="description-input" style="height:auto;padding:12px 16px"
+          placeholder="F.eks: 45000" min="0" max="9999999">
+      </div>
+      <div class="field-group half">
+        <label class="field-label">📅 Tilbud gyldigt (dage)</label>
+        <div class="pill-group" id="validityGroup">
+          <button type="button" class="pill active" data-value="14" onclick="setValidity('14')">14 dage</button>
+          <button type="button" class="pill" data-value="30" onclick="setValidity('30')">30 dage</button>
+        </div>
+        <input type="hidden" id="quoteValidity" value="14">
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">🎨 Tone</label>
+      <div class="pill-group" id="quoteToneGroup">
+        <button type="button" class="pill active" data-value="professionel" onclick="setQuoteTone('professionel')">Professionel</button>
+        <button type="button" class="pill" data-value="venlig" onclick="setQuoteTone('venlig')">Venlig</button>
+        <button type="button" class="pill" data-value="kortfattet" onclick="setQuoteTone('kortfattet')">Kortfattet</button>
+      </div>
+      <input type="hidden" id="quoteToneInput" value="professionel">
+    </div>
+
+    <button class="generate-btn" id="quoteBtn" onclick="generateQuote()">
+      <span id="quoteBtnText">✨ Generer tilbud</span>
+      <span id="quoteBtnLoading" class="hidden"><span class="spinner"></span> Skriver tilbud...</span>
+    </button>
+    <div id="quoteError" class="error-box hidden" style="margin-top:12px"></div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="quoteResult" class="hidden" style="margin-top:24px">
+    <div class="app-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+        <div class="result-label" style="margin:0">📋 Dit tilbud er klar</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="post-copy-btn" onclick="copyQuote()">📋 Kopiér</button>
+          <button class="post-copy-btn" onclick="printQuote()">🖨️ Print / PDF</button>
+          <button class="post-copy-btn" onclick="regenerateQuote()">↺ Generer nyt</button>
+        </div>
+      </div>
+
+      <!-- PRINT-VENLIGT TILBUD -->
+      <div id="quotePrintArea" class="quote-print-area">
+        <div class="quote-header">
+          <div class="quote-from">
+            <div class="quote-company-name">{{ current_user.company or current_user.name or 'Din virksomhed' }}</div>
+            <div class="quote-company-sub">{{ current_user.email }}</div>
+          </div>
+          <div class="quote-meta">
+            <div class="quote-title">TILBUD</div>
+            <div class="quote-date" id="quoteDate"></div>
+            <div class="quote-number" id="quoteNumber"></div>
+          </div>
+        </div>
+
+        <div class="quote-to" id="quoteTo"></div>
+
+        <div class="quote-body" id="quoteBody"></div>
+
+        <div class="quote-price-box" id="quotePriceBox"></div>
+
+        <div class="quote-footer-text" id="quoteFooterText"></div>
+
+        <div class="quote-signature">
+          <div>Med venlig hilsen</div>
+          <div style="font-weight:700;margin-top:6px">{{ current_user.name or current_user.company or '' }}</div>
+          <div style="color:#888">{{ current_user.company or '' }}</div>
+          <div style="color:#888">{{ current_user.email }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let _quoteValidity = '14';
+let _quoteTone = 'professionel';
+let _lastQuoteData = null;
+
+function setValidity(val) {
+  _quoteValidity = val;
+  document.querySelectorAll('#validityGroup .pill').forEach(p => p.classList.toggle('active', p.dataset.value === val));
+}
+
+function setQuoteTone(val) {
+  _quoteTone = val;
+  document.querySelectorAll('#quoteToneGroup .pill').forEach(p => p.classList.toggle('active', p.dataset.value === val));
+}
+
+document.getElementById('quoteDescription').addEventListener('input', function() {
+  document.getElementById('quoteCharCount').textContent = this.value.length;
+});
+
+async function generateQuote() {
+  const clientName = document.getElementById('clientName').value.trim();
+  const description = document.getElementById('quoteDescription').value.trim();
+  const price = document.getElementById('quotePrice').value.trim();
+
+  if (!clientName) { showQuoteError('Indtast kundens navn'); return; }
+  if (!description) { showQuoteError('Beskriv opgaven'); return; }
+
+  setQuoteLoading(true);
+  hideQuoteError();
+  document.getElementById('quoteResult').classList.add('hidden');
+
+  const fd = new FormData();
+  fd.append('client_name', clientName);
+  fd.append('client_email', document.getElementById('clientEmail').value.trim());
+  fd.append('client_address', document.getElementById('clientAddress').value.trim());
+  fd.append('description', description);
+  fd.append('price', price);
+  fd.append('validity_days', _quoteValidity);
+  fd.append('tone', _quoteTone);
+
+  try {
+    const resp = await fetch('/tilbud/generer', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (!resp.ok || data.error) throw new Error(data.error || 'Fejl');
+    renderQuote(data);
+  } catch(e) {
+    showQuoteError(e.message);
+  } finally {
+    setQuoteLoading(false);
+  }
+}
+
+function renderQuote(data) {
+  _lastQuoteData = data;
+
+  const now = new Date();
+  const expiry = new Date(now);
+  expiry.setDate(expiry.getDate() + parseInt(_quoteValidity));
+
+  const fmt = d => d.toLocaleDateString('da-DK', { day:'numeric', month:'long', year:'numeric' });
+  document.getElementById('quoteDate').textContent = 'Dato: ' + fmt(now);
+  document.getElementById('quoteNumber').textContent = 'Tilbud nr.: ' + Math.floor(1000 + Math.random() * 9000);
+
+  const clientName = document.getElementById('clientName').value.trim();
+  const clientEmail = document.getElementById('clientEmail').value.trim();
+  const clientAddress = document.getElementById('clientAddress').value.trim();
+  let toHtml = `<strong>Til:</strong> ${clientName}`;
+  if (clientAddress) toHtml += `<br>${clientAddress}`;
+  if (clientEmail) toHtml += `<br>${clientEmail}`;
+  document.getElementById('quoteTo').innerHTML = toHtml;
+
+  document.getElementById('quoteBody').innerHTML = data.body.replace(/\n/g, '<br>');
+
+  const price = document.getElementById('quotePrice').value.trim();
+  if (price) {
+    const p = parseInt(price);
+    const moms = Math.round(p * 0.25);
+    const total = p + moms;
+    document.getElementById('quotePriceBox').innerHTML = `
+      <table class="quote-price-table">
+        <tr><td>Pris ekskl. moms</td><td>${p.toLocaleString('da-DK')} kr</td></tr>
+        <tr><td>Moms (25%)</td><td>${moms.toLocaleString('da-DK')} kr</td></tr>
+        <tr class="quote-total"><td><strong>Total inkl. moms</strong></td><td><strong>${total.toLocaleString('da-DK')} kr</strong></td></tr>
+      </table>`;
+  } else {
+    document.getElementById('quotePriceBox').innerHTML = '';
+  }
+
+  document.getElementById('quoteFooterText').textContent =
+    `Tilbuddet er gyldigt i ${_quoteValidity} dage fra dags dato (til ${fmt(expiry)}).`;
+
+  document.getElementById('quoteResult').classList.remove('hidden');
+  document.getElementById('quoteResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function copyQuote() {
+  const area = document.getElementById('quotePrintArea');
+  const text = area.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    showShareToast('✅ Tilbud kopieret!');
+  });
+}
+
+function printQuote() {
+  window.print();
+}
+
+function regenerateQuote() {
+  generateQuote();
+}
+
+function setQuoteLoading(loading) {
+  const btn = document.getElementById('quoteBtn');
+  btn.disabled = loading;
+  document.getElementById('quoteBtnText').classList.toggle('hidden', loading);
+  document.getElementById('quoteBtnLoading').classList.toggle('hidden', !loading);
+}
+
+function showQuoteError(msg) {
+  const el = document.getElementById('quoteError');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+function hideQuoteError() {
+  document.getElementById('quoteError').classList.add('hidden');
+}
+
+function showShareToast(msg) {
+  let toast = document.getElementById('shareToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'shareToast';
+    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:white;padding:14px 24px;border-radius:12px;font-size:0.9rem;font-weight:600;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.3);max-width:90vw;text-align:center';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+}
+</script>
+
+<style>
+@media print {
+  .header, .dash-overview, .app-card:first-of-type, #quoteResult .post-copy-btn,
+  #quoteResult .result-label, #quoteResult > div > div:first-child { display: none !important; }
+  .dash-page { padding: 0 !important; max-width: 100% !important; }
+  .app-card { box-shadow: none !important; border: none !important; padding: 0 !important; }
+  #quoteResult { margin-top: 0 !important; }
+  body { background: white !important; }
+}
+</style>
+
+{% endblock %}
