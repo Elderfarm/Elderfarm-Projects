@@ -264,7 +264,12 @@
         </div>
         <div class="field-group">
           <label class="field-label">Google anmeldelseslink <span class="field-optional">(valgfrit)</span></label>
-          <input type="text" id="smsGoogle" class="description-input" style="height:auto;padding:12px 16px" placeholder="https://g.page/r/..." maxlength="300">
+          <input type="text" id="smsGoogle" class="description-input" style="height:auto;padding:12px 16px"
+            placeholder="https://g.page/r/..." maxlength="300"
+            value="{{ current_user.google_review_url or '' }}">
+          {% if not current_user.google_review_url %}
+          <div class="field-hint"><a href="{{ url_for('settings') }}">Gem dit Google-link i indstillinger</a> så du slipper for at skrive det hver gang</div>
+          {% endif %}
         </div>
         <button class="generate-btn" id="smsBtn" onclick="sendSms()">
           <span id="smsBtnText">📱 Send SMS</span>

@@ -167,6 +167,16 @@ body {
   color: var(--grey);
   font-size: 0.8rem;
 }
+.field-hint {
+  font-size: 0.8rem;
+  color: var(--grey);
+  margin-top: 6px;
+}
+.field-hint a {
+  color: var(--orange);
+  text-decoration: none;
+}
+.field-hint a:hover { text-decoration: underline; }
 
 /* ── Upload Zone ──────────────────────────────────────── */
 .upload-zone {

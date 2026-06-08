@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Indstillinger — PostMester{% endblock %}
+
+{% block content %}
+<div class="dash-page" style="max-width:640px">
+
+  <div class="dash-overview">
+    <div class="dash-overview-top">
+      <div class="dash-greeting-block">
+        <span class="dash-greeting-text">Indstillinger</span>
+        <span class="plan-badge plan-{{ current_user.plan }}">{{ current_user.plan|capitalize }}</span>
+      </div>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('settings') }}">
+
+    <!-- Profile -->
+    <div class="dash-section">
+      <h2 class="dash-section-title">👤 Din profil</h2>
+      <div class="field-group">
+        <label class="field-label">Dit navn</label>
+        <input type="text" name="name" class="description-input" style="height:auto;padding:12px 16px"
+          value="{{ current_user.name or '' }}" placeholder="F.eks: Lars Nielsen" maxlength="100">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Firmanavn</label>
+        <input type="text" name="company" class="description-input" style="height:auto;padding:12px 16px"
+          value="{{ current_user.company or '' }}" placeholder="F.eks: Lars Nielsen VVS ApS" maxlength="100">
+        <div class="field-hint">Bruges i AI-genererede opslag så de lyder som dem fra din virksomhed</div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Email</label>
+        <input type="text" class="description-input" style="height:auto;padding:12px 16px;opacity:0.6;cursor:not-allowed"
+          value="{{ current_user.email }}" disabled>
+      </div>
+    </div>
+
+    <!-- Preferences -->
+    <div class="dash-section">
+      <h2 class="dash-section-title">🎯 Standardindstillinger</h2>
+      <p class="dash-section-sub">Disse forindstillinger vælges automatisk når du laver et nyt opslag.</p>
+      <div class="field-group">
+        <label class="field-label">Foretrukken platform</label>
+        <div class="pill-group" id="platformSettingGroup">
+          {% for val, label in [('facebook','Facebook'), ('instagram','Instagram'), ('both','Begge')] %}
+          <button type="button" class="pill{% if (current_user.default_platform or 'facebook') == val %} active{% endif %}"
+            data-value="{{ val }}" onclick="setPlatformSetting('{{ val }}')">{{ label }}</button>
+          {% endfor %}
+        </div>
+        <input type="hidden" name="default_platform" id="defaultPlatformInput" value="{{ current_user.default_platform or 'facebook' }}">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Foretrukken tone</label>
+        <div class="pill-group" id="toneSettingGroup">
+          {% for val, label in [('professionel','Professionel'), ('venlig','Venlig'), ('salgsorienteret','Salgsorienteret')] %}
+          <button type="button" class="pill{% if (current_user.default_tone or 'professionel') == val %} active{% endif %}"
+            data-value="{{ val }}" onclick="setToneSetting('{{ val }}')">{{ label }}</button>
+          {% endfor %}
+        </div>
+        <input type="hidden" name="default_tone" id="defaultToneInput" value="{{ current_user.default_tone or 'professionel' }}">
+      </div>
+    </div>
+
+    <!-- SMS -->
+    <div class="dash-section">
+      <h2 class="dash-section-title">📱 SMS anmeldelser
+        {% if current_user.plan != 'pro' %}<span class="plan-badge" style="font-size:0.7rem;vertical-align:middle">Pro</span>{% endif %}
+      </h2>
+      <div class="field-group">
+        <label class="field-label">Dit Google anmeldelseslink</label>
+        <input type="url" name="google_review_url" class="description-input" style="height:auto;padding:12px 16px"
+          value="{{ current_user.google_review_url or '' }}" placeholder="https://g.page/r/..." maxlength="500">
+        <div class="field-hint">Gemmes automatisk i SMS-formularen så du slipper for at skrive det hver gang</div>
+      </div>
+    </div>
+
+    <!-- Password -->
+    <div class="dash-section">
+      <h2 class="dash-section-title">🔑 Skift adgangskode</h2>
+      <div class="field-group">
+        <label class="field-label">Nuværende adgangskode</label>
+        <input type="password" name="current_password" class="description-input" style="height:auto;padding:12px 16px"
+          placeholder="Din nuværende adgangskode" autocomplete="current-password">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Ny adgangskode <span class="field-optional">(lad stå tom for uændret)</span></label>
+        <input type="password" name="new_password" class="description-input" style="height:auto;padding:12px 16px"
+          placeholder="Mindst 6 tegn" autocomplete="new-password">
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;align-items:center;padding-bottom:40px">
+      <button type="submit" class="generate-btn" style="max-width:200px">Gem indstillinger</button>
+      <a href="{{ url_for('dashboard') }}" class="post-copy-btn" style="text-decoration:none;line-height:1.4">← Tilbage</a>
+    </div>
+
+  </form>
+</div>
+
+<script>
+function setPlatformSetting(val) {
+  document.querySelectorAll('#platformSettingGroup .pill').forEach(p => p.classList.toggle('active', p.dataset.value === val));
+  document.getElementById('defaultPlatformInput').value = val;
+}
+function setToneSetting(val) {
+  document.querySelectorAll('#toneSettingGroup .pill').forEach(p => p.classList.toggle('active', p.dataset.value === val));
+  document.getElementById('defaultToneInput').value = val;
+}
+</script>
+{% endblock %}

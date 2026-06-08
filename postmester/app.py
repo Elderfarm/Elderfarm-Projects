@@ -51,7 +51,7 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def generate_post_ai(description, platform, tone, image_data, image_media_type):
+def generate_post_ai(description, platform, tone, image_data, image_media_type, company_name=None):
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         return {"error": "ANTHROPIC_API_KEY ikke sat"}
@@ -59,9 +59,11 @@ def generate_post_ai(description, platform, tone, image_data, image_media_type):
     client = anthropic.Anthropic(api_key=api_key)
     platform_label = PLATFORMS.get(platform, "Facebook")
     tone_label = TONES.get(tone, "professionel og tillidsfuld")
+    company_line = f"Virksomhedsnavn: {company_name}. Nævn det naturligt i opslaget." if company_name else ""
 
     system = f"""Du er en ekspert i dansk social media markedsføring for håndværksvirksomheder.
 Du skriver {platform_label}-opslag der er korte, engagerende og lokale.
+{company_line}
 Regler: Skriv på naturligt uformelt dansk. Max 3-4 afsnit. 2-4 emojis. Slut med call-to-action. Tone: {tone_label}. Skriv KUN selve opslaget."""
 
     parts = []
@@ -195,7 +197,7 @@ def generate():
                 f.write(image_data)
 
     try:
-        result = generate_post_ai(description, platform, tone, image_data, image_media_type)
+        result = generate_post_ai(description, platform, tone, image_data, image_media_type, company_name=current_user.company or None)
         if "error" in result:
             return jsonify(result), 500
 
@@ -376,6 +378,40 @@ def report():
         "month_name": ["januar","februar","marts","april","maj","juni","juli","august","september","oktober","november","december"][now.month - 1],
     }
     return render_template("report.html", stats=stats)
+
+
+@app.route("/settings", methods=["GET", "POST"])
+@login_required
+def settings():
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        company = request.form.get("company", "").strip()
+        google_review_url = request.form.get("google_review_url", "").strip()
+        default_platform = request.form.get("default_platform", "facebook")
+        default_tone = request.form.get("default_tone", "professionel")
+
+        new_password = request.form.get("new_password", "").strip()
+        current_password = request.form.get("current_password", "").strip()
+
+        if new_password:
+            if not current_password or not bcrypt.checkpw(current_password.encode(), current_user.password_hash.encode()):
+                flash("Nuværende adgangskode er forkert", "error")
+                return redirect(url_for("settings"))
+            if len(new_password) < 6:
+                flash("Ny adgangskode skal være mindst 6 tegn", "error")
+                return redirect(url_for("settings"))
+            current_user.password_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
+
+        current_user.name = name
+        current_user.company = company
+        current_user.google_review_url = google_review_url
+        current_user.default_platform = default_platform if default_platform in PLATFORMS else "facebook"
+        current_user.default_tone = default_tone if default_tone in TONES else "professionel"
+        db.session.commit()
+        flash("Dine indstillinger er gemt ✅", "success")
+        return redirect(url_for("settings"))
+
+    return render_template("settings.html")
 
 
 @app.route("/post/<int:post_id>/delete", methods=["POST"])
