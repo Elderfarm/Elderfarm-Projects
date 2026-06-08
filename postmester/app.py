@@ -3,6 +3,8 @@ import base64
 import bcrypt
 import stripe
 import anthropic
+import requests
+import uuid
 from datetime import datetime
 from functools import wraps
 from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, session
@@ -21,6 +23,10 @@ _db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "postmester.
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", f"sqlite:///{_db_path}")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
+
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "uploads")
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 db.init_app(app)
 
@@ -176,12 +182,17 @@ def generate():
 
     image_data = None
     image_media_type = None
+    saved_filename = None
     if "photo" in request.files:
         file = request.files["photo"]
         if file and file.filename and allowed_file(file.filename):
             image_data = file.read()
             ext = file.filename.rsplit(".", 1)[1].lower()
             image_media_type = f"image/{'jpeg' if ext == 'jpg' else ext}"
+            saved_filename = f"{uuid.uuid4().hex}.{ext}"
+            image_path = os.path.join(UPLOAD_FOLDER, saved_filename)
+            with open(image_path, "wb") as f:
+                f.write(image_data)
 
     try:
         result = generate_post_ai(description, platform, tone, image_data, image_media_type)
@@ -195,6 +206,7 @@ def generate():
             tone=tone,
             post_text=result["post"],
             hashtags=result.get("hashtags", ""),
+            image_filename=saved_filename,
         )
         db.session.add(post)
         db.session.commit()
@@ -521,6 +533,183 @@ def setup_admin(token):
         db.session.add(user)
         db.session.commit()
         return f"✅ Oprettet: {EMAIL} → plan=pro<br>Log ind med: {EMAIL} / {PASSWORD}"
+
+
+@app.route("/connect/facebook")
+@login_required
+def connect_facebook():
+    app_id = os.environ.get("FACEBOOK_APP_ID", "")
+    if not app_id:
+        flash("FACEBOOK_APP_ID er ikke sat i Railway", "error")
+        return redirect(url_for("dashboard"))
+    redirect_uri = url_for("connect_facebook_callback", _external=True)
+    scope = "pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish"
+    url = f"https://www.facebook.com/v19.0/dialog/oauth?client_id={app_id}&redirect_uri={redirect_uri}&scope={scope}&response_type=code"
+    return redirect(url)
+
+@app.route("/connect/facebook/callback")
+@login_required
+def connect_facebook_callback():
+    code = request.args.get("code")
+    error = request.args.get("error_description")
+    if error or not code:
+        flash(f"Facebook forbindelse fejlede: {error or 'Ukendt fejl'}", "error")
+        return redirect(url_for("dashboard"))
+
+    app_id = os.environ.get("FACEBOOK_APP_ID", "")
+    app_secret = os.environ.get("FACEBOOK_APP_SECRET", "")
+    redirect_uri = url_for("connect_facebook_callback", _external=True)
+
+    # Exchange code for short-lived token
+    r = requests.get("https://graph.facebook.com/v19.0/oauth/access_token", params={
+        "client_id": app_id, "client_secret": app_secret,
+        "redirect_uri": redirect_uri, "code": code
+    })
+    token_data = r.json()
+    if "error" in token_data:
+        flash(f"Token fejl: {token_data['error'].get('message','')}", "error")
+        return redirect(url_for("dashboard"))
+
+    short_token = token_data["access_token"]
+
+    # Exchange for long-lived token
+    r2 = requests.get("https://graph.facebook.com/v19.0/oauth/access_token", params={
+        "grant_type": "fb_exchange_token",
+        "client_id": app_id, "client_secret": app_secret,
+        "fb_exchange_token": short_token
+    })
+    long_token = r2.json().get("access_token", short_token)
+
+    # Get pages
+    r3 = requests.get("https://graph.facebook.com/v19.0/me/accounts", params={"access_token": long_token})
+    pages = r3.json().get("data", [])
+
+    if not pages:
+        flash("Ingen Facebook-sider fundet. Opret en Facebook-side først.", "error")
+        return redirect(url_for("dashboard"))
+
+    # Use first page
+    page = pages[0]
+    current_user.fb_page_id = page["id"]
+    current_user.fb_page_token = page["access_token"]
+    current_user.fb_page_name = page["name"]
+
+    # Get Instagram account linked to this page
+    r4 = requests.get(f"https://graph.facebook.com/v19.0/{page['id']}", params={
+        "fields": "instagram_business_account",
+        "access_token": page["access_token"]
+    })
+    ig_data = r4.json().get("instagram_business_account")
+    if ig_data:
+        current_user.ig_account_id = ig_data["id"]
+        # Get IG username
+        r5 = requests.get(f"https://graph.facebook.com/v19.0/{ig_data['id']}", params={
+            "fields": "username", "access_token": page["access_token"]
+        })
+        current_user.ig_account_name = r5.json().get("username", "Instagram")
+
+    db.session.commit()
+    flash(f"✅ Facebook '{page['name']}' forbundet!", "success")
+    return redirect(url_for("dashboard"))
+
+@app.route("/connect/facebook/disconnect", methods=["POST"])
+@login_required
+def disconnect_facebook():
+    current_user.fb_page_id = None
+    current_user.fb_page_token = None
+    current_user.fb_page_name = None
+    current_user.ig_account_id = None
+    current_user.ig_account_name = None
+    db.session.commit()
+    flash("Facebook forbindelse fjernet", "success")
+    return redirect(url_for("dashboard"))
+
+
+@app.route("/post/facebook/<int:post_id>", methods=["POST"])
+@login_required
+def post_to_facebook(post_id):
+    post = Post.query.filter_by(id=post_id, user_id=current_user.id).first_or_404()
+
+    if not current_user.fb_page_id or not current_user.fb_page_token:
+        return jsonify({"error": "Forbind din Facebook-side først"}), 400
+
+    full_text = post.post_text
+    if post.hashtags:
+        full_text += "\n\n" + post.hashtags
+
+    if post.image_filename:
+        image_path = os.path.join(UPLOAD_FOLDER, post.image_filename)
+        if os.path.exists(image_path):
+            with open(image_path, "rb") as f:
+                r = requests.post(
+                    f"https://graph.facebook.com/v19.0/{current_user.fb_page_id}/photos",
+                    data={"caption": full_text, "access_token": current_user.fb_page_token},
+                    files={"source": f}
+                )
+        else:
+            r = requests.post(
+                f"https://graph.facebook.com/v19.0/{current_user.fb_page_id}/feed",
+                data={"message": full_text, "access_token": current_user.fb_page_token}
+            )
+    else:
+        r = requests.post(
+            f"https://graph.facebook.com/v19.0/{current_user.fb_page_id}/feed",
+            data={"message": full_text, "access_token": current_user.fb_page_token}
+        )
+
+    data = r.json()
+    if "error" in data:
+        return jsonify({"error": data["error"].get("message", "Facebook fejl")}), 400
+
+    post.posted_fb = True
+    db.session.commit()
+    return jsonify({"success": True, "message": "Opslag delt på Facebook! 🎉"})
+
+
+@app.route("/post/instagram/<int:post_id>", methods=["POST"])
+@login_required
+def post_to_instagram(post_id):
+    post = Post.query.filter_by(id=post_id, user_id=current_user.id).first_or_404()
+
+    if not current_user.ig_account_id or not current_user.fb_page_token:
+        return jsonify({"error": "Forbind din Instagram-konto først (kræver Instagram Business-konto koblet til din Facebook-side)"}), 400
+
+    if not post.image_filename:
+        return jsonify({"error": "Instagram kræver et billede. Generer opslaget igen med et foto."}), 400
+
+    image_path = os.path.join(UPLOAD_FOLDER, post.image_filename)
+    if not os.path.exists(image_path):
+        return jsonify({"error": "Billedet er ikke tilgængeligt længere"}), 400
+
+    full_text = post.post_text
+    if post.hashtags:
+        full_text += "\n\n" + post.hashtags
+
+    # Instagram needs a public URL for the image - we need to serve it
+    base_url = os.environ.get("APP_URL", request.host_url.rstrip("/"))
+    image_url = f"{base_url}/static/uploads/{post.image_filename}"
+
+    # Step 1: Create container
+    r1 = requests.post(
+        f"https://graph.facebook.com/v19.0/{current_user.ig_account_id}/media",
+        data={"image_url": image_url, "caption": full_text, "access_token": current_user.fb_page_token}
+    )
+    container = r1.json()
+    if "error" in container:
+        return jsonify({"error": container["error"].get("message", "Instagram fejl")}), 400
+
+    # Step 2: Publish container
+    r2 = requests.post(
+        f"https://graph.facebook.com/v19.0/{current_user.ig_account_id}/media_publish",
+        data={"creation_id": container["id"], "access_token": current_user.fb_page_token}
+    )
+    result = r2.json()
+    if "error" in result:
+        return jsonify({"error": result["error"].get("message", "Instagram publicering fejlede")}), 400
+
+    post.posted_ig = True
+    db.session.commit()
+    return jsonify({"success": True, "message": "Opslag delt på Instagram! 🎉"})
 
 
 if __name__ == "__main__":

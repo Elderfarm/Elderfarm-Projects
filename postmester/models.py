@@ -18,6 +18,11 @@ class User(UserMixin, db.Model):
     company = db.Column(db.String(100))
     plan = db.Column(db.String(20), default="gratis")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    fb_page_id = db.Column(db.String(100))
+    fb_page_token = db.Column(db.Text)
+    fb_page_name = db.Column(db.String(200))
+    ig_account_id = db.Column(db.String(100))
+    ig_account_name = db.Column(db.String(200))
     posts = db.relationship("Post", backref="user", lazy=True, order_by="Post.created_at.desc()")
 
     def posts_this_month(self):
@@ -50,6 +55,9 @@ class Post(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     scheduled_at = db.Column(db.DateTime, nullable=True)
     is_published = db.Column(db.Boolean, default=True)
+    image_filename = db.Column(db.String(200))
+    posted_fb = db.Column(db.Boolean, default=False)
+    posted_ig = db.Column(db.Boolean, default=False)
 
 
 class SmsLog(db.Model):
