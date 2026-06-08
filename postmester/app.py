@@ -138,7 +138,27 @@ def index():
 @login_required
 def dashboard():
     posts = Post.query.filter_by(user_id=current_user.id).order_by(Post.created_at.desc()).limit(20).all()
-    return render_template("dashboard.html", posts=posts)
+    now = datetime.utcnow()
+    posts_month_count = Post.query.filter(
+        Post.user_id == current_user.id,
+        db.extract("month", Post.created_at) == now.month,
+        db.extract("year", Post.created_at) == now.year,
+    ).count()
+    scheduled_count = Post.query.filter(
+        Post.user_id == current_user.id,
+        Post.scheduled_at != None,
+        Post.is_published == False,
+    ).count()
+    sms_count = SmsLog.query.filter_by(user_id=current_user.id).count()
+    month_name = ["januar","februar","marts","april","maj","juni","juli","august","september","oktober","november","december"][now.month - 1]
+    return render_template(
+        "dashboard.html",
+        posts=posts,
+        posts_month_count=posts_month_count,
+        scheduled_count=scheduled_count,
+        sms_count=sms_count,
+        month_name=month_name,
+    )
 
 
 @app.route("/generate", methods=["POST"])

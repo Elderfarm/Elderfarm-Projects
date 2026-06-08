@@ -1,58 +1,145 @@
 {% extends "base.html" %}
-{% block title %}Mine opslag — PostMester{% endblock %}
+{% block title %}Dashboard — PostMester{% endblock %}
 
 {% block content %}
 <div class="dash-page">
 
-  <!-- STAT BAR -->
-  <div class="dash-statbar">
-    <div class="dash-greeting">
-      Hej {{ current_user.name or current_user.email.split('@')[0] }} 👋
-      {% if current_user.company %}<span class="dash-company">· {{ current_user.company }}</span>{% endif %}
-    </div>
-    <div class="dash-plan">
-      <span class="plan-badge plan-{{ current_user.plan }}">{{ current_user.plan|capitalize }}</span>
-      {% if current_user.plan == 'gratis' %}
-        <span class="plan-usage">{{ current_user.posts_remaining() }} opslag tilbage denne måned</span>
-        <a href="#priser" class="plan-upgrade">Opgradér →</a>
-      {% else %}
-        <span class="plan-usage">Ubegrænsede opslag</span>
+  {# ── 1. WELCOME + TODAY'S OVERVIEW ─────────────────────── #}
+  <div class="dash-overview">
+    <div class="dash-overview-top">
+      <div class="dash-greeting-block">
+        <span class="dash-greeting-text">Hej {{ current_user.name or current_user.email.split('@')[0] }} 👋</span>
+        <span class="plan-badge plan-{{ current_user.plan }}">{{ current_user.plan|capitalize }}</span>
+      </div>
+      {% if current_user.company %}
+        <div class="dash-company-name">{{ current_user.company }}</div>
       {% endif %}
     </div>
+    <div class="dash-stats-row">
+      <div class="dash-stat-pill">
+        <span class="dash-stat-icon">📝</span>
+        <span class="dash-stat-value">{{ posts_month_count }}</span>
+        <span class="dash-stat-label">opslag denne måned</span>
+      </div>
+      <div class="dash-stat-pill">
+        <span class="dash-stat-icon">🗓</span>
+        <span class="dash-stat-value">{{ scheduled_count }}</span>
+        <span class="dash-stat-label">planlagt</span>
+      </div>
+      <div class="dash-stat-pill">
+        <span class="dash-stat-icon">⭐</span>
+        <span class="dash-stat-value">{{ sms_count }}</span>
+        <span class="dash-stat-label">SMS sendt</span>
+      </div>
+    </div>
   </div>
 
-  <!-- QUICK ACTIONS -->
-  <div class="dash-actions">
-    <a href="{{ url_for('index') }}#app" class="dash-new-btn">✨ Lav nyt opslag</a>
+  {# ── 2. PRIMARY CTA ─────────────────────────────────────── #}
+  <a href="{{ url_for('index') }}#app" class="dash-primary-cta">✨ Lav nyt opslag →</a>
+
+  {# ── 3. FEATURE CARDS GRID ──────────────────────────────── #}
+  <div class="feature-grid">
+
+    {# Månedlig rapport #}
     {% if current_user.plan in ('starter', 'pro') %}
-      <a href="{{ url_for('report') }}" class="dash-action-btn">📊 Månedlig rapport</a>
+    <div class="feature-card">
+      <div class="feature-card-icon">📊</div>
+      <div class="feature-card-title">Månedlig rapport</div>
+      <div class="feature-card-desc">Se din aktivitet for {{ month_name }}</div>
+      <a href="{{ url_for('report') }}" class="feature-card-btn">Se rapport →</a>
+    </div>
+    {% else %}
+    <div class="feature-card locked">
+      <div class="feature-card-lock">🔒</div>
+      <div class="feature-card-icon">📊</div>
+      <div class="feature-card-title">Månedlig rapport</div>
+      <div class="feature-card-desc">Se din månedlige aktivitet</div>
+      <a href="{{ url_for('upgrade', plan='starter') }}" class="feature-card-btn outline">Oplås med Starter →</a>
+    </div>
     {% endif %}
+
+    {# Planlagte opslag #}
+    {% set scheduled = posts|selectattr('scheduled_at')|list %}
+    {% if current_user.plan in ('starter', 'pro') %}
+    <div class="feature-card">
+      <div class="feature-card-icon">🗓</div>
+      <div class="feature-card-title">Planlagte opslag</div>
+      <div class="feature-card-desc">
+        {% if scheduled %}Du har {{ scheduled|length }} klar til udgivelse{% else %}Ingen planlagte endnu{% endif %}
+      </div>
+      <a href="#planlagte" class="feature-card-btn">
+        {% if scheduled %}Se planlagte →{% else %}Planlæg et opslag →{% endif %}
+      </a>
+    </div>
+    {% else %}
+    <div class="feature-card locked">
+      <div class="feature-card-lock">🔒</div>
+      <div class="feature-card-icon">🗓</div>
+      <div class="feature-card-title">Planlæg opslag</div>
+      <div class="feature-card-desc">Udgiv automatisk på det rigtige tidspunkt</div>
+      <a href="{{ url_for('upgrade', plan='starter') }}" class="feature-card-btn outline">Oplås med Starter →</a>
+    </div>
+    {% endif %}
+
+    {# AI kommentarsvar #}
     {% if current_user.plan == 'pro' %}
-      <a href="#kommentarsvar" class="dash-action-btn pro">💬 AI kommentarsvar</a>
-      <a href="#sms" class="dash-action-btn pro">📱 SMS anmeldelse</a>
+    <div class="feature-card feature-card-pro">
+      <div class="feature-card-icon">💬</div>
+      <div class="feature-card-title">AI kommentarsvar</div>
+      <div class="feature-card-desc">Svar på kommentarer på 5 sek</div>
+      <button class="feature-card-btn" onclick="openProTab('replies')">Åbn →</button>
+    </div>
+    {% else %}
+    <div class="feature-card locked">
+      <div class="feature-card-lock">🔒</div>
+      <div class="feature-card-icon">💬</div>
+      <div class="feature-card-title">AI kommentarsvar</div>
+      <div class="feature-card-desc">Svar automatisk på følger-kommentarer</div>
+      <a href="{{ url_for('upgrade', plan='pro') }}" class="feature-card-btn outline pro">Oplås med Pro →</a>
+    </div>
     {% endif %}
+
+    {# SMS anmeldelser #}
+    {% if current_user.plan == 'pro' %}
+    <div class="feature-card feature-card-pro">
+      <div class="feature-card-icon">📱</div>
+      <div class="feature-card-title">SMS anmeldelser</div>
+      <div class="feature-card-desc">Bed om Google-anmeldelse</div>
+      <button class="feature-card-btn" onclick="openProTab('sms')">Send SMS →</button>
+    </div>
+    {% else %}
+    <div class="feature-card locked">
+      <div class="feature-card-lock">🔒</div>
+      <div class="feature-card-icon">📱</div>
+      <div class="feature-card-title">SMS anmeldelser</div>
+      <div class="feature-card-desc">Bed kunder om Google-anmeldelse via SMS</div>
+      <a href="{{ url_for('upgrade', plan='pro') }}" class="feature-card-btn outline pro">Oplås med Pro →</a>
+    </div>
+    {% endif %}
+
   </div>
 
-  <!-- PLANLAGTE OPSLAG (Starter+) -->
-  {% set scheduled = posts|selectattr('scheduled_at')|list %}
+  {# ── 4. SCHEDULED POSTS (Starter+) ─────────────────────── #}
   {% if current_user.plan in ('starter','pro') and scheduled %}
-  <div class="dash-section">
+  <div class="dash-section" id="planlagte">
     <h2 class="dash-section-title">🗓 Planlagte opslag</h2>
     <div class="post-list">
       {% for post in scheduled %}
-      <div class="post-item" id="scheduled-{{ post.id }}">
+      <div class="post-item post-item-scheduled" id="scheduled-{{ post.id }}">
         <div class="post-item-meta">
+          <span class="scheduled-badge">🗓 {{ post.scheduled_at.strftime('%d. %b %Y %H:%M') }}</span>
           <span class="post-platform post-platform-{{ post.platform }}">
             {{ {'facebook': '📘 Facebook', 'instagram': '📸 Instagram', 'both': '📘📸 Begge'}[post.platform] }}
           </span>
           <span class="post-tone">{{ post.tone|capitalize }}</span>
-          <span class="scheduled-badge">🗓 {{ post.scheduled_at.strftime('%d. %b %Y %H:%M') }}</span>
         </div>
-        <div class="post-description">{{ post.description }}</div>
-        <div class="post-text">{{ post.post_text }}</div>
+        <div class="post-text post-item-collapsed">{{ post.post_text }}</div>
         <div class="post-actions">
+          <button class="post-copy-btn" onclick="copyPost(this, `{{ post.post_text|replace('`', "'") }}`, `{{ (post.hashtags or '')|replace('`', "'") }}`)">
+            📋 Kopiér
+          </button>
           <form method="POST" action="{{ url_for('cancel_schedule', post_id=post.id) }}" style="display:inline" onsubmit="return confirm('Annuller planlagt udgivelse?')">
-            <button type="submit" class="post-copy-btn" style="background:var(--grey)">✕ Annuller planlægning</button>
+            <button type="submit" class="post-delete-btn">✕ Annuller</button>
           </form>
         </div>
       </div>
@@ -61,14 +148,19 @@
   </div>
   {% endif %}
 
-  <!-- POST HISTORY -->
-  <div class="dash-section">
-    <h2 class="dash-section-title">Dine seneste opslag</h2>
+  {# ── 5. RECENT POSTS (collapsible) ─────────────────────── #}
+  <div class="dash-section" id="opslag">
+    <div class="dash-section-header">
+      <h2 class="dash-section-title">Seneste opslag</h2>
+      {% if posts|length > 5 %}
+        <span class="post-count-badge">{{ posts|length }}</span>
+      {% endif %}
+    </div>
 
     {% if posts %}
-      <div class="post-list">
+      <div class="post-list" id="postList">
         {% for post in posts %}
-        <div class="post-item" id="post-{{ post.id }}">
+        <div class="post-item{% if loop.index > 5 %} post-hidden{% endif %}" id="post-{{ post.id }}">
           <div class="post-item-meta">
             <span class="post-platform post-platform-{{ post.platform }}">
               {{ {'facebook': '📘 Facebook', 'instagram': '📸 Instagram', 'both': '📘📸 Begge'}[post.platform] }}
@@ -76,14 +168,13 @@
             <span class="post-tone">{{ post.tone|capitalize }}</span>
             <span class="post-date">{{ post.created_at.strftime('%d. %b %Y') }}</span>
           </div>
-          <div class="post-description">{{ post.description }}</div>
-          <div class="post-text">{{ post.post_text }}</div>
+          <div class="post-text post-item-collapsed">{{ post.post_text }}</div>
           {% if post.hashtags %}
             <div class="post-hashtags">{{ post.hashtags }}</div>
           {% endif %}
           <div class="post-actions">
             <button class="post-copy-btn" onclick="copyPost(this, `{{ post.post_text|replace('`', "'") }}`, `{{ (post.hashtags or '')|replace('`', "'") }}`)">
-              📋 Kopiér opslag
+              📋 Kopiér
             </button>
             {% if current_user.plan in ('starter','pro') and not post.scheduled_at %}
             <button class="post-schedule-btn" onclick="showSchedule({{ post.id }})">🗓 Planlæg</button>
@@ -100,19 +191,90 @@
         </div>
         {% endfor %}
       </div>
+
+      {% if posts|length > 5 %}
+      <button class="show-all-btn" id="showAllBtn" onclick="toggleAllPosts()">
+        Vis alle {{ posts|length }} opslag ↓
+      </button>
+      {% endif %}
+
     {% else %}
       <div class="dash-empty">
         <div class="dash-empty-icon">📭</div>
         <p>Du har ingen opslag endnu.</p>
-        <a href="{{ url_for('index') }}#app" class="dash-new-btn">Lav dit første opslag →</a>
+        <a href="{{ url_for('index') }}#app" class="dash-primary-cta" style="display:inline-block;margin-top:16px;font-size:0.95rem;padding:14px 28px">Lav dit første opslag →</a>
       </div>
     {% endif %}
   </div>
 
-  <!-- PRICING (only for gratis) -->
+  {# ── 6. PRO TOOLS (Pro only) ────────────────────────────── #}
+  {% if current_user.plan == 'pro' %}
+  <div class="dash-section pro-tools" id="pro-tools">
+    <h2 class="dash-section-title">⚡ Pro-værktøjer</h2>
+    <div class="pro-tabs">
+      <button class="pro-tab-btn active" id="tab-replies-btn" onclick="switchTab('replies')">
+        💬 AI kommentarsvar
+      </button>
+      <button class="pro-tab-btn" id="tab-sms-btn" onclick="switchTab('sms')">
+        📱 SMS anmeldelse
+      </button>
+    </div>
+
+    {# Tab 1: AI comment replies #}
+    <div class="pro-tab-panel" id="tab-replies">
+      <p class="dash-section-sub">Indsæt en kommentar fra Facebook eller Instagram — AI skriver 3 svarforslag på 5 sekunder.</p>
+      <div class="reply-card">
+        <div class="field-group">
+          <label class="field-label">Kommentar fra følger</label>
+          <textarea id="replyComment" class="description-input" rows="3" maxlength="500"
+            placeholder="F.eks: Hvad koster et nyt badeværelse? Sender gerne et tilbud tak"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Om din virksomhed <span class="field-optional">(valgfrit)</span></label>
+          <input type="text" id="replyContext" class="description-input" style="height:auto;padding:12px 16px"
+            placeholder="F.eks: VVS-firma i Aarhus, specialister i badeværelser" maxlength="200">
+        </div>
+        <button class="generate-btn" id="replyBtn" onclick="generateReplies()">
+          <span id="replyBtnText">✨ Generer svarforslag</span>
+          <span id="replyBtnLoading" class="hidden"><span class="spinner"></span> Skriver svar...</span>
+        </button>
+        <div id="replyResults" class="reply-results hidden"></div>
+        <div id="replyError" class="error-box hidden"></div>
+      </div>
+    </div>
+
+    {# Tab 2: SMS review requests #}
+    <div class="pro-tab-panel hidden" id="tab-sms">
+      <p class="dash-section-sub">Send en venlig SMS til din kunde og bed om en Google-anmeldelse.</p>
+      <div class="sms-card">
+        <div class="field-group">
+          <label class="field-label">Kundens navn</label>
+          <input type="text" id="smsName" class="description-input" style="height:auto;padding:12px 16px" placeholder="F.eks: Lars" maxlength="50">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Telefonnummer</label>
+          <input type="text" id="smsPhone" class="description-input" style="height:auto;padding:12px 16px" placeholder="+4512345678" maxlength="20">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Google anmeldelseslink <span class="field-optional">(valgfrit)</span></label>
+          <input type="text" id="smsGoogle" class="description-input" style="height:auto;padding:12px 16px" placeholder="https://g.page/r/..." maxlength="300">
+        </div>
+        <button class="generate-btn" id="smsBtn" onclick="sendSms()">
+          <span id="smsBtnText">📱 Send SMS</span>
+          <span id="smsBtnLoading" class="hidden"><span class="spinner"></span> Sender...</span>
+        </button>
+        <div id="smsSuccess" class="sms-success hidden"></div>
+        <div id="smsError" class="error-box hidden"></div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── 7. UPGRADE SECTION (gratis only) ──────────────────── #}
   {% if current_user.plan == 'gratis' %}
-  <div class="dash-upgrade" id="priser">
-    <h2>Opgradér og få ubegrænsede opslag</h2>
+  <div class="dash-section dash-upgrade-compact" id="priser">
+    <h2 class="dash-upgrade-title">🚀 Få mere ud af PostMester</h2>
+    <p class="dash-upgrade-sub">Ubegrænsede opslag, planlægning og SMS-anmeldelser</p>
     <div class="dash-pricing-row">
       <div class="dash-price-card">
         <div class="dash-price-name">Starter</div>
@@ -121,7 +283,6 @@
         <ul>
           <li>✓ Ubegrænsede opslag</li>
           <li>✓ Automatisk planlægning</li>
-          <li>✓ 12 sæsonskabeloner</li>
           <li>✓ Månedlig rapport</li>
         </ul>
         <a href="{{ url_for('upgrade', plan='starter') }}" class="dash-upgrade-btn">Betal med kort →</a>
@@ -142,75 +303,60 @@
   </div>
   {% endif %}
 
-  <!-- AI KOMMENTAR-SVAR (Pro) -->
-  {% if current_user.plan == 'pro' %}
-  <div class="dash-section dash-reply-section" id="kommentarsvar">
-    <h2 class="dash-section-title">💬 AI svar på kommentarer</h2>
-    <p class="dash-section-sub">Indsæt en kommentar fra Facebook eller Instagram — AI skriver 3 svarforslag på 5 sekunder.</p>
-    <div class="reply-card">
-      <div class="field-group">
-        <label class="field-label">Kommentar fra følger</label>
-        <textarea id="replyComment" class="description-input" rows="3" maxlength="500"
-          placeholder="F.eks: Hvad koster et nyt badeværelse? Sender gerne et tilbud tak"></textarea>
-      </div>
-      <div class="field-group">
-        <label class="field-label">Om din virksomhed <span class="field-optional">(valgfrit)</span></label>
-        <input type="text" id="replyContext" class="description-input" style="height:auto;padding:12px 16px"
-          placeholder="F.eks: VVS-firma i Aarhus, specialister i badeværelser" maxlength="200">
-      </div>
-      <button class="generate-btn" id="replyBtn" onclick="generateReplies()">
-        <span id="replyBtnText">✨ Generer svarforslag</span>
-        <span id="replyBtnLoading" class="hidden"><span class="spinner"></span> Skriver svar...</span>
-      </button>
-      <div id="replyResults" class="reply-results hidden"></div>
-      <div id="replyError" class="error-box hidden"></div>
-    </div>
-  </div>
-  {% endif %}
-
-  <!-- SMS → GOOGLE ANMELDELSE (Pro) -->
-  {% if current_user.plan == 'pro' %}
-  <div class="dash-section" id="sms">
-    <h2 class="dash-section-title">📱 SMS → Google-anmeldelse</h2>
-    <p class="dash-section-sub">Send en venlig SMS til din kunde og bed om en Google-anmeldelse.</p>
-    <div class="sms-card">
-      <div class="field-group">
-        <label class="field-label">Kundens navn</label>
-        <input type="text" id="smsName" class="description-input" style="height:auto;padding:12px 16px" placeholder="F.eks: Lars" maxlength="50">
-      </div>
-      <div class="field-group">
-        <label class="field-label">Telefonnummer</label>
-        <input type="text" id="smsPhone" class="description-input" style="height:auto;padding:12px 16px" placeholder="+4512345678" maxlength="20">
-      </div>
-      <div class="field-group">
-        <label class="field-label">Google anmeldelseslink <span class="field-optional">(valgfrit)</span></label>
-        <input type="text" id="smsGoogle" class="description-input" style="height:auto;padding:12px 16px" placeholder="https://g.page/r/..." maxlength="300">
-      </div>
-      <button class="generate-btn" id="smsBtn" onclick="sendSms()">
-        <span id="smsBtnText">📱 Send SMS</span>
-        <span id="smsBtnLoading" class="hidden"><span class="spinner"></span> Sender...</span>
-      </button>
-      <div id="smsSuccess" class="sms-success hidden"></div>
-      <div id="smsError" class="error-box hidden"></div>
-    </div>
-  </div>
-  {% endif %}
-
 </div>
 
 <script>
+/* ── Copy post ─────────────────────────────────────────── */
 function copyPost(btn, postText, hashtags) {
   const full = hashtags ? postText + '\n\n' + hashtags : postText;
   navigator.clipboard.writeText(full).then(() => {
+    const orig = btn.innerHTML;
     btn.textContent = '✅ Kopieret!';
     btn.classList.add('copied');
     setTimeout(() => {
-      btn.textContent = '📋 Kopiér opslag';
+      btn.innerHTML = orig;
       btn.classList.remove('copied');
     }, 2000);
   });
 }
 
+/* ── Toggle all posts ──────────────────────────────────── */
+let allShown = false;
+function toggleAllPosts() {
+  const hidden = document.querySelectorAll('.post-hidden');
+  const btn = document.getElementById('showAllBtn');
+  if (!allShown) {
+    hidden.forEach(el => el.classList.remove('post-hidden'));
+    btn.textContent = 'Vis færre opslag ↑';
+    allShown = true;
+  } else {
+    const items = document.querySelectorAll('#postList .post-item');
+    items.forEach((el, i) => { if (i >= 5) el.classList.add('post-hidden'); });
+    btn.textContent = `Vis alle {{ posts|length }} opslag ↓`;
+    allShown = false;
+    document.getElementById('opslag').scrollIntoView({behavior:'smooth'});
+  }
+}
+
+/* ── Pro tab switching ─────────────────────────────────── */
+function switchTab(name) {
+  ['replies','sms'].forEach(t => {
+    document.getElementById('tab-' + t).classList.add('hidden');
+    document.getElementById('tab-' + t + '-btn').classList.remove('active');
+  });
+  document.getElementById('tab-' + name).classList.remove('hidden');
+  document.getElementById('tab-' + name + '-btn').classList.add('active');
+}
+
+function openProTab(name) {
+  const proTools = document.getElementById('pro-tools');
+  if (proTools) {
+    switchTab(name);
+    setTimeout(() => proTools.scrollIntoView({behavior:'smooth'}), 50);
+  }
+}
+
+/* ── Generate AI replies ───────────────────────────────── */
 async function generateReplies() {
   const comment = document.getElementById('replyComment').value.trim();
   const context = document.getElementById('replyContext').value.trim();
@@ -253,6 +399,7 @@ async function generateReplies() {
   }
 }
 
+/* ── Copy reply ────────────────────────────────────────── */
 function copyReply(btn, text) {
   navigator.clipboard.writeText(text).then(() => {
     btn.textContent = '✅ Kopieret!';
@@ -261,6 +408,7 @@ function copyReply(btn, text) {
   });
 }
 
+/* ── Send SMS ──────────────────────────────────────────── */
 async function sendSms() {
   const name = document.getElementById('smsName').value.trim();
   const phone = document.getElementById('smsPhone').value.trim();
@@ -303,6 +451,7 @@ async function sendSms() {
   }
 }
 
+/* ── Schedule helpers ──────────────────────────────────── */
 function showSchedule(postId) {
   document.getElementById('schedule-picker-' + postId).classList.remove('hidden');
 }
