@@ -48,3 +48,15 @@ class Post(db.Model):
     post_text = db.Column(db.Text)
     hashtags = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    scheduled_at = db.Column(db.DateTime, nullable=True)
+    is_published = db.Column(db.Boolean, default=True)
+
+
+class SmsLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    customer_name = db.Column(db.String(100))
+    phone = db.Column(db.String(20))
+    message = db.Column(db.Text)
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default="sent")

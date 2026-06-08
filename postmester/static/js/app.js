@@ -22,6 +22,7 @@ const regenerateBtn = document.getElementById('regenerateBtn');
 
 let currentPost = '';
 let currentHashtags = '';
+let currentPostId = null;
 
 // ── Photo upload ───────────────────────────────────────
 photoInput.addEventListener('change', (e) => {
@@ -130,9 +131,15 @@ form.addEventListener('submit', async (e) => {
 
     currentPost = data.post;
     currentHashtags = data.hashtags || '';
+    currentPostId = data.post_id || null;
 
     showResult(data);
     result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    const scheduleHint = document.getElementById('scheduleHint');
+    if (scheduleHint && currentPostId) {
+      scheduleHint.classList.remove('hidden');
+    }
 
   } catch (err) {
     showError(err.message);
@@ -208,4 +215,27 @@ function showError(msg) {
 
 function hideError() {
   errorBox.classList.add('hidden');
+}
+
+async function schedulePost() {
+  if (!currentPostId) return;
+  const dateInput = document.getElementById('scheduleDate');
+  const val = dateInput.value;
+  if (!val) { alert('Vælg venligst en dato og tid'); return; }
+
+  try {
+    const fd = new FormData();
+    fd.append('post_id', currentPostId);
+    fd.append('scheduled_at', val);
+    const resp = await fetch('/schedule', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (!resp.ok || data.error) throw new Error(data.error || 'Fejl');
+    const successEl = document.getElementById('scheduleSuccess');
+    if (successEl) {
+      successEl.textContent = '✅ Opslag planlagt til ' + new Date(val).toLocaleString('da-DK');
+      successEl.classList.remove('hidden');
+    }
+  } catch(e) {
+    alert('Fejl: ' + e.message);
+  }
 }

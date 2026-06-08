@@ -29,8 +29,37 @@
     {% endif %}
     {% if current_user.plan == 'pro' %}
       <a href="#kommentarsvar" class="dash-action-btn pro">💬 AI kommentarsvar</a>
+      <a href="#sms" class="dash-action-btn pro">📱 SMS anmeldelse</a>
     {% endif %}
   </div>
+
+  <!-- PLANLAGTE OPSLAG (Starter+) -->
+  {% set scheduled = posts|selectattr('scheduled_at')|list %}
+  {% if current_user.plan in ('starter','pro') and scheduled %}
+  <div class="dash-section">
+    <h2 class="dash-section-title">🗓 Planlagte opslag</h2>
+    <div class="post-list">
+      {% for post in scheduled %}
+      <div class="post-item" id="scheduled-{{ post.id }}">
+        <div class="post-item-meta">
+          <span class="post-platform post-platform-{{ post.platform }}">
+            {{ {'facebook': '📘 Facebook', 'instagram': '📸 Instagram', 'both': '📘📸 Begge'}[post.platform] }}
+          </span>
+          <span class="post-tone">{{ post.tone|capitalize }}</span>
+          <span class="scheduled-badge">🗓 {{ post.scheduled_at.strftime('%d. %b %Y %H:%M') }}</span>
+        </div>
+        <div class="post-description">{{ post.description }}</div>
+        <div class="post-text">{{ post.post_text }}</div>
+        <div class="post-actions">
+          <form method="POST" action="{{ url_for('cancel_schedule', post_id=post.id) }}" style="display:inline" onsubmit="return confirm('Annuller planlagt udgivelse?')">
+            <button type="submit" class="post-copy-btn" style="background:var(--grey)">✕ Annuller planlægning</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 
   <!-- POST HISTORY -->
   <div class="dash-section">
@@ -56,9 +85,17 @@
             <button class="post-copy-btn" onclick="copyPost(this, `{{ post.post_text|replace('`', "'") }}`, `{{ (post.hashtags or '')|replace('`', "'") }}`)">
               📋 Kopiér opslag
             </button>
+            {% if current_user.plan in ('starter','pro') and not post.scheduled_at %}
+            <button class="post-schedule-btn" onclick="showSchedule({{ post.id }})">🗓 Planlæg</button>
+            {% endif %}
             <form method="POST" action="{{ url_for('delete_post', post_id=post.id) }}" style="display:inline" onsubmit="return confirm('Slet dette opslag?')">
               <button type="submit" class="post-delete-btn">🗑</button>
             </form>
+          </div>
+          <div class="schedule-picker hidden" id="schedule-picker-{{ post.id }}">
+            <input type="datetime-local" id="schedule-date-{{ post.id }}" class="description-input" style="height:auto;padding:10px 14px;display:inline-block;width:auto">
+            <button class="post-copy-btn" onclick="confirmSchedule({{ post.id }})">Gem dato</button>
+            <button class="post-delete-btn" onclick="hideSchedule({{ post.id }})">Annuller</button>
           </div>
         </div>
         {% endfor %}
@@ -131,6 +168,34 @@
   </div>
   {% endif %}
 
+  <!-- SMS → GOOGLE ANMELDELSE (Pro) -->
+  {% if current_user.plan == 'pro' %}
+  <div class="dash-section" id="sms">
+    <h2 class="dash-section-title">📱 SMS → Google-anmeldelse</h2>
+    <p class="dash-section-sub">Send en venlig SMS til din kunde og bed om en Google-anmeldelse.</p>
+    <div class="sms-card">
+      <div class="field-group">
+        <label class="field-label">Kundens navn</label>
+        <input type="text" id="smsName" class="description-input" style="height:auto;padding:12px 16px" placeholder="F.eks: Lars" maxlength="50">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Telefonnummer</label>
+        <input type="text" id="smsPhone" class="description-input" style="height:auto;padding:12px 16px" placeholder="+4512345678" maxlength="20">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Google anmeldelseslink <span class="field-optional">(valgfrit)</span></label>
+        <input type="text" id="smsGoogle" class="description-input" style="height:auto;padding:12px 16px" placeholder="https://g.page/r/..." maxlength="300">
+      </div>
+      <button class="generate-btn" id="smsBtn" onclick="sendSms()">
+        <span id="smsBtnText">📱 Send SMS</span>
+        <span id="smsBtnLoading" class="hidden"><span class="spinner"></span> Sender...</span>
+      </button>
+      <div id="smsSuccess" class="sms-success hidden"></div>
+      <div id="smsError" class="error-box hidden"></div>
+    </div>
+  </div>
+  {% endif %}
+
 </div>
 
 <script>
@@ -194,6 +259,74 @@ function copyReply(btn, text) {
     btn.classList.add('copied');
     setTimeout(() => { btn.textContent = '📋 Kopiér'; btn.classList.remove('copied'); }, 2000);
   });
+}
+
+async function sendSms() {
+  const name = document.getElementById('smsName').value.trim();
+  const phone = document.getElementById('smsPhone').value.trim();
+  const google = document.getElementById('smsGoogle').value.trim();
+  const btn = document.getElementById('smsBtn');
+  const btnText = document.getElementById('smsBtnText');
+  const btnLoading = document.getElementById('smsBtnLoading');
+  const successBox = document.getElementById('smsSuccess');
+  const errorBox = document.getElementById('smsError');
+
+  if (!name) { errorBox.textContent = 'Indtast kundens navn'; errorBox.classList.remove('hidden'); return; }
+  if (!phone) { errorBox.textContent = 'Indtast telefonnummer'; errorBox.classList.remove('hidden'); return; }
+
+  btn.disabled = true;
+  btnText.classList.add('hidden');
+  btnLoading.classList.remove('hidden');
+  successBox.classList.add('hidden');
+  errorBox.classList.add('hidden');
+
+  try {
+    const fd = new FormData();
+    fd.append('customer_name', name);
+    fd.append('phone', phone);
+    if (google) fd.append('google_url', google);
+    const resp = await fetch('/sms', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (!resp.ok || data.error) throw new Error(data.error || 'Fejl');
+    successBox.textContent = '✅ ' + data.message;
+    successBox.classList.remove('hidden');
+    document.getElementById('smsName').value = '';
+    document.getElementById('smsPhone').value = '';
+    document.getElementById('smsGoogle').value = '';
+  } catch(e) {
+    errorBox.textContent = e.message;
+    errorBox.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btnText.classList.remove('hidden');
+    btnLoading.classList.add('hidden');
+  }
+}
+
+function showSchedule(postId) {
+  document.getElementById('schedule-picker-' + postId).classList.remove('hidden');
+}
+
+function hideSchedule(postId) {
+  document.getElementById('schedule-picker-' + postId).classList.add('hidden');
+}
+
+async function confirmSchedule(postId) {
+  const dateInput = document.getElementById('schedule-date-' + postId);
+  const val = dateInput.value;
+  if (!val) { alert('Vælg venligst en dato og tid'); return; }
+
+  try {
+    const fd = new FormData();
+    fd.append('post_id', postId);
+    fd.append('scheduled_at', val);
+    const resp = await fetch('/schedule', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (!resp.ok || data.error) throw new Error(data.error || 'Fejl');
+    location.reload();
+  } catch(e) {
+    alert('Fejl: ' + e.message);
+  }
 }
 </script>
 {% endblock %}

@@ -758,3 +758,56 @@ body {
 .faq-item[open] summary::after { content: '−'; }
 .faq-item[open] summary { border-bottom: 1px solid var(--border); background: var(--light-grey); }
 .faq-item p { padding: 16px 20px; font-size: 0.93rem; color: #444; line-height: 1.7; }
+
+/* ── SMS card ─────────────────────────────────────────── */
+.sms-card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; }
+
+/* ── SMS success box ──────────────────────────────────── */
+.sms-success {
+  background: #D1FAE5;
+  border: 1px solid #6EE7B7;
+  color: #065F46;
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-size: 0.93rem;
+  font-weight: 600;
+  margin-top: 16px;
+}
+
+/* ── Post schedule button ─────────────────────────────── */
+.post-schedule-btn {
+  background: transparent;
+  color: var(--orange);
+  border: 2px solid var(--orange);
+  border-radius: 10px;
+  padding: 7px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.post-schedule-btn:hover { background: var(--orange); color: var(--white); }
+
+/* ── Schedule picker ──────────────────────────────────── */
+.schedule-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 14px 16px;
+  background: var(--light-grey);
+  border-radius: 12px;
+}
+
+/* ── Scheduled badge ──────────────────────────────────── */
+.scheduled-badge {
+  display: inline-block;
+  background: #FFF3E0;
+  color: #E65100;
+  border: 1px solid #FFCC80;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}

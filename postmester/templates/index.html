@@ -124,6 +124,14 @@
             <button class="copy-btn" id="copyBtn"><span id="copyBtnText">📋 Kopiér opslag</span></button>
             <button class="copy-btn secondary" id="copyAllBtn"><span id="copyAllBtnText">📋 Kopiér med hashtags</span></button>
           </div>
+          {% if current_user.is_authenticated and current_user.plan in ('starter','pro') %}
+          <div class="schedule-hint hidden" id="scheduleHint">
+            <label>🗓 Planlæg dette opslag:</label>
+            <input type="datetime-local" id="scheduleDate" class="description-input" style="height:auto;padding:10px 14px;margin-top:8px">
+            <button class="copy-btn secondary" style="margin-top:8px" onclick="schedulePost()">Gem dato</button>
+            <div id="scheduleSuccess" class="hidden" style="margin-top:8px;color:var(--green);font-size:0.9rem;font-weight:600"></div>
+          </div>
+          {% endif %}
           <div class="share-hint">
             💡 <strong>Tip:</strong> Gå til <a href="{{ url_for('dashboard') }}">Mine opslag</a> for at se alle dine tidligere opslag
           </div>

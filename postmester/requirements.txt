@@ -6,3 +6,4 @@ werkzeug>=3.0.0
 bcrypt>=4.1.0
 gunicorn>=22.0.0
 stripe>=8.0.0
+twilio>=8.0.0

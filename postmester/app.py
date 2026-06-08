@@ -9,7 +9,7 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for, f
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from pathlib import Path
-from models import db, User, Post
+from models import db, User, Post, SmsLog
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
 
@@ -180,9 +180,88 @@ def generate():
         db.session.commit()
 
         result["posts_remaining"] = current_user.posts_remaining()
+        result["post_id"] = post.id
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/sms", methods=["POST"])
+@login_required
+def send_sms():
+    if current_user.plan != "pro":
+        return jsonify({"error": "SMS-funktion kræver Pro-plan."}), 403
+
+    account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+    auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
+    from_number = os.environ.get("TWILIO_FROM_NUMBER")
+
+    if not account_sid or not auth_token or not from_number:
+        return jsonify({"error": "Twilio er ikke sat op — tilføj TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN og TWILIO_FROM_NUMBER i Railway"}), 500
+
+    customer_name = request.form.get("customer_name", "").strip()
+    phone = request.form.get("phone", "").strip()
+    google_url = request.form.get("google_url", "").strip() or "https://g.page/r/review"
+
+    if not customer_name or not phone:
+        return jsonify({"error": "Navn og telefonnummer er påkrævet"}), 400
+
+    message_body = f"Hej {customer_name}, tusind tak for opgaven! Vi vil blive super glade hvis du vil give os en anmeldelse på Google 🙏 {google_url}"
+
+    try:
+        from twilio.rest import Client
+        client = Client(account_sid, auth_token)
+        client.messages.create(body=message_body, from_=from_number, to=phone)
+
+        log = SmsLog(
+            user_id=current_user.id,
+            customer_name=customer_name,
+            phone=phone,
+            message=message_body,
+            status="sent",
+        )
+        db.session.add(log)
+        db.session.commit()
+
+        return jsonify({"success": True, "message": f"SMS sendt til {phone}"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/schedule", methods=["POST"])
+@login_required
+def schedule_post():
+    if current_user.plan not in ("starter", "pro"):
+        return jsonify({"error": "Planlægning kræver Starter eller Pro-plan."}), 403
+
+    post_id = request.form.get("post_id")
+    scheduled_at_str = request.form.get("scheduled_at", "").strip()
+
+    if not post_id or not scheduled_at_str:
+        return jsonify({"error": "post_id og scheduled_at er påkrævet"}), 400
+
+    post = Post.query.filter_by(id=post_id, user_id=current_user.id).first_or_404()
+
+    try:
+        scheduled_at = datetime.fromisoformat(scheduled_at_str)
+    except ValueError:
+        return jsonify({"error": "Ugyldigt datoformat"}), 400
+
+    post.scheduled_at = scheduled_at
+    post.is_published = False
+    db.session.commit()
+
+    return jsonify({"success": True})
+
+
+@app.route("/schedule/<int:post_id>/cancel", methods=["POST"])
+@login_required
+def cancel_schedule(post_id):
+    post = Post.query.filter_by(id=post_id, user_id=current_user.id).first_or_404()
+    post.scheduled_at = None
+    post.is_published = True
+    db.session.commit()
+    return jsonify({"success": True})
 
 
 @app.route("/reply", methods=["POST"])
