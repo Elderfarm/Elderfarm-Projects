@@ -37,42 +37,6 @@
   {# ── 2. PRIMARY CTA ─────────────────────────────────────── #}
   <a href="{{ url_for('index') }}#app" class="dash-primary-cta">✨ Lav nyt opslag →</a>
 
-  {# ── 2b. CONNECT ACCOUNTS (Starter+) ───────────────────── #}
-  {% if current_user.plan in ('starter', 'pro') %}
-  <div class="connect-section">
-    <h2 class="dash-section-title">🔗 Tilsluttede konti</h2>
-    <div class="connect-grid">
-      <!-- Facebook -->
-      <div class="connect-card {% if current_user.fb_page_id %}connected{% endif %}">
-        <div class="connect-icon">📘</div>
-        <div class="connect-info">
-          <div class="connect-name">Facebook</div>
-          {% if current_user.fb_page_id %}
-            <div class="connect-status connected">✅ {{ current_user.fb_page_name }}</div>
-            <form method="POST" action="{{ url_for('disconnect_facebook') }}" style="display:inline">
-              <button type="submit" class="connect-disconnect-btn">Fjern</button>
-            </form>
-          {% else %}
-            <div class="connect-status">Ikke forbundet</div>
-            <a href="{{ url_for('connect_facebook') }}" class="connect-btn">Forbind →</a>
-          {% endif %}
-        </div>
-      </div>
-      <!-- Instagram -->
-      <div class="connect-card {% if current_user.ig_account_id %}connected{% endif %}">
-        <div class="connect-icon">📸</div>
-        <div class="connect-info">
-          <div class="connect-name">Instagram</div>
-          {% if current_user.ig_account_id %}
-            <div class="connect-status connected">✅ @{{ current_user.ig_account_name }}</div>
-          {% else %}
-            <div class="connect-status">{% if current_user.fb_page_id %}Ingen Instagram Business-konto fundet{% else %}Forbind Facebook først{% endif %}</div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-  {% endif %}
 
   {# ── 3. FEATURE CARDS GRID ──────────────────────────────── #}
   <div class="feature-grid">
@@ -219,20 +183,12 @@
             <form method="POST" action="{{ url_for('delete_post', post_id=post.id) }}" style="display:inline" onsubmit="return confirm('Slet dette opslag?')">
               <button type="submit" class="post-delete-btn">🗑</button>
             </form>
-            {% if current_user.fb_page_id and not post.posted_fb %}
-            <button class="post-social-btn fb" onclick="postToSocial({{ post.id }}, 'facebook', this)">
+            <button class="post-social-btn fb" onclick="shareToFacebook(`{{ post.post_text|replace('`', "'") }}`, `{{ (post.hashtags or '')|replace('`', "'") }}`)">
               📘 Del på Facebook
             </button>
-            {% elif post.posted_fb %}
-            <span class="posted-badge">✅ FB</span>
-            {% endif %}
-            {% if current_user.ig_account_id and post.image_filename and not post.posted_ig %}
-            <button class="post-social-btn ig" onclick="postToSocial({{ post.id }}, 'instagram', this)">
+            <button class="post-social-btn ig" onclick="shareToInstagram(`{{ post.post_text|replace('`', "'") }}`, `{{ (post.hashtags or '')|replace('`', "'") }}`)">
               📸 Del på Instagram
             </button>
-            {% elif post.posted_ig %}
-            <span class="posted-badge">✅ IG</span>
-            {% endif %}
           </div>
           <div class="schedule-picker hidden" id="schedule-picker-{{ post.id }}">
             <input type="datetime-local" id="schedule-date-{{ post.id }}" class="description-input" style="height:auto;padding:10px 14px;display:inline-block;width:auto">
@@ -511,23 +467,43 @@ function hideSchedule(postId) {
   document.getElementById('schedule-picker-' + postId).classList.add('hidden');
 }
 
-/* ── Post to social ────────────────────────────────────── */
-async function postToSocial(postId, platform, btn) {
-  btn.disabled = true;
-  const orig = btn.textContent;
-  btn.textContent = '⏳ Poster...';
-  try {
-    const resp = await fetch(`/post/${platform}/${postId}`, { method: 'POST' });
-    const data = await resp.json();
-    if (!resp.ok || data.error) throw new Error(data.error || 'Fejl');
-    btn.textContent = '✅ Delt!';
-    btn.classList.add('copied');
-    setTimeout(() => location.reload(), 1500);
-  } catch(e) {
-    alert('Fejl: ' + e.message);
-    btn.disabled = false;
-    btn.textContent = orig;
+/* ── Share to Facebook ─────────────────────────────────── */
+function shareToFacebook(postText, hashtags) {
+  const full = hashtags ? postText + '\n\n' + hashtags : postText;
+  navigator.clipboard.writeText(full).then(() => {
+    const url = 'https://www.facebook.com/';
+    window.open(url, '_blank');
+    showShareToast('📘 Tekst kopieret! Indsæt i dit Facebook-opslag.');
+  });
+}
+
+/* ── Share to Instagram ────────────────────────────────── */
+function shareToInstagram(postText, hashtags) {
+  const full = hashtags ? postText + '\n\n' + hashtags : postText;
+  // Try native share on mobile (shows Instagram in share sheet)
+  if (navigator.share) {
+    navigator.share({ text: full }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(full).then(() => {
+      window.open('https://www.instagram.com/', '_blank');
+      showShareToast('📸 Tekst kopieret! Opret et nyt opslag på Instagram og indsæt.');
+    });
   }
+}
+
+/* ── Share toast ───────────────────────────────────────── */
+function showShareToast(msg) {
+  let toast = document.getElementById('shareToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'shareToast';
+    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:white;padding:14px 24px;border-radius:12px;font-size:0.9rem;font-weight:600;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.3);max-width:90vw;text-align:center';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 3500);
 }
 
 async function confirmSchedule(postId) {
