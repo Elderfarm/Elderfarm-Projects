@@ -68,10 +68,16 @@
         {% if current_user.plan != 'pro' %}<span class="plan-badge" style="font-size:0.7rem;vertical-align:middle">Pro</span>{% endif %}
       </h2>
       <div class="field-group">
-        <label class="field-label">Dit Google anmeldelseslink</label>
+        <label class="field-label">Google anmeldelseslink</label>
         <input type="url" name="google_review_url" class="description-input" style="height:auto;padding:12px 16px"
           value="{{ current_user.google_review_url or '' }}" placeholder="https://g.page/r/..." maxlength="500">
-        <div class="field-hint">Gemmes automatisk i SMS-formularen så du slipper for at skrive det hver gang</div>
+        <div class="field-hint">Find det i <a href="https://business.google.com" target="_blank">Google Business Profile</a> → "Bed om anmeldelser"</div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Trustpilot profillink</label>
+        <input type="url" name="trustpilot_url" class="description-input" style="height:auto;padding:12px 16px"
+          value="{{ current_user.trustpilot_url or '' }}" placeholder="https://dk.trustpilot.com/review/ditfirma.dk" maxlength="500">
+        <div class="field-hint">Find det på <a href="https://dk.trustpilot.com" target="_blank">dk.trustpilot.com</a> → din virksomhedsprofil</div>
       </div>
     </div>
 

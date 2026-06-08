@@ -250,28 +250,63 @@
       </div>
     </div>
 
-    {# Tab 2: SMS review requests #}
+    {# Tab 2: Review requests (SMS + Email) #}
     <div class="pro-tab-panel hidden" id="tab-sms">
-      <p class="dash-section-sub">Send en venlig SMS til din kunde og bed om en Google-anmeldelse.</p>
+      <p class="dash-section-sub">Bed din kunde om en anmeldelse via SMS eller email — direkte til Google eller Trustpilot.</p>
       <div class="sms-card">
+
+        {# Send-metode #}
+        <div class="field-group">
+          <label class="field-label">Send via</label>
+          <div class="pill-group" id="sendMethodGroup">
+            <button type="button" class="pill active" data-value="sms" onclick="setSendMethod('sms')">📱 SMS</button>
+            <button type="button" class="pill" data-value="email" onclick="setSendMethod('email')">📧 Email</button>
+          </div>
+        </div>
+
         <div class="field-group">
           <label class="field-label">Kundens navn</label>
           <input type="text" id="smsName" class="description-input" style="height:auto;padding:12px 16px" placeholder="F.eks: Lars" maxlength="50">
         </div>
-        <div class="field-group">
+
+        <div class="field-group" id="phoneField">
           <label class="field-label">Telefonnummer</label>
           <input type="text" id="smsPhone" class="description-input" style="height:auto;padding:12px 16px" placeholder="+4512345678" maxlength="20">
         </div>
+
+        <div class="field-group hidden" id="emailField">
+          <label class="field-label">Email</label>
+          <input type="email" id="smsEmail" class="description-input" style="height:auto;padding:12px 16px" placeholder="kunde@email.dk" maxlength="200">
+        </div>
+
+        {# Platform: Google eller Trustpilot #}
         <div class="field-group">
-          <label class="field-label">Google anmeldelseslink <span class="field-optional">(valgfrit)</span></label>
+          <label class="field-label">Anmeldelsesplatform</label>
+          <div class="pill-group" id="reviewPlatformGroup">
+            <button type="button" class="pill active" data-value="google" onclick="setReviewPlatform('google')">⭐ Google</button>
+            <button type="button" class="pill" data-value="trustpilot" onclick="setReviewPlatform('trustpilot')">🟢 Trustpilot</button>
+          </div>
+        </div>
+
+        <div class="field-group" id="googleLinkField">
+          <label class="field-label">Google anmeldelseslink</label>
           <input type="text" id="smsGoogle" class="description-input" style="height:auto;padding:12px 16px"
             placeholder="https://g.page/r/..." maxlength="300"
             value="{{ current_user.google_review_url or '' }}">
           {% if not current_user.google_review_url %}
-          <div class="field-hint"><a href="{{ url_for('settings') }}">Gem dit Google-link i indstillinger</a> så du slipper for at skrive det hver gang</div>
+          <div class="field-hint"><a href="{{ url_for('settings') }}">Gem dit link i indstillinger</a> så du slipper for at skrive det hver gang</div>
           {% endif %}
         </div>
-        <button class="generate-btn" id="smsBtn" onclick="sendSms()">
+
+        <div class="field-group hidden" id="trustpilotLinkField">
+          <label class="field-label">Trustpilot profillink</label>
+          <input type="text" id="smsTrustpilot" class="description-input" style="height:auto;padding:12px 16px"
+            placeholder="https://dk.trustpilot.com/review/ditfirma.dk" maxlength="300"
+            value="{{ current_user.trustpilot_url or '' }}">
+          <div class="field-hint">Find dit link på <a href="https://dk.trustpilot.com" target="_blank">dk.trustpilot.com</a> → din profil</div>
+        </div>
+
+        <button class="generate-btn" id="smsBtn" onclick="sendReview()">
           <span id="smsBtnText">📱 Send SMS</span>
           <span id="smsBtnLoading" class="hidden"><span class="spinner"></span> Sender...</span>
         </button>
@@ -420,39 +455,67 @@ function copyReply(btn, text) {
   });
 }
 
-/* ── Send SMS ──────────────────────────────────────────── */
-async function sendSms() {
+/* ── Review request (SMS + Email) ──────────────────────── */
+let _sendMethod = 'sms';
+let _reviewPlatform = 'google';
+
+function setSendMethod(val) {
+  _sendMethod = val;
+  document.querySelectorAll('#sendMethodGroup .pill').forEach(p => p.classList.toggle('active', p.dataset.value === val));
+  document.getElementById('phoneField').classList.toggle('hidden', val === 'email');
+  document.getElementById('emailField').classList.toggle('hidden', val === 'sms');
+  document.getElementById('smsBtnText').textContent = val === 'sms' ? '📱 Send SMS' : '📧 Send email';
+}
+
+function setReviewPlatform(val) {
+  _reviewPlatform = val;
+  document.querySelectorAll('#reviewPlatformGroup .pill').forEach(p => p.classList.toggle('active', p.dataset.value === val));
+  document.getElementById('googleLinkField').classList.toggle('hidden', val === 'trustpilot');
+  document.getElementById('trustpilotLinkField').classList.toggle('hidden', val === 'google');
+}
+
+async function sendReview() {
   const name = document.getElementById('smsName').value.trim();
   const phone = document.getElementById('smsPhone').value.trim();
-  const google = document.getElementById('smsGoogle').value.trim();
+  const email = document.getElementById('smsEmail').value.trim();
+  const googleUrl = document.getElementById('smsGoogle').value.trim();
+  const trustpilotUrl = document.getElementById('smsTrustpilot').value.trim();
   const btn = document.getElementById('smsBtn');
   const btnText = document.getElementById('smsBtnText');
   const btnLoading = document.getElementById('smsBtnLoading');
   const successBox = document.getElementById('smsSuccess');
   const errorBox = document.getElementById('smsError');
 
+  errorBox.classList.add('hidden');
+  successBox.classList.add('hidden');
+
   if (!name) { errorBox.textContent = 'Indtast kundens navn'; errorBox.classList.remove('hidden'); return; }
-  if (!phone) { errorBox.textContent = 'Indtast telefonnummer'; errorBox.classList.remove('hidden'); return; }
+  if (_sendMethod === 'sms' && !phone) { errorBox.textContent = 'Indtast telefonnummer'; errorBox.classList.remove('hidden'); return; }
+  if (_sendMethod === 'email' && !email) { errorBox.textContent = 'Indtast email'; errorBox.classList.remove('hidden'); return; }
+
+  const reviewUrl = _reviewPlatform === 'google' ? googleUrl : trustpilotUrl;
 
   btn.disabled = true;
   btnText.classList.add('hidden');
   btnLoading.classList.remove('hidden');
-  successBox.classList.add('hidden');
-  errorBox.classList.add('hidden');
 
   try {
     const fd = new FormData();
     fd.append('customer_name', name);
-    fd.append('phone', phone);
-    if (google) fd.append('google_url', google);
-    const resp = await fetch('/sms', { method: 'POST', body: fd });
+    fd.append('send_method', _sendMethod);
+    fd.append('review_platform', _reviewPlatform);
+    fd.append('review_url', reviewUrl);
+    if (_sendMethod === 'sms') fd.append('phone', phone);
+    if (_sendMethod === 'email') fd.append('email', email);
+
+    const resp = await fetch('/review-request', { method: 'POST', body: fd });
     const data = await resp.json();
     if (!resp.ok || data.error) throw new Error(data.error || 'Fejl');
     successBox.textContent = '✅ ' + data.message;
     successBox.classList.remove('hidden');
     document.getElementById('smsName').value = '';
     document.getElementById('smsPhone').value = '';
-    document.getElementById('smsGoogle').value = '';
+    document.getElementById('smsEmail').value = '';
   } catch(e) {
     errorBox.textContent = e.message;
     errorBox.classList.remove('hidden');

@@ -24,6 +24,7 @@ class User(UserMixin, db.Model):
     ig_account_id = db.Column(db.String(100))
     ig_account_name = db.Column(db.String(200))
     google_review_url = db.Column(db.String(500))
+    trustpilot_url = db.Column(db.String(500))
     default_platform = db.Column(db.String(20), default="facebook")
     default_tone = db.Column(db.String(20), default="professionel")
     posts = db.relationship("Post", backref="user", lazy=True, order_by="Post.created_at.desc()")
