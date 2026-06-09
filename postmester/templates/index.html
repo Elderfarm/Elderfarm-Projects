@@ -318,8 +318,9 @@
           <li>✓ 2 opslag om måneden</li>
           <li>✓ Facebook + Instagram</li>
           <li>✓ Alle toner</li>
+          <li class="muted">✗ Tilbudsgenerator</li>
           <li class="muted">✗ Automatisk planlægning</li>
-          <li class="muted">✗ SMS til kunder</li>
+          <li class="muted">✗ SMS anmeldelser</li>
         </ul>
         <a href="{{ url_for('register') }}" class="price-cta outline">Start gratis</a>
         <div class="price-guarantee">Ingen kreditkort</div>
@@ -331,10 +332,11 @@
         <div class="price-eq">= én kop kaffe om ugen</div>
         <ul class="price-features">
           <li>✓ Ubegrænsede opslag</li>
+          <li class="highlight-feature">✓ 📋 Tilbudsgenerator — spar 30 min pr. tilbud</li>
           <li>✓ Automatisk planlægning</li>
           <li>✓ 12 sæsonskabeloner</li>
           <li>✓ Månedlig synlighedsrapport</li>
-          <li class="muted">✗ SMS til kunder</li>
+          <li class="muted">✗ SMS anmeldelser</li>
         </ul>
         {% if current_user.is_authenticated %}
           <a href="{{ url_for('upgrade', plan='starter') }}" class="price-cta">Betal med kort →</a>
@@ -347,8 +349,8 @@
         <div class="price-name">Pro</div>
         <div class="price-amount">149 kr<span>/md</span></div>
         <ul class="price-features">
-          <li>✓ Alt i Starter</li>
-          <li>✓ SMS → Google-anmeldelser</li>
+          <li>✓ Alt i Starter inkl. tilbudsgenerator</li>
+          <li>✓ SMS + email → Google/Trustpilot</li>
           <li>✓ AI svarer på kommentarer</li>
           <li>✓ Prioriteret support</li>
         </ul>
@@ -437,7 +439,7 @@
         <div class="upgrade-plan-price">79 kr<span>/md</span></div>
         <ul class="upgrade-plan-features">
           <li>✓ Ubegrænsede opslag</li>
-          <li>✓ 12 sæsonskabeloner</li>
+          <li>✓ 📋 Tilbudsgenerator</li>
           <li>✓ Planlæg opslag</li>
           <li>✓ Månedlig rapport</li>
         </ul>

@@ -1400,3 +1400,13 @@ body {
   font-size: 0.88rem;
   color: var(--dark);
 }
+
+/* ── Highlighted pricing feature ────────────────────────── */
+.price-features .highlight-feature {
+  color: var(--orange);
+  font-weight: 700;
+  background: var(--orange-light);
+  margin: 4px -8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+}
