@@ -268,33 +268,19 @@
       </div>
     </div>
 
-    {# Tab 2: Review requests (SMS + Email) #}
+    {# Tab 2: Review requests (SMS only) #}
     <div class="pro-tab-panel" id="tab-sms">
-      <p class="dash-section-sub">Bed din kunde om en anmeldelse via SMS eller email — direkte til Google eller Trustpilot.</p>
+      <p class="dash-section-sub">Bed din kunde om en anmeldelse via SMS — direkte til Google eller Trustpilot.</p>
       <div class="sms-card">
-
-        {# Send-metode #}
-        <div class="field-group">
-          <label class="field-label">Send via</label>
-          <div class="pill-group" id="sendMethodGroup">
-            <button type="button" class="pill active" data-value="sms" onclick="setSendMethod('sms')">📱 SMS</button>
-            <button type="button" class="pill" data-value="email" onclick="setSendMethod('email')">📧 Email</button>
-          </div>
-        </div>
 
         <div class="field-group">
           <label class="field-label">Kundens navn</label>
           <input type="text" id="smsName" class="description-input" style="height:auto;padding:12px 16px" placeholder="F.eks: Lars" maxlength="50">
         </div>
 
-        <div class="field-group" id="phoneField">
+        <div class="field-group">
           <label class="field-label">Telefonnummer</label>
           <input type="text" id="smsPhone" class="description-input" style="height:auto;padding:12px 16px" placeholder="+4512345678" maxlength="20">
-        </div>
-
-        <div class="field-group hidden" id="emailField">
-          <label class="field-label">Email</label>
-          <input type="email" id="smsEmail" class="description-input" style="height:auto;padding:12px 16px" placeholder="kunde@email.dk" maxlength="200">
         </div>
 
         {# Platform: Google eller Trustpilot #}
@@ -509,8 +495,7 @@ async function sendReview() {
   successBox.classList.add('hidden');
 
   if (!name) { errorBox.textContent = 'Indtast kundens navn'; errorBox.classList.remove('hidden'); return; }
-  if (_sendMethod === 'sms' && !phone) { errorBox.textContent = 'Indtast telefonnummer'; errorBox.classList.remove('hidden'); return; }
-  if (_sendMethod === 'email' && !email) { errorBox.textContent = 'Indtast email'; errorBox.classList.remove('hidden'); return; }
+  if (!phone) { errorBox.textContent = 'Indtast telefonnummer'; errorBox.classList.remove('hidden'); return; }
 
   const reviewUrl = _reviewPlatform === 'google' ? googleUrl : trustpilotUrl;
 
@@ -521,11 +506,10 @@ async function sendReview() {
   try {
     const fd = new FormData();
     fd.append('customer_name', name);
-    fd.append('send_method', _sendMethod);
+    fd.append('send_method', 'sms');
     fd.append('review_platform', _reviewPlatform);
     fd.append('review_url', reviewUrl);
-    if (_sendMethod === 'sms') fd.append('phone', phone);
-    if (_sendMethod === 'email') fd.append('email', email);
+    fd.append('phone', phone);
 
     const resp = await fetch('/review-request', { method: 'POST', body: fd });
     const data = await resp.json();
@@ -534,7 +518,6 @@ async function sendReview() {
     successBox.classList.remove('hidden');
     document.getElementById('smsName').value = '';
     document.getElementById('smsPhone').value = '';
-    document.getElementById('smsEmail').value = '';
   } catch(e) {
     errorBox.textContent = e.message;
     errorBox.classList.remove('hidden');
