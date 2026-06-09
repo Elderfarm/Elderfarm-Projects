@@ -465,17 +465,8 @@ function copyReply(btn, text) {
   });
 }
 
-/* ── Review request (SMS + Email) ──────────────────────── */
-let _sendMethod = 'sms';
+/* ── Review request (SMS) ──────────────────────── */
 let _reviewPlatform = 'google';
-
-function setSendMethod(val) {
-  _sendMethod = val;
-  document.querySelectorAll('#sendMethodGroup .pill').forEach(p => p.classList.toggle('active', p.dataset.value === val));
-  document.getElementById('phoneField').classList.toggle('hidden', val === 'email');
-  document.getElementById('emailField').classList.toggle('hidden', val === 'sms');
-  document.getElementById('smsBtnText').textContent = val === 'sms' ? '📱 Send SMS' : '📧 Send email';
-}
 
 function setReviewPlatform(val) {
   _reviewPlatform = val;
