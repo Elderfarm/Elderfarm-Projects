@@ -1068,6 +1068,12 @@ def robots():
     return Response(txt, mimetype="text/plain")
 
 
+@app.route("/google25ca0d020d56cb0f.html")
+def google_verify():
+    from flask import Response
+    return Response("google-site-verification: google25ca0d020d56cb0f.html", mimetype="text/html")
+
+
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
