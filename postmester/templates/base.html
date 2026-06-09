@@ -22,12 +22,12 @@
       <a href="{{ url_for('index') }}" class="logo">🔨 PostMester</a>
       <nav class="header-nav">
         {% if current_user.is_authenticated %}
-          <a href="{{ url_for('dashboard') }}" class="nav-link">Mine opslag</a>
+          <a href="{{ url_for('dashboard') }}" class="nav-link nav-desktop">Mine opslag</a>
           <a href="{{ url_for('index') }}#app" class="nav-link nav-cta">+ Nyt opslag</a>
-          <a href="{{ url_for('settings') }}" class="nav-link muted">⚙️</a>
-          <a href="{{ url_for('logout') }}" class="nav-link muted">Log ud</a>
+          <a href="{{ url_for('settings') }}" class="nav-link nav-icon" title="Indstillinger">⚙️</a>
+          <a href="{{ url_for('logout') }}" class="nav-link nav-desktop muted">Log ud</a>
         {% else %}
-          <a href="{{ url_for('login') }}" class="nav-link">Log ind</a>
+          <a href="{{ url_for('login') }}" class="nav-link nav-desktop">Log ind</a>
           <a href="{{ url_for('register') }}" class="nav-link nav-cta">Prøv gratis</a>
         {% endif %}
       </nav>
