@@ -237,16 +237,16 @@
   <div class="dash-section pro-tools" id="pro-tools">
     <h2 class="dash-section-title">⚡ Pro-værktøjer</h2>
     <div class="pro-tabs">
-      <button class="pro-tab-btn active" id="tab-replies-btn" onclick="switchTab('replies')">
-        💬 AI kommentarsvar
-      </button>
-      <button class="pro-tab-btn" id="tab-sms-btn" onclick="switchTab('sms')">
+      <button class="pro-tab-btn active" id="tab-sms-btn" onclick="switchTab('sms')">
         📱 SMS anmeldelse
+      </button>
+      <button class="pro-tab-btn" id="tab-replies-btn" onclick="switchTab('replies')">
+        💬 AI kommentarsvar
       </button>
     </div>
 
     {# Tab 1: AI comment replies #}
-    <div class="pro-tab-panel" id="tab-replies">
+    <div class="pro-tab-panel hidden" id="tab-replies">
       <p class="dash-section-sub">Indsæt en kommentar fra Facebook eller Instagram — AI skriver 3 svarforslag på 5 sekunder.</p>
       <div class="reply-card">
         <div class="field-group">
@@ -269,7 +269,7 @@
     </div>
 
     {# Tab 2: Review requests (SMS + Email) #}
-    <div class="pro-tab-panel hidden" id="tab-sms">
+    <div class="pro-tab-panel" id="tab-sms">
       <p class="dash-section-sub">Bed din kunde om en anmeldelse via SMS eller email — direkte til Google eller Trustpilot.</p>
       <div class="sms-card">
 
