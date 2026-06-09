@@ -16,7 +16,7 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for, f
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from pathlib import Path
-from models import db, User, Post, SmsLog
+from models import db, User, Post, SmsLog, PasswordResetToken
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
 
@@ -195,6 +195,78 @@ def login():
             return redirect(request.args.get("next") or url_for("dashboard"))
         flash("Forkert email eller password", "error")
     return render_template("login.html")
+
+
+@app.route("/glemt-adgangskode", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        user = User.query.filter_by(email=email).first()
+        if user:
+            token = uuid.uuid4().hex + uuid.uuid4().hex
+            reset = PasswordResetToken(user_id=user.id, token=token)
+            db.session.add(reset)
+            db.session.commit()
+
+            smtp_host = os.environ.get("SMTP_HOST")
+            smtp_user = os.environ.get("SMTP_USER")
+            smtp_pass = os.environ.get("SMTP_PASS")
+            from_email = os.environ.get("SMTP_FROM", smtp_user or "hej@postmester.app")
+
+            if smtp_host and smtp_user and smtp_pass:
+                try:
+                    reset_url = url_for("reset_password", token=token, _external=True)
+                    msg = MIMEMultipart("alternative")
+                    msg["Subject"] = "Nulstil din adgangskode — PostMester"
+                    msg["From"] = f"PostMester <{from_email}>"
+                    msg["To"] = email
+                    html = f"""
+                    <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px">
+                      <div style="font-size:1.4rem;font-weight:800;margin-bottom:24px">🔨 PostMester</div>
+                      <p>Hej,</p>
+                      <p>Vi har modtaget en anmodning om at nulstille adgangskoden til din PostMester-konto.</p>
+                      <p>Klik på knappen nedenfor — linket er gyldigt i 1 time.</p>
+                      <a href="{reset_url}" style="display:inline-block;margin:24px 0;padding:14px 28px;background:#FF6B2B;color:white;border-radius:10px;text-decoration:none;font-weight:700">
+                        Nulstil adgangskode →
+                      </a>
+                      <p style="font-size:0.85rem;color:#888">Hvis du ikke bad om dette, kan du ignorere denne mail.</p>
+                    </div>"""
+                    msg.attach(MIMEText(html, "html"))
+                    with smtplib.SMTP(smtp_host, int(os.environ.get("SMTP_PORT", 587))) as server:
+                        server.starttls()
+                        server.login(smtp_user, smtp_pass)
+                        server.sendmail(from_email, email, msg.as_string())
+                except Exception:
+                    pass
+
+        flash("Hvis emailen findes i systemet, har vi sendt et link til nulstilling.", "success")
+        return redirect(url_for("forgot_password"))
+
+    return render_template("forgot_password.html")
+
+
+@app.route("/nulstil-adgangskode/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    from datetime import timedelta
+    reset = PasswordResetToken.query.filter_by(token=token, used=False).first()
+    if not reset or (datetime.utcnow() - reset.created_at) > timedelta(hours=1):
+        flash("Linket er udløbet eller ugyldigt.", "error")
+        return redirect(url_for("forgot_password"))
+
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        if len(password) < 6:
+            flash("Adgangskoden skal være mindst 6 tegn", "error")
+            return render_template("reset_password.html", token=token)
+
+        user = db.session.get(User, reset.user_id)
+        user.password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        reset.used = True
+        db.session.commit()
+        flash("Din adgangskode er opdateret — log ind nu.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("reset_password.html", token=token)
 
 
 @app.route("/logout")
