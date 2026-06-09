@@ -494,13 +494,15 @@ def review_request():
     if not customer_name:
         return jsonify({"error": "Kundens navn er påkrævet"}), 400
 
+    job = request.form.get("job", "").strip()
     platform_label = "Google" if review_platform == "google" else "Trustpilot"
     fallback_url = review_url or ("https://g.page/r/review" if review_platform == "google" else "https://dk.trustpilot.com")
-    company = current_user.company or "os"
+    company = current_user.company or current_user.name or "os"
 
+    job_line = f" med {job}" if job else ""
     message_body = (
-        f"Hej {customer_name}, tusind tak for opgaven! "
-        f"Vi ville blive super glade hvis du vil give {company} en anmeldelse på {platform_label} 🙏 "
+        f"Hej {customer_name}, tusind tak for at du valgte {company}{job_line}! "
+        f"Det ville betyde meget for os hvis du vil give en anmeldelse på {platform_label} 🙏 "
         f"{fallback_url}"
     )
 

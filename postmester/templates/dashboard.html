@@ -283,6 +283,11 @@
           <input type="text" id="smsPhone" class="description-input" style="height:auto;padding:12px 16px" placeholder="+4512345678" maxlength="20">
         </div>
 
+        <div class="field-group">
+          <label class="field-label">Hvad omhandlede opgaven? <span class="field-optional">(valgfrit)</span></label>
+          <input type="text" id="smsJob" class="description-input" style="height:auto;padding:12px 16px" placeholder="F.eks: nyt badeværelse" maxlength="100">
+        </div>
+
         {# Platform: Google eller Trustpilot #}
         <div class="field-group">
           <label class="field-label">Anmeldelsesplatform</label>
@@ -482,7 +487,7 @@ function setReviewPlatform(val) {
 async function sendReview() {
   const name = document.getElementById('smsName').value.trim();
   const phone = document.getElementById('smsPhone').value.trim();
-  const email = document.getElementById('smsEmail').value.trim();
+  const job = document.getElementById('smsJob').value.trim();
   const googleUrl = document.getElementById('smsGoogle').value.trim();
   const trustpilotUrl = document.getElementById('smsTrustpilot').value.trim();
   const btn = document.getElementById('smsBtn');
@@ -510,6 +515,7 @@ async function sendReview() {
     fd.append('review_platform', _reviewPlatform);
     fd.append('review_url', reviewUrl);
     fd.append('phone', phone);
+    fd.append('job', job);
 
     const resp = await fetch('/review-request', { method: 'POST', body: fd });
     const data = await resp.json();
