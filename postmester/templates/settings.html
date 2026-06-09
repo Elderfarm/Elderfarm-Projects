@@ -81,27 +81,6 @@
       </div>
     </div>
 
-    <!-- Email -->
-    <div class="dash-section">
-      <h2 class="dash-section-title">📧 Email til anmeldelsesanmodninger
-        {% if current_user.plan == 'gratis' %}<span class="plan-badge" style="font-size:0.7rem;vertical-align:middle">Pro</span>{% endif %}
-      </h2>
-      <p class="dash-section-sub">Tilslut din Gmail så anmeldelsesemails sendes fra din egen adresse.</p>
-      <div class="field-group">
-        <label class="field-label">Din Gmail-adresse</label>
-        <input type="email" name="smtp_user" class="description-input" style="height:auto;padding:12px 16px"
-          value="{{ current_user.smtp_user or '' }}" placeholder="dinmail@gmail.com" maxlength="200">
-      </div>
-      <div class="field-group">
-        <label class="field-label">Gmail app-kodeord <span class="field-optional">(ikke dit normale password)</span></label>
-        <input type="password" name="smtp_pass" class="description-input" style="height:auto;padding:12px 16px"
-          value="{{ current_user.smtp_pass or '' }}" placeholder="xxxx xxxx xxxx xxxx" maxlength="100" autocomplete="off">
-        <div class="field-hint">
-          Opret det i Gmail → <strong>Indstillinger → Sikkerhed → 2-trins bekræftelse → App-adgangskoder</strong>
-        </div>
-      </div>
-    </div>
-
     <!-- Password -->
     <div class="dash-section">
       <h2 class="dash-section-title">🔑 Skift adgangskode</h2>
