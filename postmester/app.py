@@ -485,16 +485,16 @@ def review_request():
         return jsonify({"error": "Anmeldelsesanmodninger kræver Pro-plan."}), 403
 
     customer_name = request.form.get("customer_name", "").strip()
-    send_method = request.form.get("send_method", "sms")
     review_platform = request.form.get("review_platform", "google")
     review_url = request.form.get("review_url", "").strip()
     phone = request.form.get("phone", "").strip()
-    email_to = request.form.get("email", "").strip()
+    job = request.form.get("job", "").strip()
 
     if not customer_name:
         return jsonify({"error": "Kundens navn er påkrævet"}), 400
+    if not phone:
+        return jsonify({"error": "Telefonnummer er påkrævet"}), 400
 
-    job = request.form.get("job", "").strip()
     platform_label = "Google" if review_platform == "google" else "Trustpilot"
     fallback_url = review_url or ("https://g.page/r/review" if review_platform == "google" else "https://dk.trustpilot.com")
     company = current_user.company or current_user.name or "os"
@@ -506,79 +506,24 @@ def review_request():
         f"{fallback_url}"
     )
 
-    if send_method == "sms":
-        if not phone:
-            return jsonify({"error": "Telefonnummer er påkrævet"}), 400
+    account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+    auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
+    from_number = os.environ.get("TWILIO_FROM_NUMBER")
 
-        account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
-        auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
-        from_number = os.environ.get("TWILIO_FROM_NUMBER")
+    if not account_sid or not auth_token or not from_number:
+        return jsonify({"error": "Twilio er ikke sat op — tilføj TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN og TWILIO_FROM_NUMBER i Railway"}), 500
 
-        if not account_sid or not auth_token or not from_number:
-            return jsonify({"error": "Twilio er ikke sat op — tilføj TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN og TWILIO_FROM_NUMBER i Railway"}), 500
+    try:
+        from twilio.rest import Client
+        client = Client(account_sid, auth_token)
+        client.messages.create(body=message_body, from_=from_number, to=phone)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-        try:
-            from twilio.rest import Client
-            client = Client(account_sid, auth_token)
-            client.messages.create(body=message_body, from_=from_number, to=phone)
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-
-        log = SmsLog(user_id=current_user.id, customer_name=customer_name, phone=phone, message=message_body, status="sent")
-        db.session.add(log)
-        db.session.commit()
-        return jsonify({"success": True, "message": f"SMS sendt til {phone}"})
-
-    elif send_method == "email":
-        if not email_to:
-            return jsonify({"error": "Email er påkrævet"}), 400
-
-        # Brug kundens egne Gmail-oplysninger hvis tilgængelige, ellers system-SMTP
-        smtp_host = "smtp.gmail.com"
-        smtp_port = 587
-        smtp_user = current_user.smtp_user or os.environ.get("SMTP_USER")
-        smtp_pass = current_user.smtp_pass or os.environ.get("SMTP_PASS")
-        from_email = smtp_user or "hej@postmester.app"
-
-        if not smtp_user or not smtp_pass:
-            return jsonify({"error": "Tilslut din Gmail under Indstillinger for at sende emails"}), 500
-
-        try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = f"Tak for opgaven, {customer_name} — vil du give os en anmeldelse?"
-            msg["From"] = from_email
-            msg["To"] = email_to
-
-            html = f"""
-            <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px">
-              <p style="font-size:1rem;line-height:1.6">Hej {customer_name},</p>
-              <p style="font-size:1rem;line-height:1.6">
-                Tusind tak for opgaven! Vi håber du er glad for resultatet.<br><br>
-                Vi ville blive <strong>super glade</strong> hvis du vil tage 2 minutter
-                og give os en anmeldelse på {platform_label} 🙏
-              </p>
-              <a href="{fallback_url}" style="display:inline-block;margin:20px 0;padding:14px 28px;background:#FF6B2B;color:white;border-radius:8px;text-decoration:none;font-weight:700;font-size:1rem">
-                Giv os en anmeldelse →
-              </a>
-              <p style="font-size:0.85rem;color:#888">Mange tak — det betyder meget for os!</p>
-            </div>"""
-
-            msg.attach(MIMEText(message_body, "plain"))
-            msg.attach(MIMEText(html, "html"))
-
-            with smtplib.SMTP(smtp_host, smtp_port) as server:
-                server.starttls()
-                server.login(smtp_user, smtp_pass)
-                server.sendmail(from_email, email_to, msg.as_string())
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-
-        log = SmsLog(user_id=current_user.id, customer_name=customer_name, phone=email_to, message=message_body, status="email_sent")
-        db.session.add(log)
-        db.session.commit()
-        return jsonify({"success": True, "message": f"Email sendt til {email_to}"})
-
-    return jsonify({"error": "Ukendt send-metode"}), 400
+    log = SmsLog(user_id=current_user.id, customer_name=customer_name, phone=phone, message=message_body, status="sent")
+    db.session.add(log)
+    db.session.commit()
+    return jsonify({"success": True, "message": f"SMS sendt til {phone}"})
 
 
 @app.route("/schedule", methods=["POST"])
