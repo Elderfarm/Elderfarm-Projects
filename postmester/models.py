@@ -27,6 +27,8 @@ class User(UserMixin, db.Model):
     trustpilot_url = db.Column(db.String(500))
     default_platform = db.Column(db.String(20), default="facebook")
     default_tone = db.Column(db.String(20), default="professionel")
+    smtp_user = db.Column(db.String(200))
+    smtp_pass = db.Column(db.String(200))
     referral_code = db.Column(db.String(12), unique=True)
     referred_by = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
     referral_bonus_posts = db.Column(db.Integer, default=0)

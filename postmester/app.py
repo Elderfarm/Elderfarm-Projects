@@ -406,14 +406,15 @@ def review_request():
         if not email_to:
             return jsonify({"error": "Email er påkrævet"}), 400
 
-        smtp_host = os.environ.get("SMTP_HOST")
-        smtp_port = int(os.environ.get("SMTP_PORT", 587))
-        smtp_user = os.environ.get("SMTP_USER")
-        smtp_pass = os.environ.get("SMTP_PASS")
-        from_email = os.environ.get("SMTP_FROM", smtp_user or "hej@postmester.dk")
+        # Brug kundens egne Gmail-oplysninger hvis tilgængelige, ellers system-SMTP
+        smtp_host = "smtp.gmail.com"
+        smtp_port = 587
+        smtp_user = current_user.smtp_user or os.environ.get("SMTP_USER")
+        smtp_pass = current_user.smtp_pass or os.environ.get("SMTP_PASS")
+        from_email = smtp_user or "hej@postmester.app"
 
-        if not smtp_host or not smtp_user or not smtp_pass:
-            return jsonify({"error": "Email er ikke sat op — tilføj SMTP_HOST, SMTP_USER og SMTP_PASS i Railway"}), 500
+        if not smtp_user or not smtp_pass:
+            return jsonify({"error": "Tilslut din Gmail under Indstillinger for at sende emails"}), 500
 
         try:
             msg = MIMEMultipart("alternative")
@@ -594,12 +595,19 @@ def settings():
                 return redirect(url_for("settings"))
             current_user.password_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
 
+        smtp_user = request.form.get("smtp_user", "").strip()
+        smtp_pass = request.form.get("smtp_pass", "").strip()
+
         current_user.name = name
         current_user.company = company
         current_user.google_review_url = google_review_url
         current_user.trustpilot_url = trustpilot_url
         current_user.default_platform = default_platform if default_platform in PLATFORMS else "facebook"
         current_user.default_tone = default_tone if default_tone in TONES else "professionel"
+        if smtp_user:
+            current_user.smtp_user = smtp_user
+        if smtp_pass:
+            current_user.smtp_pass = smtp_pass
         db.session.commit()
         flash("Dine indstillinger er gemt ✅", "success")
         return redirect(url_for("settings"))
