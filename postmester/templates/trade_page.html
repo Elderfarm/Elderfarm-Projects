@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ page.title }} — AI-opslag til {{ page.trade_plural }}{% endblock %}
+
+{% block content %}
+<div style="max-width:800px;margin:0 auto;padding:60px 20px 80px">
+
+  <div style="text-align:center;margin-bottom:60px">
+    <div style="font-size:3rem;margin-bottom:16px">{{ page.emoji }}</div>
+    <h1 style="font-size:2.2rem;font-weight:800;line-height:1.2;margin-bottom:16px">
+      PostMester er lavet til {{ page.trade_plural }}
+    </h1>
+    <p style="font-size:1.1rem;color:var(--grey);max-width:540px;margin:0 auto 28px">
+      Du ved hvad du laver med hænderne. Vi sørger for at resten af Danmark finder ud af det.
+      AI-opslag til Facebook og Instagram — klar på 10 sekunder.
+    </p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a href="/register" class="hero-cta" style="text-decoration:none;display:inline-block">Prøv gratis →</a>
+      <a href="/#app" style="display:inline-block;padding:16px 28px;border:2px solid var(--border);border-radius:12px;font-weight:600;font-size:1rem;text-decoration:none;color:var(--text)">Se demo</a>
+    </div>
+  </div>
+
+  <div style="margin-bottom:60px">
+    <h2 style="font-size:1.3rem;font-weight:700;margin-bottom:20px;text-align:center">Eksempler på opslag for {{ page.trade_plural }}</h2>
+    <div style="display:grid;gap:16px">
+      {% for ex in page.examples %}
+      <div style="background:white;border:1px solid var(--border);border-radius:14px;padding:20px 24px">
+        <div style="font-size:0.75rem;font-weight:600;color:var(--grey);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Facebook-opslag</div>
+        <p style="font-size:1rem;line-height:1.6;margin:0">{{ ex }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    <p style="text-align:center;color:var(--grey);font-size:0.85rem;margin-top:12px">Disse opslag er genereret af AI på under 10 sekunder</p>
+  </div>
+
+  <div style="display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));margin-bottom:60px">
+    {% set features = [
+      ("⏱️", "Spar 20+ min pr. opslag", "Du skriver 2 ord — AI skriver resten"),
+      ("📱", "Facebook og Instagram", "Opslag tilpasset begge platforme"),
+      ("⭐", "Anmeldelsesanmodninger", "Send SMS og email til kunder direkte"),
+      ("📋", "Tilbudsgenerator", "Professionelle tilbud på 1 minut"),
+    ] %}
+    {% for icon, title, desc in features %}
+    <div style="background:white;border:1px solid var(--border);border-radius:14px;padding:20px">
+      <div style="font-size:1.5rem;margin-bottom:8px">{{ icon }}</div>
+      <div style="font-weight:700;margin-bottom:4px">{{ title }}</div>
+      <div style="font-size:0.85rem;color:var(--grey)">{{ desc }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div style="background:#1A1A1A;color:white;border-radius:20px;padding:40px;text-align:center">
+    <h2 style="font-weight:800;font-size:1.5rem;margin-bottom:8px">Klar til at komme i gang?</h2>
+    <p style="color:#aaa;margin-bottom:24px">Gratis konto. Ingen kreditkort. De første 2 opslag er gratis.</p>
+    <a href="/register" style="display:inline-block;background:var(--orange);color:white;padding:16px 32px;border-radius:12px;font-weight:700;font-size:1rem;text-decoration:none">
+      Opret din gratis konto →
+    </a>
+  </div>
+
+</div>
+{% endblock %}

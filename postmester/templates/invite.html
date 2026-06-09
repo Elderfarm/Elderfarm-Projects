@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Invitér en kollega — PostMester{% endblock %}
+
+{% block content %}
+<div class="dash-page" style="max-width:600px">
+
+  <div class="dash-overview">
+    <div class="dash-overview-top">
+      <div class="dash-greeting-block">
+        <span class="dash-greeting-text">🎁 Invitér en kollega</span>
+        <span class="plan-badge plan-{{ current_user.plan }}">{{ current_user.plan|capitalize }}</span>
+      </div>
+    </div>
+    <p style="color:var(--grey);font-size:0.9rem;margin-top:4px">Del din link — og I får begge ekstra opslag.</p>
+  </div>
+
+  <div class="app-card">
+    <div style="text-align:center;padding:8px 0 24px">
+      <div style="font-size:2.5rem;margin-bottom:12px">🤝</div>
+      <h2 style="font-weight:800;font-size:1.3rem;margin-bottom:8px">Du og din kollega får 3 ekstra opslag</h2>
+      <p style="color:var(--grey);font-size:0.95rem;max-width:400px;margin:0 auto 28px">Invitér en håndværkerkollega til PostMester. Når de opretter en konto via dit link, får du 3 ekstra opslag — de første opslag er gratis for dem.</p>
+    </div>
+
+    <div style="background:#F7F7F7;border-radius:12px;padding:16px;margin-bottom:16px">
+      <div style="font-size:0.8rem;font-weight:600;color:var(--grey);margin-bottom:8px">DIT INVITATIONSLINK</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" id="refLink" value="https://postmester.app/ref/{{ current_user.referral_code }}" readonly
+          style="flex:1;border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:0.9rem;background:white;color:var(--text)">
+        <button class="post-copy-btn" onclick="copyRef()">📋 Kopiér</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <a href="https://wa.me/?text=Prøv%20PostMester%20—%20AI%20skriver%20dine%20Facebook-opslag%20på%2010%20sekunder.%20Prøv%20gratis%3A%20https%3A%2F%2Fpostmester.app%2Fref%2F{{ current_user.referral_code }}" target="_blank"
+        style="display:block;text-align:center;padding:12px;background:#25D366;color:white;border-radius:10px;text-decoration:none;font-weight:600;font-size:0.9rem">
+        📲 Del på WhatsApp
+      </a>
+      <a href="sms:?body=Prøv%20PostMester%20—%20AI%20skriver%20dine%20Facebook-opslag%20på%2010%20sekunder.%20Prøv%20gratis%3A%20https%3A%2F%2Fpostmester.app%2Fref%2F{{ current_user.referral_code }}"
+        style="display:block;text-align:center;padding:12px;background:#1A1A1A;color:white;border-radius:10px;text-decoration:none;font-weight:600;font-size:0.9rem">
+        💬 Del via SMS
+      </a>
+    </div>
+
+    {% if current_user.referral_bonus_posts %}
+    <div style="background:#ECFDF5;border:1px solid #6EE7B7;border-radius:10px;padding:14px;text-align:center">
+      <span style="font-weight:700;color:#065F46">✅ Du har {{ current_user.referral_bonus_posts }} bonus-opslag optjent</span>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+function copyRef() {
+  const el = document.getElementById('refLink');
+  el.select();
+  navigator.clipboard.writeText(el.value).then(() => {
+    let t = document.createElement('div');
+    t.textContent = '✅ Link kopieret!';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:white;padding:14px 24px;border-radius:12px;font-weight:600;z-index:9999';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
+  });
+}
+</script>
+{% endblock %}

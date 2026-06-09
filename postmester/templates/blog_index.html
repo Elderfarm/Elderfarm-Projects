@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Blog — Tips til håndværkere om social media og markedsføring{% endblock %}
+
+{% block content %}
+<div style="max-width:860px;margin:0 auto;padding:40px 20px 80px">
+
+  <div style="margin-bottom:40px">
+    <h1 style="font-size:2rem;font-weight:800;margin-bottom:8px">Tip & guides til håndværkere</h1>
+    <p style="color:var(--grey);font-size:1.05rem">Praktiske råd om social media, anmeldelser og markedsføring — skrevet til folk der har travlt med det rigtige arbejde.</p>
+  </div>
+
+  <div style="display:grid;gap:24px;grid-template-columns:repeat(auto-fill,minmax(340px,1fr))">
+    {% for post in posts %}
+    <a href="/blog/{{ post.slug }}" style="text-decoration:none;color:inherit">
+      <div style="border:1px solid var(--border);border-radius:16px;padding:28px;background:white;transition:box-shadow .15s;cursor:pointer" onmouseover="this.style.boxShadow='0 4px 24px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+          <span style="font-size:0.78rem;font-weight:600;color:var(--orange);background:#FFF3EC;padding:4px 10px;border-radius:20px">{{ post.category }}</span>
+          <span style="font-size:0.78rem;color:var(--grey)">{{ post.read_time }} læsning</span>
+        </div>
+        <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:10px;line-height:1.4">{{ post.title }}</h2>
+        <p style="font-size:0.9rem;color:var(--grey);line-height:1.6;margin-bottom:16px">{{ post.intro }}</p>
+        <span style="font-size:0.88rem;font-weight:600;color:var(--orange)">Læs artiklen →</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  <div style="margin-top:60px;padding:40px;background:#FFF3EC;border-radius:20px;text-align:center">
+    <div style="font-size:1.5rem;margin-bottom:8px">🔨</div>
+    <h3 style="font-weight:800;font-size:1.3rem;margin-bottom:8px">Prøv PostMester gratis</h3>
+    <p style="color:var(--grey);margin-bottom:20px">Ét foto. To ord. Facebook-opslag klar på 10 sekunder.</p>
+    <a href="/register" class="hero-cta" style="display:inline-block;text-decoration:none">Opret gratis konto →</a>
+  </div>
+
+</div>
+{% endblock %}

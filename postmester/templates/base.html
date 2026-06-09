@@ -24,6 +24,7 @@
         {% if current_user.is_authenticated %}
           <a href="{{ url_for('dashboard') }}" class="nav-link nav-desktop">Mine opslag</a>
           <a href="{{ url_for('index') }}#app" class="nav-link nav-cta">+ Nyt opslag</a>
+          <a href="{{ url_for('invite') }}" class="nav-link nav-desktop" title="Invitér">🎁 Invitér</a>
           <a href="{{ url_for('settings') }}" class="nav-link nav-icon" title="Indstillinger">⚙️</a>
           <a href="{{ url_for('logout') }}" class="nav-link nav-desktop muted">Log ud</a>
         {% else %}
@@ -43,5 +44,46 @@
   {% block content %}{% endblock %}
 
   <script src="/static/js/app.js"></script>
+
+  {% if not current_user.is_authenticated %}
+  <footer style="background:#F7F7F7;border-top:1px solid var(--border);padding:40px 20px;margin-top:40px">
+    <div style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:32px">
+      <div>
+        <div style="font-weight:800;margin-bottom:12px">🔨 PostMester</div>
+        <p style="font-size:0.85rem;color:var(--grey);line-height:1.6">AI-opslag til håndværkere.<br>Ét foto. To ord. Klar til Facebook.</p>
+      </div>
+      <div>
+        <div style="font-weight:700;margin-bottom:12px;font-size:0.9rem">Guides</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <a href="/blog/facebook-opslag-haandvaerker" style="font-size:0.85rem;color:var(--grey);text-decoration:none">Facebook-opslag guide</a>
+          <a href="/blog/anmeldelser-haandvaerker-google" style="font-size:0.85rem;color:var(--grey);text-decoration:none">Få flere Google-anmeldelser</a>
+          <a href="/blog/instagram-haandvaerker-guide" style="font-size:0.85rem;color:var(--grey);text-decoration:none">Instagram for håndværkere</a>
+          <a href="/blog/tilbud-haandvaerker-skabelon" style="font-size:0.85rem;color:var(--grey);text-decoration:none">Tilbuds-skabelon</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-weight:700;margin-bottom:12px;font-size:0.9rem">Brancher</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <a href="/haandvaerker/toemrer" style="font-size:0.85rem;color:var(--grey);text-decoration:none">Tømrere</a>
+          <a href="/haandvaerker/elektriker" style="font-size:0.85rem;color:var(--grey);text-decoration:none">Elektrikere</a>
+          <a href="/haandvaerker/maler" style="font-size:0.85rem;color:var(--grey);text-decoration:none">Malere</a>
+          <a href="/haandvaerker/vvs" style="font-size:0.85rem;color:var(--grey);text-decoration:none">VVS-firmaer</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-weight:700;margin-bottom:12px;font-size:0.9rem">Produkt</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <a href="/register" style="font-size:0.85rem;color:var(--grey);text-decoration:none">Opret gratis konto</a>
+          <a href="/login" style="font-size:0.85rem;color:var(--grey);text-decoration:none">Log ind</a>
+          <a href="/#priser" style="font-size:0.85rem;color:var(--grey);text-decoration:none">Priser</a>
+          <a href="mailto:hej@postmester.app" style="font-size:0.85rem;color:var(--grey);text-decoration:none">Kontakt</a>
+        </div>
+      </div>
+    </div>
+    <div style="max-width:1100px;margin:24px auto 0;padding-top:20px;border-top:1px solid var(--border);font-size:0.8rem;color:var(--grey)">
+      © 2025 PostMester · <a href="mailto:hej@postmester.app" style="color:var(--grey)">hej@postmester.app</a>
+    </div>
+  </footer>
+  {% endif %}
 </body>
 </html>

@@ -5,6 +5,8 @@ import stripe
 import anthropic
 import requests
 import uuid
+import string
+import random
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -107,7 +109,18 @@ def register():
             return render_template("register.html")
 
         pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-        user = User(email=email, password_hash=pw_hash, name=name, company=company)
+        ref_code = _make_referral_code()
+        user = User(email=email, password_hash=pw_hash, name=name, company=company, referral_code=ref_code)
+
+        # Handle referral cookie
+        ref = request.cookies.get("ref")
+        if ref:
+            referrer = User.query.filter_by(referral_code=ref).first()
+            if referrer and referrer.email != email:
+                user.referred_by = referrer.id
+                # Give referrer 3 bonus posts
+                referrer.referral_bonus_posts = (referrer.referral_bonus_posts or 0) + 3
+
         db.session.add(user)
         db.session.commit()
         login_user(user)
@@ -744,6 +757,247 @@ def setup_admin(token):
 
 
 
+def _make_referral_code():
+    chars = string.ascii_uppercase + string.digits
+    while True:
+        code = "".join(random.choices(chars, k=8))
+        if not User.query.filter_by(referral_code=code).first():
+            return code
+
+
+# ── Referral ──────────────────────────────────────────
+
+@app.route("/ref/<code>")
+def referral_landing(code):
+    resp = redirect(url_for("register"))
+    resp.set_cookie("ref", code, max_age=30*24*3600, httponly=True, samesite="Lax")
+    return resp
+
+
+@app.route("/invite")
+@login_required
+def invite():
+    if not current_user.referral_code:
+        current_user.referral_code = _make_referral_code()
+        db.session.commit()
+    return render_template("invite.html")
+
+
+# ── Blog / SEO ────────────────────────────────────────
+
+BLOG_POSTS = [
+    {
+        "slug": "facebook-opslag-haandvaerker",
+        "title": "Sådan skriver du gode Facebook-opslag som håndværker (uden at bruge tid på det)",
+        "meta": "Lær hvad der virker på Facebook for tømrere, malere og elektrikere. Konkrete eksempler og gratis skabeloner.",
+        "date": "2025-05-15",
+        "category": "Social media tips",
+        "read_time": "4 min",
+        "intro": "De fleste håndværkere ved godt, at de burde være mere aktive på Facebook. Men hvem har tid til det, når der er job der venter?",
+        "content": """<p>Du har podset en frisk malet stue. Du er på vej ud ad døren. Det ser flot ud — men 30 sekunder efter lukker du bilen og kører videre til næste opgave.</p>
+
+<p>Det billede du ikke tog? Det opslag du ikke lavede? Det var 3-5 potentielle kunder der aldrig fandt ud af at du eksisterer.</p>
+
+<h2>Hvad virker på Facebook som håndværker?</h2>
+
+<p><strong>Før/efter billeder</strong> — Det er den bedste content-type for håndværkere. Folk elsker at se transformationen. Tag et billede inden du starter og et når du er færdig. Det tager 10 sekunder.</p>
+
+<p><strong>Lokale referencer</strong> — "Vi har netop renoveret et badeværelse i Aarhus N" performer bedre end generiske tekster. Folk søger håndværkere i deres nærområde.</p>
+
+<p><strong>Kort og konkret</strong> — 3-4 afsnit er nok. De fleste scroller på mobilen — lange tekster bliver ikke læst.</p>
+
+<p><strong>Slut med et spørgsmål eller CTA</strong> — "Har du brug for en tømrer i Odense? Ring på XX XX XX XX" — simpelt og effektivt.</p>
+
+<h2>Eksempel: et godt opslag vs. et dårligt</h2>
+
+<p><strong>Dårligt:</strong> "Vi tilbyder kvalitetsmaling til fornuftige priser. Ring for tilbud."</p>
+
+<p><strong>Godt:</strong> "✅ Nymalet stue i Horsens — kunden ville have en varm farve der stadig lyste rummet op. Vi valgte Jotun 'Warm Sand' og resultatet taler for sig selv 🎨 Hvad er dit næste maleprojekt? Skriv til os og få et uforpligtende tilbud."</p>
+
+<h2>Brug AI til at skrive opslaget</h2>
+
+<p>Du behøver ikke bruge 20 minutter på at finde på de rigtige ord. Med PostMester skriver du 2-3 ord om jobbet, og AI genererer et komplet opslag klar til Facebook — på under 10 sekunder.</p>
+
+<p>Prøv det gratis — ingen kreditkort kræves.</p>""",
+        "cta_text": "Prøv PostMester gratis",
+        "cta_url": "/register",
+    },
+    {
+        "slug": "anmeldelser-haandvaerker-google",
+        "title": "Sådan får du flere Google-anmeldelser som håndværker",
+        "meta": "5-stjernede Google-anmeldelser er guld for håndværkere. Lær den nemmeste måde at bede om anmeldelser på — og hvad du skriver.",
+        "date": "2025-05-22",
+        "category": "Anmeldelser",
+        "read_time": "3 min",
+        "intro": "En håndværker med 50 Google-anmeldelser vinder over en med 5 — selvom kvaliteten er den samme. Sådan samler du dem effektivt.",
+        "content": """<p>Tænk på hvad du selv gør, når du skal finde en VVS'er, elektriker eller tømrer. Du googler. Du kigger på anmeldelserne. Dem med mange stjerner og kommentarer — dem ringer du til.</p>
+
+<p>Det gør dine potentielle kunder præcis det samme.</p>
+
+<h2>Problemet: kunderne glemmer det</h2>
+
+<p>Du leverer et flot stykke arbejde. Kunden er tilfreds. Du siger "endelig du gerne skrive en anmeldelse". De nikker. Og glemmer det helt.</p>
+
+<p>Løsningen er at gøre det utrolig nemt — og spørge på det rigtige tidspunkt.</p>
+
+<h2>Det rigtige tidspunkt er inden du kører</h2>
+
+<p>Mens kunden stadig har dig foran sig og er begejstret — der er det nemmest at få en "ja selvfølgelig". Send dem et link direkte på SMS eller email, mens du pakker dine ting.</p>
+
+<p>Besked der virker:<br>
+<em>"Hej [navn], tusind tak for opgaven! Vil du give os en anmeldelse på Google? Det tager kun 2 minutter og hjælper os enormt 🙏 [link]"</em></p>
+
+<h2>Gør linket kortere</h2>
+
+<p>Det lange Google-link afskrækker folk. Gå til din Google My Business profil → Del → Kopiér anmeldelseslink. Det er kortere og går direkte til anmeldelsesformularen.</p>
+
+<h2>Automatisér det med PostMester</h2>
+
+<p>Med PostMester Pro sender du anmeldelsesanmodninger på SMS og email med ét klik — direkte fra dashboardet. Du behøver kun spare 2-3 ekstra anmeldelser om måneden for at det er pengene værd.</p>""",
+        "cta_text": "Prøv PostMester gratis",
+        "cta_url": "/register",
+    },
+    {
+        "slug": "instagram-haandvaerker-guide",
+        "title": "Instagram for håndværkere: Hvad der virker i 2025",
+        "meta": "Instagram kan give håndværkere nye kunder — men kun hvis du bruger det rigtigt. Her er den korte guide til hvad der faktisk virker.",
+        "date": "2025-06-01",
+        "category": "Social media tips",
+        "read_time": "5 min",
+        "intro": "Instagram er billedernes platform — og det er perfekt for håndværkere. Problemet er bare at de fleste poster forkert.",
+        "content": """<p>Instagram er faktisk bedre egnet til håndværkere end Facebook — fordi det er en visuel platform. Dit arbejde taler for sig selv. Du behøver ikke bruge mange ord.</p>
+
+<h2>Det der virker på Instagram</h2>
+
+<p><strong>Reel af arbejdsprocessen</strong> — 15-30 sekunder hvor du viser hvad du laver. Time-lapse af et murerarbejde, en montage af badeværelsesrenovering. Disse får organisk rækkevidde.</p>
+
+<p><strong>Før/efter i carousel</strong> — Swipe-opslag med 2-5 billeder. Læg "SWIPE →" på første billede. Algoritmen belønner opslag folk interagerer med.</p>
+
+<p><strong>Lokale hashtags</strong> — #tømreraarhus #malerkøbenhavn #vvsodense. Folk søger lokalt på Instagram.</p>
+
+<h2>Hvad du IKKE skal gøre</h2>
+
+<ul>
+<li>Poste det samme som på Facebook — Instagram er kortere og mere visuelt</li>
+<li>For mange tekster i billedet — Instagram er et visuelt medie</li>
+<li>Købe følgere — det skader din rækkevidde</li>
+</ul>
+
+<h2>Hvor tit skal du poste?</h2>
+
+<p>3 gange om ugen er ideelt. Men 1 gang om ugen er bedre end aldrig. Konsistens slår kvalitet på lang sigt.</p>
+
+<p>Brug PostMester til at generere både Facebook- og Instagram-opslag på én gang — du skriver beskrivelsen én gang og får tekst tilpasset begge platforme.</p>""",
+        "cta_text": "Prøv PostMester gratis",
+        "cta_url": "/register",
+    },
+    {
+        "slug": "tilbud-haandvaerker-skabelon",
+        "title": "Sådan skriver du et professionelt tilbud som håndværker (med skabelon)",
+        "meta": "Et godt tilbud vinder opgaven. Her er hvad der skal med, hvad du skal undgå, og en gratis AI-tilbudsgenerator til håndværkere.",
+        "date": "2025-06-08",
+        "category": "Forretning",
+        "read_time": "4 min",
+        "intro": "Et sloppy tilbud på en SMS taber mod et professionelt PDF-tilbud — selvom din pris er bedre. Her er hvad der gør forskellen.",
+        "content": """<p>Kunder sammenligner tilbud. Det første de kigger på er prisen. Men det der afgør hvem de vælger — det er professionalisme og tillid.</p>
+
+<p>Et tilbud der ser professionelt ud, signalerer at du også laver professionelt arbejde.</p>
+
+<h2>Hvad skal et godt håndværkertilbud indeholde?</h2>
+
+<ul>
+<li><strong>Dit navn / virksomhed</strong> og kontaktoplysninger</li>
+<li><strong>Kundens navn og adresse</strong></li>
+<li><strong>Dato og tilbudsnummer</strong> — giver det et officielt præg</li>
+<li><strong>Præcis beskrivelse af arbejdet</strong> — hvad er inkluderet og hvad er IKKE inkluderet</li>
+<li><strong>Pris ekskl. moms</strong>, momsbeløb og totalpris inkl. moms</li>
+<li><strong>Gyldighed</strong> — 14 eller 30 dage</li>
+<li><strong>Signatur</strong></li>
+</ul>
+
+<h2>Hvad du skal undgå</h2>
+
+<p><strong>Vag beskrivelse</strong> — "Renovering af badeværelse" er ikke nok. Skriv "Ny bruseniche 120x80cm med fliser, nyt toilet, ny håndvask, alt VVS inkluderet. Eksisterende fliser fjernes og bortskaffes."</p>
+
+<p><strong>Manglende forbehold</strong> — Tilføj altid "Eventuelle skjulte fejl og skader der opdages undervejs faktureres separat efter aftale."</p>
+
+<h2>Spar 30 minutter per tilbud</h2>
+
+<p>Med PostMester Starter og Pro kan du generere et komplet, professionelt tilbud på under 1 minut. Beskriv opgaven, angiv prisen — AI skriver det hele og du printer det som PDF.</p>""",
+        "cta_text": "Prøv tilbudsgeneratoren gratis",
+        "cta_url": "/register",
+    },
+]
+
+TRADE_PAGES = {
+    "toemrer": {
+        "title": "PostMester til tømrere",
+        "emoji": "🪚",
+        "trade": "tømrer",
+        "trade_plural": "tømrere",
+        "examples": [
+            "Ny terrassedæk på 30 kvm i Silkeborg — her er resultatet 💪",
+            "Udskiftet alle vinduer i et parcelhus fra 70'erne. Kunden sparer nu 30% på varmen 🏠",
+            "Carport færdig! 6x6m med integreret redskabsrum — kunden elsker det ✅",
+        ],
+    },
+    "elektriker": {
+        "title": "PostMester til elektrikere",
+        "emoji": "⚡",
+        "trade": "elektriker",
+        "trade_plural": "elektrikere",
+        "examples": [
+            "EV-lader monteret på villa i Aarhus N ⚡ Fremtidssikret og klar til elbilen",
+            "Komplet eltavle udskiftet — gammelt sikringsanlæg moderniseret ✅",
+            "Smart home installation: lys, varme og sikkerhed styret fra mobilen 📱",
+        ],
+    },
+    "maler": {
+        "title": "PostMester til malere",
+        "emoji": "🎨",
+        "trade": "maler",
+        "trade_plural": "malere",
+        "examples": [
+            "Nymalet stue i Horsens — fra slidt gul til varm grå 🎨 Kunden er vild med det",
+            "Facademaling på rækkehus færdig — huset ser 20 år yngre ud ✨",
+            "Komplet maling af lejlighed inden salg — kunden fik 80.000 mere end forventet 💰",
+        ],
+    },
+    "vvs": {
+        "title": "PostMester til VVS-firmaer",
+        "emoji": "🔧",
+        "trade": "VVS-firma",
+        "trade_plural": "VVS-firmaer",
+        "examples": [
+            "Nyt badeværelse på 7 kvm — fra gulv til loft inkl. al VVS 🚿",
+            "Udskiftet 40 år gammelt fjernvarmesystem — kunden sparer nu 4.000 kr/år 💧",
+            "Rørskade udbedret samme dag — vi er klar til akutte opgaver ⚡",
+        ],
+    },
+}
+
+
+@app.route("/blog")
+def blog_index():
+    return render_template("blog_index.html", posts=BLOG_POSTS)
+
+
+@app.route("/blog/<slug>")
+def blog_post(slug):
+    post = next((p for p in BLOG_POSTS if p["slug"] == slug), None)
+    if not post:
+        return redirect(url_for("blog_index"))
+    return render_template("blog_post.html", post=post)
+
+
+@app.route("/haandvaerker/<trade>")
+def trade_page(trade):
+    page = TRADE_PAGES.get(trade)
+    if not page:
+        return redirect(url_for("index"))
+    return render_template("trade_page.html", page=page, trade=trade)
+
+
 # In-memory rate limiting for demo
 _demo_requests = {}
 
@@ -781,6 +1035,37 @@ def demo():
         return jsonify({"post": resp.content[0].text.strip()})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/sitemap.xml")
+def sitemap():
+    pages = [
+        ("https://postmester.app/", "weekly", "1.0"),
+        ("https://postmester.app/register", "monthly", "0.8"),
+        ("https://postmester.app/blog", "weekly", "0.8"),
+        ("https://postmester.app/blog/facebook-opslag-haandvaerker", "monthly", "0.7"),
+        ("https://postmester.app/blog/anmeldelser-haandvaerker-google", "monthly", "0.7"),
+        ("https://postmester.app/blog/instagram-haandvaerker-guide", "monthly", "0.7"),
+        ("https://postmester.app/blog/tilbud-haandvaerker-skabelon", "monthly", "0.7"),
+        ("https://postmester.app/haandvaerker/toemrer", "monthly", "0.6"),
+        ("https://postmester.app/haandvaerker/elektriker", "monthly", "0.6"),
+        ("https://postmester.app/haandvaerker/maler", "monthly", "0.6"),
+        ("https://postmester.app/haandvaerker/vvs", "monthly", "0.6"),
+    ]
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    for loc, freq, pri in pages:
+        xml += f"  <url><loc>{loc}</loc><changefreq>{freq}</changefreq><priority>{pri}</priority></url>\n"
+    xml += "</urlset>"
+    from flask import Response
+    return Response(xml, mimetype="application/xml")
+
+
+@app.route("/robots.txt")
+def robots():
+    txt = "User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /dashboard\nSitemap: https://postmester.app/sitemap.xml\n"
+    from flask import Response
+    return Response(txt, mimetype="text/plain")
 
 
 if __name__ == "__main__":

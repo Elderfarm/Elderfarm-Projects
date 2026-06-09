@@ -27,6 +27,9 @@ class User(UserMixin, db.Model):
     trustpilot_url = db.Column(db.String(500))
     default_platform = db.Column(db.String(20), default="facebook")
     default_tone = db.Column(db.String(20), default="professionel")
+    referral_code = db.Column(db.String(12), unique=True)
+    referred_by = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    referral_bonus_posts = db.Column(db.Integer, default=0)
     posts = db.relationship("Post", backref="user", lazy=True, order_by="Post.created_at.desc()")
 
     def posts_this_month(self):
@@ -38,11 +41,11 @@ class User(UserMixin, db.Model):
         ).count()
 
     def can_generate(self):
-        limit = PLAN_LIMITS.get(self.plan, 2)
+        limit = PLAN_LIMITS.get(self.plan, 2) + (self.referral_bonus_posts or 0)
         return self.posts_this_month() < limit
 
     def posts_remaining(self):
-        limit = PLAN_LIMITS.get(self.plan, 2)
+        limit = PLAN_LIMITS.get(self.plan, 2) + (self.referral_bonus_posts or 0)
         if limit >= 999999:
             return "∞"
         return max(0, limit - self.posts_this_month())
