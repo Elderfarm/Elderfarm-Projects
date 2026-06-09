@@ -88,6 +88,58 @@ Regler: Skriv på naturligt uformelt dansk. Max 3-4 afsnit. 2-4 emojis. Slut med
     return {"post": post_text, "hashtags": hashtags, "platform": platform_label}
 
 
+def _send_welcome_email(to_email, name):
+    smtp_host = os.environ.get("SMTP_HOST")
+    smtp_port = int(os.environ.get("SMTP_PORT", 587))
+    smtp_user = os.environ.get("SMTP_USER")
+    smtp_pass = os.environ.get("SMTP_PASS")
+    from_email = os.environ.get("SMTP_FROM", smtp_user or "hej@postmester.app")
+
+    if not smtp_host or not smtp_user or not smtp_pass:
+        return  # Email ikke sat op — spring over
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "Velkommen til PostMester 🔨"
+        msg["From"] = f"PostMester <{from_email}>"
+        msg["To"] = to_email
+
+        html = f"""
+        <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;color:#1A1A1A">
+          <div style="font-size:1.5rem;font-weight:800;margin-bottom:24px">🔨 PostMester</div>
+          <p style="font-size:1.05rem;line-height:1.7">Hej {name},</p>
+          <p style="font-size:1rem;line-height:1.7">
+            Velkommen! Du er nu klar til at spare tid på Facebook og Instagram.
+          </p>
+          <p style="font-size:1rem;line-height:1.7">
+            <strong>Sådan kommer du i gang:</strong><br>
+            1. Tag et foto af dit seneste arbejde<br>
+            2. Skriv 2-3 ord om hvad du lavede<br>
+            3. Klik "Generer" — AI skriver resten
+          </p>
+          <a href="https://postmester.app/dashboard"
+            style="display:inline-block;margin:24px 0;padding:14px 28px;background:#FF6B2B;color:white;border-radius:10px;text-decoration:none;font-weight:700;font-size:1rem">
+            Lav dit første opslag →
+          </a>
+          <p style="font-size:0.85rem;color:#888;margin-top:32px;line-height:1.6">
+            Du er på den gratis plan med 2 opslag om måneden.<br>
+            Opgradér til Starter (79 kr/md) for ubegrænsede opslag og tilbudsgenerator.
+          </p>
+          <p style="font-size:0.85rem;color:#888">
+            Spørgsmål? Svar direkte på denne mail.
+          </p>
+        </div>"""
+
+        msg.attach(MIMEText(html, "html"))
+
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.sendmail(from_email, to_email, msg.as_string())
+    except Exception:
+        pass  # Fejl i velkomstmail må ikke blokere registrering
+
+
 # ── Auth routes ────────────────────────────────────────
 
 @app.route("/register", methods=["GET", "POST"])
@@ -124,6 +176,7 @@ def register():
         db.session.add(user)
         db.session.commit()
         login_user(user)
+        _send_welcome_email(email, name or email.split("@")[0])
         return redirect(url_for("dashboard"))
 
     return render_template("register.html")
