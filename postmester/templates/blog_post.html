@@ -1,5 +1,26 @@
 {% extends "base.html" %}
-{% block title %}{{ post.title }} — PostMester{% endblock %}
+{% block title %}{{ post.title }} | PostMester{% endblock %}
+{% block meta_description %}{{ post.meta }}{% endblock %}
+{% block canonical %}https://postmester.app/blog/{{ post.slug }}{% endblock %}
+{% block og_title %}{{ post.title }}{% endblock %}
+{% block og_description %}{{ post.meta }}{% endblock %}
+{% block og_url %}https://postmester.app/blog/{{ post.slug }}{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block extra_schema %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "{{ post.title }}",
+  "description": "{{ post.meta }}",
+  "datePublished": "{{ post.date }}",
+  "author": {"@type": "Organization", "name": "PostMester"},
+  "publisher": {"@type": "Organization", "name": "PostMester", "url": "https://postmester.app"},
+  "inLanguage": "da",
+  "url": "https://postmester.app/blog/{{ post.slug }}"
+}
+</script>
+{% endblock %}
 
 {% block content %}
 <div style="max-width:720px;margin:0 auto;padding:40px 20px 80px">

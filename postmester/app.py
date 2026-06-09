@@ -153,6 +153,15 @@ def logout():
 
 # ── Main routes ────────────────────────────────────────
 
+@app.before_request
+def redirect_www():
+    from flask import request, redirect
+    host = request.host
+    if host and host.startswith("www."):
+        url = request.url.replace("://www.", "://", 1)
+        return redirect(url, code=301)
+
+
 @app.route("/")
 def index():
     return render_template("index.html")

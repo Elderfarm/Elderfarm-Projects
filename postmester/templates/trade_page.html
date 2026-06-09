@@ -1,5 +1,23 @@
 {% extends "base.html" %}
-{% block title %}{{ page.title }} — AI-opslag til {{ page.trade_plural }}{% endblock %}
+{% block title %}{{ page.title }} — AI-opslag til {{ page.trade_plural }} | PostMester{% endblock %}
+{% block meta_description %}PostMester hjælper {{ page.trade_plural }} med at skrive Facebook- og Instagram-opslag automatisk. Spar 20 min pr. opslag — AI klarer det på 10 sekunder. Gratis at starte.{% endblock %}
+{% block canonical %}https://postmester.app/haandvaerker/{{ trade }}{% endblock %}
+{% block og_title %}{{ page.title }} — AI-opslag til {{ page.trade_plural }}{% endblock %}
+{% block og_description %}Spar 20 min pr. opslag. AI skriver dine Facebook-opslag på 10 sekunder. Gratis at starte.{% endblock %}
+{% block og_url %}https://postmester.app/haandvaerker/{{ trade }}{% endblock %}
+{% block meta_keywords %}facebook opslag {{ page.trade }}, social media {{ page.trade }}, markedsføring {{ page.trade_plural }}, AI {{ page.trade }} opslag{% endblock %}
+{% block extra_schema %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "{{ page.title }}",
+  "description": "PostMester hjælper {{ page.trade_plural }} med AI-genererede Facebook- og Instagram-opslag.",
+  "url": "https://postmester.app/haandvaerker/{{ trade }}",
+  "inLanguage": "da"
+}
+</script>
+{% endblock %}
 
 {% block content %}
 <div style="max-width:800px;margin:0 auto;padding:60px 20px 80px">

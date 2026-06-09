@@ -3,14 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <title>{% block title %}PostMester — AI-opslag til håndværkere{% endblock %}</title>
-  <meta name="description" content="PostMester skriver dine Facebook- og Instagram-opslag automatisk. Tag et foto, skriv to ord — AI klarer resten. Gratis at starte.">
-  <meta name="keywords" content="social media håndværker, Facebook opslag tømrer, AI markedsføring, PostMester">
-  <meta property="og:title" content="PostMester — AI-opslag til håndværkere">
-  <meta property="og:description" content="Ét foto. To ord. Klar til Facebook på 10 sekunder.">
-  <meta property="og:type" content="website">
+  <title>{% block title %}PostMester — AI-opslag til håndværkere | Facebook og Instagram på 10 sekunder{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}PostMester skriver dine Facebook- og Instagram-opslag automatisk. Tag et foto, skriv to ord — AI klarer resten. Gratis at starte. Brugt af tømrere, malere, elektrikere og VVS-firmaer.{% endblock %}">
+  <meta name="keywords" content="{% block meta_keywords %}facebook opslag håndværker, AI markedsføring håndværker, social media tømrer, instagram opslag elektriker, PostMester{% endblock %}">
+  <meta name="robots" content="{% block meta_robots %}index, follow{% endblock %}">
+  <link rel="canonical" href="{% block canonical %}https://postmester.app/{% endblock %}">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="{% block og_title %}PostMester — AI-opslag til håndværkere{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}Ét foto. To ord. Klar til Facebook på 10 sekunder. Gratis at starte.{% endblock %}">
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  <meta property="og:url" content="{% block og_url %}https://postmester.app/{% endblock %}">
+  <meta property="og:site_name" content="PostMester">
+  <meta property="og:locale" content="da_DK">
+
+  <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
-  <link rel="canonical" href="https://postmester.dk/">
+  <meta name="twitter:title" content="{% block tw_title %}PostMester — AI-opslag til håndværkere{% endblock %}">
+  <meta name="twitter:description" content="{% block tw_description %}Ét foto. To ord. Klar til Facebook på 10 sekunder.{% endblock %}">
+
+  <!-- Structured data: Organization -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "PostMester",
+    "url": "https://postmester.app",
+    "description": "AI-drevet social media assistent til danske håndværkere. Genererer Facebook- og Instagram-opslag automatisk.",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "offers": [
+      {"@type": "Offer", "name": "Gratis", "price": "0", "priceCurrency": "DKK"},
+      {"@type": "Offer", "name": "Starter", "price": "79", "priceCurrency": "DKK"},
+      {"@type": "Offer", "name": "Pro", "price": "149", "priceCurrency": "DKK"}
+    ],
+    "inLanguage": "da"
+  }
+  </script>
+  {% block extra_schema %}{% endblock %}
+
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
