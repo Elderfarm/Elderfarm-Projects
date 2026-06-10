@@ -18,6 +18,7 @@
         <input type="password" id="password" name="password" class="auth-input" placeholder="••••••••" required>
       </div>
       <button type="submit" class="auth-btn">Log ind →</button>
+      <a href="{{ url_for('forgot_password') }}" style="display:block;text-align:center;margin-top:12px;font-size:0.9rem;color:var(--grey)">Glemt adgangskode?</a>
     </form>
 
     <p class="auth-switch"><a href="{{ url_for('forgot_password') }}" style="color:var(--grey);font-size:0.9rem">Glemt adgangskode?</a></p>
