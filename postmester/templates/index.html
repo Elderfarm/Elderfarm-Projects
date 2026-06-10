@@ -222,12 +222,19 @@
         </button>
         <div id="demoResult" class="hidden" style="margin-top:20px">
           <div class="result-label" style="margin-bottom:10px">🎉 Sådan ser dit opslag ud!</div>
-          <div class="result-post" id="demoPost" style="margin-bottom:16px"></div>
-          <div style="background:var(--orange-light);border-radius:12px;padding:20px;text-align:center">
-            <p style="font-weight:700;font-size:1rem;margin-bottom:6px">Vil du gemme dette og lave ubegrænsede opslag?</p>
-            <p style="color:var(--grey);font-size:0.88rem;margin-bottom:16px">Opret en gratis konto — tager 30 sekunder. Ingen kreditkort.</p>
-            <a href="{{ url_for('register') }}" class="generate-btn" style="text-decoration:none;display:block;text-align:center;margin-bottom:10px;padding:15px">Opret gratis konto og gem opslaget →</a>
-            <p style="font-size:0.82rem;color:var(--grey)">Har du allerede en konto? <a href="{{ url_for('login') }}" style="color:var(--orange);font-weight:600">Log ind her</a></p>
+          <div class="result-post" id="demoPost" style="margin-bottom:8px"></div>
+          <button onclick="copyDemoPost()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:8px 16px;font-size:0.85rem;cursor:pointer;margin-bottom:16px;width:100%">📋 Kopiér opslag</button>
+          <div style="background:linear-gradient(135deg,#FFF3EC,#FFE8D6);border-radius:16px;padding:24px;text-align:center;border:2px solid var(--orange)">
+            <div style="font-size:1.5rem;margin-bottom:8px">🚀</div>
+            <p style="font-weight:800;font-size:1.1rem;margin-bottom:4px">Lav ubegrænsede opslag gratis</p>
+            <p style="color:var(--grey);font-size:0.88rem;margin-bottom:16px">Opret konto på 30 sekunder. Ingen kreditkort.</p>
+            <a href="{{ url_for('register') }}" class="generate-btn" style="text-decoration:none;display:block;text-align:center;margin-bottom:12px;padding:16px;font-size:1rem">Opret gratis konto →</a>
+            <div style="display:flex;justify-content:center;gap:16px;font-size:0.8rem;color:var(--grey)">
+              <span>✓ Gratis at starte</span>
+              <span>✓ Ingen binding</span>
+              <span>✓ Virker straks</span>
+            </div>
+            <p style="font-size:0.82rem;color:var(--grey);margin-top:12px">Har du allerede en konto? <a href="{{ url_for('login') }}" style="color:var(--orange);font-weight:600">Log ind her</a></p>
           </div>
         </div>
         <div id="demoError" class="error-box hidden"></div>
@@ -496,6 +503,17 @@ async function runDemo() {
     btnText.classList.remove('hidden');
     btnLoading.classList.add('hidden');
   }
+}
+
+function copyDemoPost() {
+  const text = document.getElementById('demoPost').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    let t = document.createElement('div');
+    t.textContent = '✅ Kopieret!';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:white;padding:12px 24px;border-radius:12px;font-weight:600;z-index:9999';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2000);
+  });
 }
 </script>
 

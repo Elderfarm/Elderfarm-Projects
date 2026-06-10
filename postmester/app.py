@@ -1063,6 +1063,50 @@ TRADE_PAGES = {
             "Rørskade udbedret samme dag — vi er klar til akutte opgaver ⚡",
         ],
     },
+    "murer": {
+        "title": "PostMester til murere",
+        "emoji": "🧱",
+        "trade": "murer",
+        "trade_plural": "murere",
+        "examples": [
+            "Ny indkørsel i brosten — 80 kvm lagt på 3 dage 🧱 Kunden er super tilfreds",
+            "Murværk renoveret på villa fra 1920 — som nyt igen ✅",
+            "Ny terrasse i natursten, Vejle — 45 kvm inkl. afvanding 💪",
+        ],
+    },
+    "snedker": {
+        "title": "PostMester til snedkere",
+        "emoji": "🪵",
+        "trade": "snedker",
+        "trade_plural": "snedkere",
+        "examples": [
+            "Håndlavet køkken monteret i Odense — fra tegning til færdigt på 3 uger 🪵",
+            "Nye indbyggede skabe i soveværelset — udnytter hver centimeter ✅",
+            "Brugerdefineret reolsystem i stuen — kunden designede det selv, vi byggede det 🏠",
+        ],
+    },
+    "tagdaekker": {
+        "title": "PostMester til tagdækkere",
+        "emoji": "🏚️",
+        "trade": "tagdækker",
+        "trade_plural": "tagdækkere",
+        "examples": [
+            "Nyt tegltag på villa — 180 kvm lagt på 4 dage 🏚️ 30 års garanti",
+            "Tagpap udskiftet på parcelhus inden vinteren — kunden kan sove roligt nu ✅",
+            "Komplet tagrenovering inkl. nye render og nedløb 💪",
+        ],
+    },
+    "gulvlaegger": {
+        "title": "PostMester til gulvlæggere",
+        "emoji": "🏠",
+        "trade": "gulvlægger",
+        "trade_plural": "gulvlæggere",
+        "examples": [
+            "Nyt egetræsgulv i stue og gang — 65 kvm på 2 dage 🏠",
+            "Gammelt parket slibet og olieret — som nyt igen uden at skifte det ud ✅",
+            "Flisegulv i åbent køkken/alrum — 40 kvm inkl. gulvvarme 💪",
+        ],
+    },
 }
 
 
@@ -1140,6 +1184,10 @@ def sitemap():
         ("https://postmester.app/haandvaerker/elektriker", "monthly", "0.6"),
         ("https://postmester.app/haandvaerker/maler", "monthly", "0.6"),
         ("https://postmester.app/haandvaerker/vvs", "monthly", "0.6"),
+        ("https://postmester.app/haandvaerker/murer", "monthly", "0.6"),
+        ("https://postmester.app/haandvaerker/snedker", "monthly", "0.6"),
+        ("https://postmester.app/haandvaerker/tagdaekker", "monthly", "0.6"),
+        ("https://postmester.app/haandvaerker/gulvlaegger", "monthly", "0.6"),
     ]
     xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
