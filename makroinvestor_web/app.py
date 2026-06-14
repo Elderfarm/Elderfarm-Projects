@@ -1,6 +1,6 @@
 from flask import Flask, render_template, jsonify, request
 from data import (hent_alle_data, match_profil, parse_fordeling,
-                  simuler_sektorer, INDIKATORER, SEKTOR_RÆKKEFØLGE,
+                  simuler_sektorer, sektor_ind_scores, INDIKATORER, SEKTOR_RÆKKEFØLGE,
                   DEFAULT_MAKRO, FASE_META, INDIKATOR_TYPE)
 
 app = Flask(__name__)
@@ -107,6 +107,14 @@ def api_profil():
     return jsonify({"profil":profil,"score_ratio":round(ratio,3),"total_score":total,
                     "maks_score":maks,"fordeling":fordeling,"beloeb_fordeling":beloeb_fordeling,
                     "top_sektorer":top_sektorer})
+
+
+@app.route("/api/sektor_inds/<navn>")
+def api_sektor_inds(navn):
+    d = get_data()
+    s = next((x for x in d["sektorer"] if x["sektor"].lower()==navn.lower()), None)
+    if not s: return jsonify({"fejl":"ikke fundet"}), 404
+    return jsonify(sektor_ind_scores(d["seneste_makro"], s["sektor"]))
 
 
 @app.route("/api/sektor/<navn>")

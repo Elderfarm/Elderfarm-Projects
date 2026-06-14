@@ -759,29 +759,26 @@ function renderHeatmap(){
 }
 
 function showIndBreakdown(sektor){
-  const ma = hmData;
-  // Find makro analyse data for denne sektor
-  fetch(`/api/sektor/${encodeURIComponent(sektor)}`).then(r=>r.json()).then(d=>{
-    const inds = ["PMI","BNP","10 YR","CPI","Baltic Dry","VIX","Currency","Unemployment"];
+  fetch(`/api/sektor_inds/${encodeURIComponent(sektor)}`).then(r=>r.json()).then(d=>{
     document.getElementById("ind-breakdown").style.display="block";
+    const phaseColors = {Early:"#10B981",Mid:"#3B82F6",Late:"#F59E0B",Recession:"#EF4444"};
     document.getElementById("ind-breakdown-grid").innerHTML =
       ["Europa","USA"].map(region=>{
-        const q2 = d.makro_analyse?.[region]?.["Q2 2026"] || {};
+        const rows = d.regioner?.[region]||[];
+        const total = d.totals?.[region];
         return `
           <div class="card" style="padding:12px">
             <div style="font-size:.72rem;font-weight:600;color:#94A3B8;margin-bottom:8px">${region}</div>
-            ${inds.map(ind=>{
-              const sc = q2[ind];
-              return sc != null ? `
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:.72rem">
-                  <span style="color:#475569;width:96px;flex-shrink:0">${ind}</span>
-                  <div style="flex:1">${scoreBar(sc)}</div>
-                  <span class="mono" style="font-weight:700;width:20px;text-align:right;color:${sc>=4?'#10B981':sc>=3?'#F59E0B':'#EF4444'}">${sc}</span>
-                </div>` : '';
-            }).join("")}
+            ${rows.map(r=>`
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:.72rem">
+                <span style="color:#475569;width:100px;flex-shrink:0">${r.ind}</span>
+                <span style="font-size:.6rem;color:${phaseColors[r.fase]||'#64748b'};width:58px;flex-shrink:0">${r.fase} ×${r.vaegt}</span>
+                <div style="flex:1">${scoreBar(r.score)}</div>
+                <span class="mono" style="font-weight:700;width:20px;text-align:right;color:${r.score>=4?'#10B981':r.score>=3?'#F59E0B':'#EF4444'}">${r.score}</span>
+              </div>`).join("")}
             <div style="border-top:1px solid rgba(255,255,255,.05);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:.72rem">
-              <span style="color:#475569">Total score</span>
-              <span style="font-weight:700;color:#E2E8F0">${q2.total?.toFixed(2)||'—'}</span>
+              <span style="color:#475569">Vægtet score</span>
+              <span style="font-weight:700;color:#E2E8F0">${total!=null?total.toFixed(2):'—'}</span>
             </div>
           </div>`;
       }).join("");
@@ -1000,20 +997,28 @@ async function openSektor(navn){
   }
   document.getElementById("sd-aktier").innerHTML = aktHtml||'<p style="font-size:.75rem;color:#475569">Ingen aktier</p>';
 
-  // Indikatorer Q2 2026 (Europa + USA)
-  const inds_eu = d.makro_analyse?.Europa?.["Q2 2026"]||{};
-  const inds_usa = d.makro_analyse?.USA?.["Q2 2026"]||{};
-  const INDS = ["PMI","BNP","10 YR","CPI","VIX","Unemployment"];
-  document.getElementById("sd-inds").innerHTML = INDS.map(ind=>{
-    const vals = [inds_eu[ind],inds_usa[ind]].filter(v=>v!=null);
-    const avg = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
-    return avg!=null ? `
-      <div style="display:flex;align-items:center;gap:8px;font-size:.72rem;margin-bottom:6px">
-        <span style="color:#475569;width:80px;flex-shrink:0">${ind}</span>
-        <div style="flex:1">${scoreBar(avg)}</div>
-        <span class="mono" style="font-weight:700;width:20px;text-align:right;color:${avg>=4?'#10B981':avg>=3?'#F59E0B':'#EF4444'}">${avg.toFixed(1)}</span>
-      </div>` : '';
-  }).join("");
+  // Indikatorer — hent fra simulator (samme kilde som dashboard)
+  fetch(`/api/sektor_inds/${encodeURIComponent(d.sektor)}`).then(r=>r.json()).then(si=>{
+    const phaseColors = {Early:"#10B981",Mid:"#3B82F6",Late:"#F59E0B",Recession:"#EF4444"};
+    // Merge Europa+USA: gennemsnit per indikator
+    const merged = {};
+    ["Europa","USA"].forEach(rg=>{
+      (si.regioner?.[rg]||[]).forEach(r=>{
+        if(!merged[r.ind]) merged[r.ind]={scores:[],fase:r.fase,vaegt:r.vaegt};
+        merged[r.ind].scores.push(r.score);
+      });
+    });
+    document.getElementById("sd-inds").innerHTML = Object.entries(merged).map(([ind,m])=>{
+      const avg = m.scores.reduce((a,b)=>a+b,0)/m.scores.length;
+      return `
+        <div style="display:flex;align-items:center;gap:8px;font-size:.72rem;margin-bottom:6px">
+          <span style="color:#475569;width:100px;flex-shrink:0">${ind}</span>
+          <span style="font-size:.6rem;color:${phaseColors[m.fase]||'#64748b'};width:50px;flex-shrink:0">${m.fase}</span>
+          <div style="flex:1">${scoreBar(avg)}</div>
+          <span class="mono" style="font-weight:700;width:26px;text-align:right;color:${avg>=4?'#10B981':avg>=3?'#F59E0B':'#EF4444'}">${avg.toFixed(1)}</span>
+        </div>`;
+    }).join("");
+  });
 
   document.getElementById("sd-hist").style.display="none";
 

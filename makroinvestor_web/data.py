@@ -899,6 +899,30 @@ def simuler_sektorer(makro_inputs):
             "fase_meta": FASE_META.get(global_fase,{}), "faser": {r: f["_global"] for r,f in faser.items()}}
 
 
+def sektor_ind_scores(seneste_makro, sektor):
+    """
+    Returnerer per-indikator score for en sektor baseret på seneste_makro.
+    Output: {region: [{ind, fase, score, vaegt}], totals: {region: float}}
+    """
+    result = {}
+    totals = {}
+    for region, inds in seneste_makro.items():
+        inputs = {k: v["vaerdi"] for k, v in inds.items()}
+        f = klassificer_makro(inputs, region)
+        rows = []
+        vs, vv = 0, 0
+        for ind in INDIKATORER:
+            fase = f.get(ind)
+            if fase and sektor in SEKTOR_SENSITIVITET.get(ind, {}):
+                sc = SEKTOR_SENSITIVITET[ind][sektor][fase]
+                w = INDIKATOR_VAEGTER[ind]
+                rows.append({"ind": ind, "fase": fase, "score": sc, "vaegt": w})
+                vs += sc * w; vv += w
+        result[region] = rows
+        totals[region] = round(vs / vv, 2) if vv else 0
+    return {"regioner": result, "totals": totals}
+
+
 # ── Risikoprofil ──────────────────────────────────────────────────────────────
 
 def match_profil(profiler, ratio):
