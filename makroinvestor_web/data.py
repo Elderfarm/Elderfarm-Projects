@@ -355,6 +355,24 @@ ENERGI_AFHAENGIGHED = {
     },
 }
 
+# ── Defensiv stagflations-premium ────────────────────────────────────────────
+# Når oliepriserne stiger kraftigt (Energy-indikator = Late ≥ +30% YoY) udløses
+# stagflations-regime. Defensiver (Consumer Staples, Health Care, Utilities) og
+# råvaresektorer (Materials, Energy) outperformer historisk i dette miljø:
+# - Consumer Staples: prisgennemstrømning + inelastisk efterspørgsel + udbytteflow
+# - Materials: råvarepriser (kobber, guld, kemi) stiger med energi-commodity-cycle
+# - Health Care: defensiv med pricing power (reguleret + innovationsdrevet)
+# - Utilities: regulated rate pass-through + inflation-linked tariffer
+# - Financials: kreditkvalitets-risiko stiger → NEGATIV premium
+# Kilde: BofA/JPM sector rotation frameworks; Fidelity business cycle data.
+DEFENSIV_STAGFLATION = {
+    "Consumer Staples":  +0.5,   # Pricing power + defensiv tilstrømning
+    "Materials":         +0.5,   # Råvare-commodity-correlation
+    "Health Care":       +0.3,   # Defensiv + biologics pricing power
+    "Utilities":         +0.3,   # Regulerede tariffer + inflation-linkage
+    "Financials":        -0.4,   # Kreditkvalitet forringes, margin-squeeze
+}
+
 # ── USA's strukturelle AI-fordel ─────────────────────────────────────────────
 # USA huser verdens dominerende AI-infrastruktur (NVIDIA, Microsoft, Google,
 # Meta, OpenAI). Denne strukturelle fordel giver IT og Communications Services
@@ -376,13 +394,13 @@ SEKTOR_SENSITIVITET = {
     "PMI": {
         # PMI driver cykliske sektorer. IT starter tidligt (capex recovery).
         # Materials topper i Mid (industriel efterspørgsel peak). Energy Late.
-        "Financials":              {"Early":4,"Mid":4,"Late":2,"Recession":1},
+        "Financials":              {"Early":4,"Mid":3,"Late":2,"Recession":1},  # Mid↓: credit losses + reg headwinds
         "Real Estate":             {"Early":3,"Mid":3,"Late":2,"Recession":1},
         "Consumer Discretionary":  {"Early":5,"Mid":4,"Late":2,"Recession":1},
         "Information Technology":  {"Early":4,"Mid":5,"Late":3,"Recession":1},  # Early↑: capex recovery
         "Industrials":             {"Early":5,"Mid":4,"Late":2,"Recession":1},
         "Materials":               {"Early":4,"Mid":5,"Late":3,"Recession":1},  # Mid↑: peak industriel demand
-        "Consumer Staples":        {"Early":2,"Mid":2,"Late":4,"Recession":5},
+        "Consumer Staples":        {"Early":2,"Mid":3,"Late":4,"Recession":5},  # Mid↑: pricing power + inelastic demand
         "Health Care":             {"Early":2,"Mid":3,"Late":3,"Recession":5},
         "Energy":                  {"Early":2,"Mid":4,"Late":5,"Recession":2},  # Recession↑: 1→2 (ikke katastrofe)
         "Communications Services": {"Early":3,"Mid":4,"Late":3,"Recession":2},
@@ -401,7 +419,7 @@ SEKTOR_SENSITIVITET = {
         "Information Technology":  {"Early":4,"Mid":4,"Late":2,"Recession":2},  # Mid↓: duration-risk
         "Industrials":             {"Early":5,"Mid":4,"Late":2,"Recession":1},
         "Materials":               {"Early":4,"Mid":3,"Late":2,"Recession":2},
-        "Consumer Staples":        {"Early":2,"Mid":2,"Late":3,"Recession":4},
+        "Consumer Staples":        {"Early":2,"Mid":3,"Late":3,"Recession":4},  # Mid↑: defensive pricing power
         "Health Care":             {"Early":2,"Mid":3,"Late":3,"Recession":4},
         "Energy":                  {"Early":3,"Mid":3,"Late":4,"Recession":2},
         "Communications Services": {"Early":3,"Mid":4,"Late":3,"Recession":3},
@@ -410,7 +428,7 @@ SEKTOR_SENSITIVITET = {
     # ── Retail Sales MoM% (ledende, vægt 2) ──────────────────────────────
     # Direkte forbrugsmål — Consumer Discretionary reagerer mest
     "Retail Sales": {
-        "Financials":              {"Early":3,"Mid":4,"Late":2,"Recession":1},
+        "Financials":              {"Early":3,"Mid":3,"Late":2,"Recession":1},  # Mid↓: credit losses
         "Real Estate":             {"Early":3,"Mid":3,"Late":2,"Recession":1},
         "Consumer Discretionary":  {"Early":5,"Mid":5,"Late":2,"Recession":1},
         "Information Technology":  {"Early":4,"Mid":4,"Late":3,"Recession":1},
@@ -425,13 +443,13 @@ SEKTOR_SENSITIVITET = {
     # ── NFP / Beskæftigelsesvækst (ledende, vægt 2) ───────────────────────
     # Jobvækst driver forbrug og forbrugertillid
     "NFP": {
-        "Financials":              {"Early":4,"Mid":4,"Late":2,"Recession":1},
+        "Financials":              {"Early":4,"Mid":3,"Late":2,"Recession":1},  # Mid↓: credit losses
         "Real Estate":             {"Early":4,"Mid":3,"Late":2,"Recession":1},
         "Consumer Discretionary":  {"Early":5,"Mid":5,"Late":2,"Recession":1},
         "Information Technology":  {"Early":4,"Mid":4,"Late":3,"Recession":1},
         "Industrials":             {"Early":5,"Mid":4,"Late":2,"Recession":1},
-        "Materials":               {"Early":4,"Mid":3,"Late":2,"Recession":2},
-        "Consumer Staples":        {"Early":2,"Mid":2,"Late":3,"Recession":5},
+        "Materials":               {"Early":4,"Mid":4,"Late":2,"Recession":2},  # Mid↑: commodity demand
+        "Consumer Staples":        {"Early":2,"Mid":3,"Late":3,"Recession":5},  # Mid↑: inelastic demand
         "Health Care":             {"Early":2,"Mid":3,"Late":3,"Recession":5},
         "Energy":                  {"Early":3,"Mid":3,"Late":4,"Recession":2},
         "Communications Services": {"Early":3,"Mid":4,"Late":3,"Recession":2},
@@ -454,13 +472,13 @@ SEKTOR_SENSITIVITET = {
     },
     # ── BNP vækst (lagging, vægt 2) ───────────────────────────────────────
     "BNP": {
-        "Financials":              {"Early":4,"Mid":4,"Late":2,"Recession":1},
+        "Financials":              {"Early":4,"Mid":3,"Late":2,"Recession":1},  # Mid↓: credit losses
         "Real Estate":             {"Early":4,"Mid":3,"Late":3,"Recession":1},
         "Consumer Discretionary":  {"Early":5,"Mid":4,"Late":1,"Recession":1},
         "Information Technology":  {"Early":4,"Mid":4,"Late":2,"Recession":1},
         "Industrials":             {"Early":5,"Mid":4,"Late":2,"Recession":1},
-        "Materials":               {"Early":4,"Mid":3,"Late":2,"Recession":2},
-        "Consumer Staples":        {"Early":2,"Mid":2,"Late":4,"Recession":5},
+        "Materials":               {"Early":4,"Mid":4,"Late":2,"Recession":2},  # Mid↑: GDP lift for commodities
+        "Consumer Staples":        {"Early":2,"Mid":3,"Late":4,"Recession":5},  # Mid↑: inelastic demand
         "Health Care":             {"Early":2,"Mid":3,"Late":3,"Recession":5},
         "Energy":                  {"Early":2,"Mid":3,"Late":5,"Recession":1},
         "Communications Services": {"Early":3,"Mid":4,"Late":3,"Recession":2},
@@ -469,13 +487,13 @@ SEKTOR_SENSITIVITET = {
     # ── Lønvækst (samtidig, vægt 2) ───────────────────────────────────────
     # Høj lønvækst gavner Consumer Disc. men presser marginer (Late-signal)
     "Wage Growth": {
-        "Financials":              {"Early":3,"Mid":4,"Late":2,"Recession":1},
+        "Financials":              {"Early":3,"Mid":3,"Late":2,"Recession":1},  # Mid↓: margin pressure
         "Real Estate":             {"Early":3,"Mid":3,"Late":2,"Recession":1},
         "Consumer Discretionary":  {"Early":4,"Mid":5,"Late":2,"Recession":1},  # Købekraft topper i Mid
         "Information Technology":  {"Early":4,"Mid":4,"Late":3,"Recession":1},
         "Industrials":             {"Early":4,"Mid":4,"Late":2,"Recession":1},
-        "Materials":               {"Early":3,"Mid":3,"Late":3,"Recession":2},
-        "Consumer Staples":        {"Early":2,"Mid":2,"Late":3,"Recession":4},
+        "Materials":               {"Early":3,"Mid":4,"Late":3,"Recession":2},  # Mid↑: labor cost pass-through
+        "Consumer Staples":        {"Early":2,"Mid":3,"Late":3,"Recession":4},  # Mid↑: pricing power
         "Health Care":             {"Early":2,"Mid":3,"Late":3,"Recession":4},
         "Energy":                  {"Early":3,"Mid":3,"Late":4,"Recession":2},
         "Communications Services": {"Early":3,"Mid":4,"Late":3,"Recession":2},
@@ -489,7 +507,7 @@ SEKTOR_SENSITIVITET = {
         "Consumer Discretionary":  {"Early":4,"Mid":3,"Late":1,"Recession":2},  # Energipris presser forbrug
         "Information Technology":  {"Early":3,"Mid":4,"Late":2,"Recession":2},
         "Industrials":             {"Early":4,"Mid":4,"Late":2,"Recession":2},
-        "Materials":               {"Early":4,"Mid":4,"Late":3,"Recession":2},
+        "Materials":               {"Early":4,"Mid":4,"Late":4,"Recession":2},  # Late↑: commodity price spike
         "Consumer Staples":        {"Early":2,"Mid":2,"Late":3,"Recession":4},
         "Health Care":             {"Early":3,"Mid":3,"Late":3,"Recession":4},
         "Energy":                  {"Early":4,"Mid":5,"Late":5,"Recession":1},  # Direkte priseksponering
@@ -512,7 +530,7 @@ SEKTOR_SENSITIVITET = {
     },
     # ── VIX (ledende, vægt 1) ─────────────────────────────────────────────
     "VIX": {
-        "Financials":              {"Early":4,"Mid":4,"Late":2,"Recession":1},
+        "Financials":              {"Early":4,"Mid":3,"Late":2,"Recession":1},  # Mid↓: volatility hurts trading
         "Real Estate":             {"Early":4,"Mid":3,"Late":2,"Recession":1},
         "Consumer Discretionary":  {"Early":5,"Mid":4,"Late":2,"Recession":1},
         "Information Technology":  {"Early":5,"Mid":4,"Late":2,"Recession":1},
@@ -532,7 +550,7 @@ SEKTOR_SENSITIVITET = {
         "Information Technology":  {"Early":4,"Mid":4,"Late":3,"Recession":1},
         "Industrials":             {"Early":5,"Mid":4,"Late":2,"Recession":1},
         "Materials":               {"Early":4,"Mid":3,"Late":2,"Recession":2},
-        "Consumer Staples":        {"Early":2,"Mid":2,"Late":3,"Recession":5},
+        "Consumer Staples":        {"Early":2,"Mid":3,"Late":3,"Recession":5},  # Mid↑: employment supports staples spending
         "Health Care":             {"Early":2,"Mid":3,"Late":3,"Recession":5},
         "Energy":                  {"Early":2,"Mid":3,"Late":4,"Recession":2},
         "Communications Services": {"Early":3,"Mid":3,"Late":3,"Recession":2},
@@ -1149,6 +1167,11 @@ def _score_sektor_region(sektor, region, f):
         adj = ENERGI_AFHAENGIGHED.get(region, {}).get(sektor, {}).get(energy_fase, 0)
         base += adj
 
+    # Defensiv stagflations-premium (aktiv kun ved kraftigt energichok = Energy Late)
+    # Fanger defensiv rotation og råvare-commodity-cycle i stagflations-regime.
+    if energy_fase == "Late":
+        base += DEFENSIV_STAGFLATION.get(sektor, 0)
+
     # USA's strukturelle AI-fordel (aktiv i alle faser, stærkest i Early/Mid)
     if region == "USA":
         global_fase = f.get("_global", "Mid")
@@ -1236,6 +1259,10 @@ def sektor_ind_scores(seneste_makro, sektor):
             delta = ENERGI_AFHAENGIGHED.get(region, {}).get(sektor, {}).get(energy_fase, 0)
             if delta != 0:
                 adjs.append({"label": f"Energiafhængighed ({region})", "delta": round(delta, 2)})
+        if energy_fase == "Late":
+            delta = DEFENSIV_STAGFLATION.get(sektor, 0)
+            if delta != 0:
+                adjs.append({"label": "Stagflations-premium (energichok)", "delta": round(delta, 2)})
         if region == "USA":
             global_fase = f.get("_global", "Mid")
             delta = AI_FORDEL_USA.get(sektor, {}).get(global_fase, 0)
