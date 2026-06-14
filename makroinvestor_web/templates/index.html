@@ -191,8 +191,7 @@ input[type=number]:focus{outline:none;border-color:#3b82f6}
 
   <!-- Region tabs -->
   <div class="flex gap-2 mb-1 flex-wrap">
-    <button class="tab-btn active text-sm" onclick="setRegionTab('Danmark',this)">🇩🇰 Danmark</button>
-    <button class="tab-btn text-sm" onclick="setRegionTab('Europa',this)">🇪🇺 Europa</button>
+    <button class="tab-btn active text-sm" onclick="setRegionTab('Europa',this)">🇪🇺 Europa</button>
     <button class="tab-btn text-sm" onclick="setRegionTab('USA',this)">🇺🇸 USA</button>
   </div>
 
@@ -368,11 +367,11 @@ input[type=number]:focus{outline:none;border-color:#3b82f6}
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
 let D = null, hmData = null, tmpl = null, charts = {};
-let spg = [], svar = [], qi = 0, activeRegion = "Danmark";
+let spg = [], svar = [], qi = 0, activeRegion = "Europa";
 let simInputs = null;
 
 // ── Farvehjælpere ──────────────────────────────────────────────────────────
-const REGION_FARVER = {Danmark:"#f59e0b",Europa:"#4ade80",USA:"#60a5fa"};
+const REGION_FARVER = {Europa:"#4ade80",USA:"#60a5fa"};
 const PROFIL_IKONER = {Konservativ:"🛡️",Balanceret:"⚖️",Vækstorienteret:"🚀",Dynamisk:"⚡"};
 const ALLOC_FARVER  = {Obligationer:"#60a5fa",ETF:"#4ade80",Aktier:"#f59e0b",Alternative:"#a78bfa"};
 
@@ -478,7 +477,7 @@ function renderDashboard(){
         </div>
         <div class="text-right flex-shrink-0">
           <div class="font-bold text-sm" style="color:${s.composite>=4?'#4ade80':s.composite>=3?'#facc15':'#f87171'}">${s.composite.toFixed(2)}</div>
-          <div class="text-xs text-slate-600">DK ${s.dk?.toFixed(2)||'–'} · EU ${s.eu?.toFixed(2)||'–'} · USA ${s.usa?.toFixed(2)||'–'}</div>
+          <div class="text-xs text-slate-600">EU ${s.eu?.toFixed(2)||'–'} · USA ${s.usa?.toFixed(2)||'–'}</div>
         </div>
       </div>`).join("");
 
@@ -554,7 +553,7 @@ function showIndBreakdown(sektor){
     const inds = ["PMI","BNP","10 YR","CPI","Baltic Dry","VIX","Currency","Unemployment"];
     document.getElementById("ind-breakdown").classList.remove("hidden");
     document.getElementById("ind-breakdown-grid").innerHTML =
-      ["Danmark","Europa","USA"].map(region=>{
+      ["Europa","USA"].map(region=>{
         const q2 = d.makro_analyse?.[region]?.["Q2 2026"] || {};
         return `
           <div class="card p-3">
@@ -756,7 +755,6 @@ function renderSektorer(){
       </div>
       ${scoreBar(s.composite)}
       <div class="flex justify-between mt-2.5 text-xs text-slate-600">
-        <span>DK <span class="text-white">${s.dk?.toFixed(2)||'–'}</span></span>
         <span>EU <span class="text-white">${s.eu?.toFixed(2)||'–'}</span></span>
         <span>USA <span class="text-white">${s.usa?.toFixed(2)||'–'}</span></span>
       </div>
@@ -786,13 +784,12 @@ async function openSektor(navn){
   }
   document.getElementById("sd-aktier").innerHTML = aktHtml||'<p class="text-xs text-slate-500">Ingen aktier</p>';
 
-  // Indikatorer Q2 2026
-  const inds_dk = d.makro_analyse?.Danmark?.["Q2 2026"]||{};
+  // Indikatorer Q2 2026 (Europa + USA)
   const inds_eu = d.makro_analyse?.Europa?.["Q2 2026"]||{};
   const inds_usa = d.makro_analyse?.USA?.["Q2 2026"]||{};
-  const INDS = ["PMI","BNP","10 YR","CPI","Baltic Dry","VIX","Currency","Unemployment"];
+  const INDS = ["PMI","BNP","10 YR","CPI","VIX","Unemployment"];
   document.getElementById("sd-inds").innerHTML = INDS.map(ind=>{
-    const vals = [inds_dk[ind],inds_eu[ind],inds_usa[ind]].filter(v=>v!=null);
+    const vals = [inds_eu[ind],inds_usa[ind]].filter(v=>v!=null);
     const avg = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
     return avg!=null ? `
       <div class="flex items-center gap-2 text-xs">
@@ -884,7 +881,7 @@ function resetP(){document.getElementById("ps3").classList.add("hidden");documen
 // ── HISTORIK ───────────────────────────────────────────────────────────────
 function renderHistorik(){
   const h=D.historik;
-  const FARVER={USA:"#60a5fa",Europa:"#4ade80",Danmark:"#f59e0b"};
+  const FARVER={USA:"#60a5fa",Europa:"#4ade80"};
 
   function mkChart(id,ind,suffix=""){
     const kvSet=new Set();
@@ -908,9 +905,9 @@ function renderHistorik(){
   mkChart("c-vix","VIX");
 
   const tbody=document.getElementById("fremtid-tabel");
-  const INDS=["BNP","PMI","10 YR rate","CPI","VIX","Unemployment","Currency (EUR/USD)","Baltic Dry Index"];
+  const INDS=["BNP","PMI","10 YR rate","CPI","VIX","Unemployment"];
   tbody.innerHTML="";
-  for(const [region,data] of Object.entries(D.fremtid)){
+  for(const [region,data] of Object.entries(D.fremtid).filter(([r])=>r!=="Danmark")){
     let first=true;
     for(const ind of INDS){
       if(!data[ind]) continue;

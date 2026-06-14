@@ -121,7 +121,7 @@ def api_sektor(navn):
     aktier = {r:v for r,v in aktier.items() if v}
     hist = next((a for a in d["afstemning"] if a["sektor"]==s["sektor"]),None)
     ma = {region: d["makro_analyse"].get(region,{}).get(s["sektor"],{})
-          for region in ["Danmark","Europa","USA"]}
+          for region in ["Europa","USA"]}
     return jsonify({**s,"etfs":etfs,"aktier":aktier,"historisk":hist,"makro_analyse":ma})
 
 

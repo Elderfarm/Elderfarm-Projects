@@ -87,21 +87,8 @@ FASE_META = {
     "Recession": ("Recession",      "Negativ vækst. Obligationer, guld og defensive sektorer.",        "⚠️", "#f87171"),
 }
 
-# Standard makro-inputs (Q2 2026 estimater) — bruges som fallback og reset
+# Standard makro-inputs (Q2 2026 estimater) — kun Europa og USA
 DEFAULT_MAKRO = {
-    "Danmark": {
-        "PMI":          {"vaerdi": 52.5, "enhed": "",   "label": "PMI"},
-        "Yield Curve":  {"vaerdi": 0.30, "enhed": "%",  "label": "Yield Curve (10Y-2Y)"},
-        "Retail Sales": {"vaerdi": 0.2,  "enhed": "%",  "label": "Retail Sales (MoM %)"},
-        "NFP":          {"vaerdi": 2.5,  "enhed": "k",  "label": "Beskæftigelsesvækst (t/md)"},
-        "Core CPI":     {"vaerdi": 1.5,  "enhed": "%",  "label": "Kerninflation (ex. energi/fødevarer)"},
-        "BNP":          {"vaerdi": 1.9,  "enhed": "%",  "label": "BNP vækst (YoY %)"},
-        "Wage Growth":  {"vaerdi": 3.5,  "enhed": "%",  "label": "Lønvækst (YoY %)"},
-        "Energy":       {"vaerdi": 3.0,  "enhed": "%",  "label": "Energipriser olie (YoY %)"},
-        "10 YR":        {"vaerdi": 3.05, "enhed": "%",  "label": "10-årig statsrente"},
-        "VIX":          {"vaerdi": 17.0, "enhed": "",   "label": "VIX (volatilitetsindeks)"},
-        "Unemployment": {"vaerdi": 3.3,  "enhed": "%",  "label": "Arbejdsløshed (%)"},
-    },
     "Europa": {
         "PMI":          {"vaerdi": 52.3, "enhed": "",   "label": "PMI Eurozone Composite"},
         "Yield Curve":  {"vaerdi": 0.40, "enhed": "%",  "label": "Yield Curve (10Y-2Y)"},
@@ -170,24 +157,16 @@ def fase_retail_sales(v):
     return "Mid"
 
 def fase_nfp(v, region="USA"):
-    """
-    NFP/beskæftigelsesvækst i tusinde/md — region-justeret.
-    USA: NFP; Europa: Eurozone beskæftigelse; Danmark: national.
-    """
+    """NFP/beskæftigelsesvækst i tusinde/md — region-justeret (USA og Europa)."""
     if v is None: return None
     if region == "USA":
         if v > 220:  return "Mid"
         if v > 100:  return "Early"
         if v > 30:   return "Late"
         return "Recession"
-    elif region == "Europa":
+    else:  # Europa (Eurozone månedlig beskæftigelse)
         if v > 150:  return "Mid"
         if v > 50:   return "Early"
-        if v > 0:    return "Late"
-        return "Recession"
-    else:  # Danmark
-        if v > 3:    return "Mid"
-        if v > 1:    return "Early"
         if v > 0:    return "Late"
         return "Recession"
 
@@ -459,7 +438,7 @@ def hent_makro_analyse(wb):
 
     result = {}
     # DK: rækker 29-40 (0-indeks), EU: 69-80, USA: 109-120
-    blokke = [("Danmark", 29, 30, 41), ("Europa", 69, 70, 81), ("USA", 109, 110, 121)]
+    blokke = [("Europa", 69, 70, 81), ("USA", 109, 110, 121)]
 
     for region, hdr_idx, data_start, data_end in blokke:
         result[region] = {}
@@ -497,7 +476,7 @@ def hent_historisk_bnp(wb):
             cur_sektor = norm(str(row[1]))
             kv_cols = [row[i] for i in range(2, 10) if row[i] is not None]
             result.setdefault(cur_sektor, {kv: {} for kv in KVARTALER_HIST})
-        elif cur_sektor and row[1] in ("Danmark","Europa ","USA","Europa"):
+        elif cur_sektor and row[1] in ("Europa ","USA","Europa"):
             region = row[1].strip()
             for i, kv in enumerate(KVARTALER_HIST):
                 val = row[2+i] if len(row) > 2+i else None
@@ -607,15 +586,15 @@ def hent_etf_liste(wb):
 
 
 def hent_aktier(wb):
-    aktier = {"Danmark":[],"Europa":[],"USA":[]}
-    for region,ark,t_col,s_col in [("Danmark","Aktieliste DK",7,5),("Europa","Aktieliste EU",6,5),("USA","Aktieliste USA",6,5)]:
+    aktier = {"Europa":[],"USA":[]}
+    for region,ark,t_col,s_col in [("Europa","Aktieliste EU",6,5),("USA","Aktieliste USA",6,5)]:
         ws = wb[ark]
         for row in list(ws.iter_rows(values_only=True))[1:]:
             ticker = row[t_col] if len(row)>t_col else None
             sektor = row[s_col] if len(row)>s_col else None
             mkt_cap = row[2] if len(row)>2 else None
             change = row[3] if len(row)>3 else None
-            pe = row[6] if region=="Danmark" and len(row)>6 else (row[7] if len(row)>7 else None)
+            pe = row[7] if len(row)>7 else None
             beta = row[9] if len(row)>9 else None
             if ticker and isinstance(ticker,str) and sektor and isinstance(mkt_cap,(int,float)):
                 aktier[region].append({
@@ -715,7 +694,7 @@ def beregn_makrofase(fremtid):
     global_point = {"Early":0,"Mid":0,"Late":0,"Recession":0}
     detaljer = []
 
-    for region in ("Danmark","Europa","USA"):
+    for region in ("Europa", "USA"):
         data = fremtid.get(region, {})
         dflt = DEFAULT_MAKRO.get(region, {})
 
@@ -950,7 +929,7 @@ def byg_seneste_makro(fremtid):
     Hvert felt markeres med 'kilde': 'excel' eller 'estimat'.
     """
     result = {}
-    for region in ("Danmark", "Europa", "USA"):
+    for region in ("Europa", "USA"):
         data = fremtid.get(region, {})
         dflt = DEFAULT_MAKRO.get(region, {})
         result[region] = {}
