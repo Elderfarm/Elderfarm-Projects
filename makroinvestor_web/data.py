@@ -923,23 +923,31 @@ def parse_fordeling(s):
 
 # ── Samlet indlæsning ─────────────────────────────────────────────────────────
 
-# Excel Fremtid vækst → ny indikator-navngivning
+# Excel Fremtid vækst → indikator-navngivning (nye rækker tilføjet direkte i Excel)
 _FREMTID_NAVNE = {
-    "PMI":         "PMI",
-    "BNP":         "BNP",
-    "10 YR rate":  "10 YR",
-    "CPI":         "Core CPI",   # bruges som Core CPI-proxy
-    "VIX":         "VIX",
-    "Unemployment":"Unemployment",
-    # Baltic Dry Index og Currency (EUR/USD) ignoreres
+    "PMI":          "PMI",
+    "BNP":          "BNP",
+    "10 YR rate":   "10 YR",
+    "CPI":          "Core CPI",     # bruges som Core CPI-proxy (headline ≈ core her)
+    "VIX":          "VIX",
+    "Unemployment": "Unemployment",
+    "Yield Curve":  "Yield Curve",  # tilføjet i Excel (decimal → %)
+    "Retail Sales": "Retail Sales", # tilføjet i Excel (decimal → %)
+    "NFP":          "NFP",          # tilføjet i Excel (tusinde direkte — ingen omregning)
+    "Wage Growth":  "Wage Growth",  # tilføjet i Excel (decimal → %)
+    "Energy":       "Energy",       # tilføjet i Excel (decimal → %)
+    # Baltic Dry Index og Currency (EUR/USD) ignoreres bevidst
 }
-_PROCENT_INDS = {"BNP", "Core CPI", "Unemployment"}
+# Disse gemmes som decimal i Excel og skal ganges med 100
+_PROCENT_INDS = {"BNP", "Core CPI", "Unemployment", "Yield Curve", "Retail Sales", "Wage Growth", "Energy"}
 
 def byg_seneste_makro(fremtid):
     """
     Byg seneste makro-snapshot til at præ-udfylde sliders.
     Excel-data bruges for indikatorer der findes i Fremtid vækst-arket;
-    DEFAULT_MAKRO bruges som fallback for nye indikatorer.
+    DEFAULT_MAKRO bruges for nye indikatorer (Yield Curve, NFP, Retail Sales,
+    Wage Growth, Energy) der ikke er i Excel-filen endnu.
+    Hvert felt markeres med 'kilde': 'excel' eller 'estimat'.
     """
     result = {}
     for region in ("Danmark", "Europa", "USA"):
@@ -948,8 +956,10 @@ def byg_seneste_makro(fremtid):
         result[region] = {}
 
         for ind_key, ind_meta in dflt.items():
-            # Find Excel-nøgle for denne indikator
-            excel_key = next((k for k,v in _FREMTID_NAVNE.items() if v == ind_key), None)
+            excel_key = next((k for k, v in _FREMTID_NAVNE.items() if v == ind_key), None)
+            kilde = "estimat"
+            raw = None
+
             if excel_key and excel_key in data:
                 raw = data[excel_key].get("q2") or data[excel_key].get("q1")
                 if raw is not None:
@@ -957,10 +967,12 @@ def byg_seneste_makro(fremtid):
                         raw = round(raw * 100, 2)
                     else:
                         raw = round(float(raw), 4)
-                    result[region][ind_key] = {**ind_meta, "vaerdi": raw}
-                    continue
-            # Fallback: DEFAULT_MAKRO
-            result[region][ind_key] = ind_meta.copy()
+                    kilde = "excel"
+
+            if raw is None:
+                raw = ind_meta.get("vaerdi", 0)
+
+            result[region][ind_key] = {**ind_meta, "vaerdi": raw, "kilde": kilde}
 
     return result
 

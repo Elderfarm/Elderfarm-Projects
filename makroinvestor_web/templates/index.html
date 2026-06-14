@@ -180,7 +180,11 @@ input[type=number]:focus{outline:none;border-color:#3b82f6}
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div>
         <p class="text-sm text-slate-300">🔭 <strong>Mine forventninger</strong> — Indtast dine egne makroforventninger og se hvilke sektorer der performer bedst i dit scenarie.</p>
-        <p class="text-xs text-slate-500 mt-1">Præ-udfyldt med seneste Excel-data (<span id="tmpl-kvartal" class="text-blue-400">—</span>). Ændr værdierne for at simulere fremtiden.</p>
+        <p class="text-xs text-slate-500 mt-1">
+          Præ-udfyldt med seneste data (<span id="tmpl-kvartal" class="text-blue-400">—</span>).
+          <span style="font-size:.6rem;background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.25);border-radius:3px;padding:0 3px">EXCEL</span> = fra din Excel-fil &nbsp;
+          <span style="font-size:.6rem;background:rgba(148,163,184,.08);color:#64748b;border:1px solid rgba(148,163,184,.15);border-radius:3px;padding:0 3px">EST.</span> = estimeret (ikke i Excel endnu).
+        </p>
       </div>
     </div>
   </div>
@@ -627,10 +631,15 @@ function buildTemplateInputs(){
     const typCls = typeColors[typeMap[ind]] || "text-slate-500";
     const typLbl = typeMap[ind] ? `<span class="${typCls} ml-1" style="font-size:.6rem">${typeMap[ind]}</span>` : "";
     const vaegt = (tmpl.indikator_vaegter||{})[ind] || 1;
+    const rv_meta = simInputs?.[region]?.[ind];
+    const kilde = rv_meta?.kilde;
+    const kildeLbl = kilde==="excel"
+      ? `<span style="font-size:.55rem;background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.25);border-radius:3px;padding:0 4px;margin-left:4px">EXCEL</span>`
+      : `<span style="font-size:.55rem;background:rgba(148,163,184,.08);color:#64748b;border:1px solid rgba(148,163,184,.15);border-radius:3px;padding:0 4px;margin-left:4px">EST.</span>`;
     return `
       <div class="pb-1 border-b border-white/[0.04] last:border-0">
         <div class="flex items-center justify-between mb-1">
-          <span class="text-xs text-slate-300">${lbl}${typLbl} <span class="text-slate-600">×${vaegt}</span></span>
+          <span class="text-xs text-slate-300">${lbl}${typLbl}${kildeLbl} <span class="text-slate-600">×${vaegt}</span></span>
           <input type="number" id="inp-${ind.replace(/ /g,'_')}" value="${val!==undefined?val:''}" min="${mn}" max="${mx}" step="${step}"
             onchange="updateInput('${ind}',this.value)"
             style="width:72px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:2px 6px;color:#fff;font-size:.75rem;text-align:right"/>
