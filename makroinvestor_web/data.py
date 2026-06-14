@@ -872,7 +872,20 @@ def simuler_sektorer(makro_inputs):
             if vv > 0: region_scores.append(vs/vv)
 
         avg = round(sum(region_scores)/len(region_scores),2) if region_scores else 0
-        resultater.append({"sektor":sektor,"ikon":SEKTOR_IKONER.get(sektor,"📊"),"score":avg})
+        region_score_map = {}
+        i_reg = 0
+        for region in makro_inputs:
+            f = faser[region]
+            vs, vv = 0, 0
+            for ind in INDIKATORER:
+                ind_fase = f.get(ind)
+                if ind_fase and sektor in SEKTOR_SENSITIVITET.get(ind, {}):
+                    s = SEKTOR_SENSITIVITET[ind][sektor][ind_fase]
+                    w = INDIKATOR_VAEGTER[ind]
+                    vs += s*w; vv += w
+            region_score_map[region] = round(vs/vv, 2) if vv > 0 else 0
+        resultater.append({"sektor":sektor,"ikon":SEKTOR_IKONER.get(sektor,"📊"),"score":avg,
+                           "region_scores": region_score_map})
 
     resultater.sort(key=lambda x: x["score"], reverse=True)
     for i,s in enumerate(resultater): s["rank"] = i+1
@@ -978,11 +991,10 @@ def hent_alle_data():
     sim_result = simuler_sektorer(sim_inputs)
     sektorer = sim_result["sektorer"]
 
-    # Tilføj EU/USA rangliste-scores som sekundær reference
     for s in sektorer:
-        navn = s["sektor"]
-        s["eu"]  = round(eu.get(navn,  {}).get("Q2 2026", 0) or 0, 2)
-        s["usa"] = round(usa.get(navn, {}).get("Q2 2026", 0) or 0, 2)
+        rs = s.pop("region_scores", {})
+        s["eu"]  = rs.get("Europa", None)
+        s["usa"] = rs.get("USA", None)
         s["composite"] = s["score"]
 
     heatmap = byg_heatmap(historisk_bnp, dk, eu, usa)
