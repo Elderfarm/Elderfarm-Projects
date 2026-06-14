@@ -758,6 +758,57 @@ def parse_fordeling(s):
 
 # ── Samlet indlæsning ─────────────────────────────────────────────────────────
 
+_FREMTID_NAVNE = {
+    "PMI":               "PMI",
+    "BNP":               "BNP",
+    "10 YR rate":        "10 YR",
+    "CPI":               "CPI",
+    "Baltic Dry Index":  "Baltic Dry",
+    "VIX":               "VIX",
+    "Currency (EUR/USD)":"Currency",
+    "Unemployment":      "Unemployment",
+}
+_PROCENT_INDS = {"BNP", "CPI", "Unemployment"}
+_ENHED = {"PMI":"","BNP":"%","10 YR":"%","CPI":"%","Baltic Dry":"","VIX":"","Currency":"","Unemployment":"%"}
+_LABEL = {"PMI":"PMI","BNP":"BNP vækst","10 YR":"10-årig rente","CPI":"Inflation (CPI)",
+          "Baltic Dry":"Baltic Dry Index","VIX":"VIX","Currency":"EUR/USD","Unemployment":"Arbejdsløshed"}
+
+def byg_seneste_makro(fremtid):
+    """
+    Konvertér Excel Fremtid vækst-data til samme format som DEFAULT_MAKRO.
+    Bruges til at præ-udfylde sliders med faktiske Excel-værdier.
+    """
+    REGION_MAP = {"Danmark":"Danmark","Europa":"Europa","USA":"USA"}
+    result = {}
+    for region, data in fremtid.items():
+        if region not in REGION_MAP:
+            continue
+        result[region] = {}
+        for fremtid_key, ind_key in _FREMTID_NAVNE.items():
+            entry = data.get(fremtid_key, {})
+            # Brug Q2, fallback til Q1
+            raw = entry.get("q2") or entry.get("q1")
+            if raw is None:
+                # Brug DEFAULT_MAKRO som fallback
+                raw = DEFAULT_MAKRO.get(region, {}).get(ind_key, {}).get("vaerdi", 0)
+            else:
+                # Omregn decimal → % for BNP, CPI, Unemployment
+                if ind_key in _PROCENT_INDS and raw < 1:
+                    raw = round(raw * 100, 2)
+                else:
+                    raw = round(raw, 4)
+            result[region][ind_key] = {
+                "vaerdi": raw,
+                "enhed":  _ENHED[ind_key],
+                "label":  _LABEL[ind_key],
+            }
+    # Fyld manglende regioner med DEFAULT_MAKRO
+    for region in ("Danmark", "Europa", "USA"):
+        if region not in result:
+            result[region] = DEFAULT_MAKRO[region]
+    return result
+
+
 def hent_alle_data():
     wb            = indlaes_wb()
     dk, eu, usa   = hent_ranglister(wb)
@@ -774,23 +825,33 @@ def hent_alle_data():
     makro_fase     = beregn_makrofase(fremtid)
     sektorer       = beregn_sektorscorer(dk, eu, usa, makro_fase["fase"])
     heatmap        = byg_heatmap(historisk_bnp, dk, eu, usa)
+    seneste_makro  = byg_seneste_makro(fremtid)
+
+    # Seneste kvartal: det nyeste kvartal med historiske data
+    seneste_kvartal = ALLE_KVARTALER[-1]
+    for kv in reversed(ALLE_KVARTALER):
+        if any(kv in heatmap.get(s, {}) for s in SEKTOR_RÆKKEFØLGE):
+            seneste_kvartal = kv
+            break
 
     return {
-        "makro_fase":   makro_fase,
-        "sektorer":     sektorer,
-        "heatmap":      heatmap,
-        "makro_analyse":makro_analyse,
-        "etf_liste":    etf_liste,
-        "aktier":       aktier,
-        "spoergeskema": spoergeskema,
-        "profiler":     profiler,
-        "afstemning":   afstemning,
-        "historik":     historik,
-        "fremtid":      fremtid,
+        "makro_fase":     makro_fase,
+        "sektorer":       sektorer,
+        "heatmap":        heatmap,
+        "makro_analyse":  makro_analyse,
+        "etf_liste":      etf_liste,
+        "aktier":         aktier,
+        "spoergeskema":   spoergeskema,
+        "profiler":       profiler,
+        "afstemning":     afstemning,
+        "historik":       historik,
+        "fremtid":        fremtid,
         "alle_kvartaler": ALLE_KVARTALER,
-        "indikatorer":  INDIKATORER,
+        "indikatorer":    INDIKATORER,
         "indikator_vaegter": INDIKATOR_VAEGTER,
-        "default_makro":DEFAULT_MAKRO,
-        "opdateret":    datetime.now().strftime("%d.%m.%Y %H:%M"),
-        "data_kvartal": "Q2 2026",
+        "default_makro":  DEFAULT_MAKRO,
+        "seneste_makro":  seneste_makro,
+        "seneste_kvartal":seneste_kvartal,
+        "opdateret":      datetime.now().strftime("%d.%m.%Y %H:%M"),
+        "data_kvartal":   seneste_kvartal,
     }

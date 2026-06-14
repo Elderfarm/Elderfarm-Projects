@@ -48,10 +48,12 @@ def api_heatmap():
 def api_template():
     d = get_data()
     return jsonify({
-        "default_makro": d["default_makro"],
-        "indikatorer":   d["indikatorer"],
+        "default_makro":   d["default_makro"],
+        "seneste_makro":   d["seneste_makro"],
+        "seneste_kvartal": d["seneste_kvartal"],
+        "indikatorer":     d["indikatorer"],
         "indikator_vaegter": d["indikator_vaegter"],
-        "fase_meta":     FASE_META,
+        "fase_meta":       FASE_META,
     })
 
 

@@ -78,7 +78,7 @@ input[type=number]:focus{outline:none;border-color:#3b82f6}
   <div class="max-w-screen-xl mx-auto px-4 py-2 flex gap-1 overflow-x-auto">
     <button class="tab-btn active" onclick="goTab('dashboard',this)">📊 Dashboard</button>
     <button class="tab-btn" onclick="goTab('heatmap',this)">🗺️ Multi-kvartal</button>
-    <button class="tab-btn" onclick="goTab('skabelon',this)">🎛️ Makro-skabelon</button>
+    <button class="tab-btn" onclick="goTab('skabelon',this)">🔭 Mine forventninger</button>
     <button class="tab-btn" onclick="goTab('sektorer',this)">🏆 Sektorer</button>
     <button class="tab-btn" onclick="goTab('profil',this)">👤 Risikoprofil</button>
     <button class="tab-btn" onclick="goTab('historik',this)">📅 Historik</button>
@@ -177,11 +177,16 @@ input[type=number]:focus{outline:none;border-color:#3b82f6}
 <!-- ═══════════ SKABELON ═══════════ -->
 <div id="tab-skabelon" class="hidden space-y-5 slide">
   <div class="glass p-4">
-    <p class="text-sm text-slate-300">🎛️ <strong>Makro-skabelon</strong> — Juster makroværdier og se øjeblikkeligt hvilke sektorer der performerer bedst. Brug til at teste fremtidsscenarier.</p>
+    <div class="flex items-center justify-between flex-wrap gap-2">
+      <div>
+        <p class="text-sm text-slate-300">🔭 <strong>Mine forventninger</strong> — Indtast dine egne makroforventninger og se hvilke sektorer der performer bedst i dit scenarie.</p>
+        <p class="text-xs text-slate-500 mt-1">Præ-udfyldt med seneste Excel-data (<span id="tmpl-kvartal" class="text-blue-400">—</span>). Ændr værdierne for at simulere fremtiden.</p>
+      </div>
+    </div>
   </div>
 
   <!-- Region tabs -->
-  <div class="flex gap-2 mb-1">
+  <div class="flex gap-2 mb-1 flex-wrap">
     <button class="tab-btn active text-sm" onclick="setRegionTab('Danmark',this)">🇩🇰 Danmark</button>
     <button class="tab-btn text-sm" onclick="setRegionTab('Europa',this)">🇪🇺 Europa</button>
     <button class="tab-btn text-sm" onclick="setRegionTab('USA',this)">🇺🇸 USA</button>
@@ -191,8 +196,11 @@ input[type=number]:focus{outline:none;border-color:#3b82f6}
     <!-- Makro inputs -->
     <div class="card p-5 space-y-4" id="makro-inputs-container">
       <div class="flex items-center justify-between mb-2">
-        <p class="font-semibold text-sm">📥 Makroværdier</p>
-        <button onclick="resetTemplate()" class="text-xs text-slate-400 hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/5">↺ Nulstil</button>
+        <p class="font-semibold text-sm">📥 Dine makroforventninger</p>
+        <div class="flex gap-2">
+          <button onclick="resetToExcel()" class="text-xs text-blue-400 hover:text-blue-300 transition-colors px-2 py-1 rounded-lg hover:bg-blue-500/10 border border-blue-500/20">📊 Excel-data</button>
+          <button onclick="resetTemplate()" class="text-xs text-slate-400 hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/5">↺ Standard</button>
+        </div>
       </div>
       <div id="makro-inputs" class="space-y-4"></div>
     </div>
@@ -411,7 +419,9 @@ async function goTab(tab, btn){
   }
   if(tab==="skabelon" && !tmpl){
     tmpl = await fetch("/api/template").then(r=>r.json());
-    simInputs = JSON.parse(JSON.stringify(tmpl.default_makro));
+    // Præ-udfyld med seneste Excel-data (ikke hardkodede standardværdier)
+    simInputs = JSON.parse(JSON.stringify(tmpl.seneste_makro || tmpl.default_makro));
+    document.getElementById("tmpl-kvartal").textContent = tmpl.seneste_kvartal || "—";
     buildTemplateInputs();
     await runSim();
   }
@@ -662,6 +672,13 @@ async function runSim(){
 function resetTemplate(){
   if(!tmpl) return;
   simInputs = JSON.parse(JSON.stringify(tmpl.default_makro));
+  buildTemplateInputs();
+  runSim();
+}
+
+function resetToExcel(){
+  if(!tmpl) return;
+  simInputs = JSON.parse(JSON.stringify(tmpl.seneste_makro || tmpl.default_makro));
   buildTemplateInputs();
   runSim();
 }
