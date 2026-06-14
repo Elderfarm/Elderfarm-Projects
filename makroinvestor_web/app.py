@@ -1,7 +1,7 @@
 from flask import Flask, render_template, jsonify, request
 from data import (hent_alle_data, match_profil, parse_fordeling,
                   simuler_sektorer, INDIKATORER, SEKTOR_RÆKKEFØLGE,
-                  DEFAULT_MAKRO, FASE_META)
+                  DEFAULT_MAKRO, FASE_META, INDIKATOR_TYPE)
 
 app = Flask(__name__)
 _cache = {}
@@ -48,12 +48,13 @@ def api_heatmap():
 def api_template():
     d = get_data()
     return jsonify({
-        "default_makro":   d["default_makro"],
-        "seneste_makro":   d["seneste_makro"],
-        "seneste_kvartal": d["seneste_kvartal"],
-        "indikatorer":     d["indikatorer"],
-        "indikator_vaegter": d["indikator_vaegter"],
-        "fase_meta":       FASE_META,
+        "default_makro":    d["default_makro"],
+        "seneste_makro":    d["seneste_makro"],
+        "seneste_kvartal":  d["seneste_kvartal"],
+        "indikatorer":      d["indikatorer"],
+        "indikator_vaegter":d["indikator_vaegter"],
+        "indikator_type":   INDIKATOR_TYPE,
+        "fase_meta":        FASE_META,
     })
 
 

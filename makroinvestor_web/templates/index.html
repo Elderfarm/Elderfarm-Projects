@@ -574,19 +574,48 @@ function showIndBreakdown(sektor){
 }
 
 // ── SKABELON ───────────────────────────────────────────────────────────────
+// Baltic Dry og Currency fjernet. Nye: Yield Curve, NFP, Retail Sales, Wage Growth, Energy
 const SCENARIOS = {
-  recession:    {PMI:44,BNP:-1.5,"10 YR":2.5,CPI:0.8,"Baltic Dry":900,VIX:38,Currency:1.02,Unemployment:8.5},
-  boom:         {PMI:58,BNP:3.5, "10 YR":4.5,CPI:3.5,"Baltic Dry":3200,VIX:13,Currency:1.25,Unemployment:3.2},
-  stagflation:  {PMI:47,BNP:0.2, "10 YR":5.5,CPI:6.0,"Baltic Dry":1400,VIX:28,Currency:1.05,Unemployment:6.5},
-  softlanding:  {PMI:52,BNP:2.0, "10 YR":3.5,CPI:2.0,"Baltic Dry":1900,VIX:16,Currency:1.15,Unemployment:4.5},
-  ratehike:     {PMI:50,BNP:1.5, "10 YR":6.0,CPI:4.5,"Baltic Dry":1800,VIX:22,Currency:1.08,Unemployment:5.0},
+  recession:   {PMI:44,"Yield Curve":-0.8,"Retail Sales":-0.3,NFP:-50,"Core CPI":1.2,BNP:-1.5,"Wage Growth":1.8,Energy:-30,"10 YR":2.5,VIX:42,Unemployment:8.5},
+  boom:        {PMI:57,"Yield Curve":1.8, "Retail Sales":0.7, NFP:320,"Core CPI":3.2,BNP:3.5, "Wage Growth":4.8,Energy:35, "10 YR":4.5,VIX:13,Unemployment:3.2},
+  stagflation: {PMI:47,"Yield Curve":0.1, "Retail Sales":0.1, NFP:40, "Core CPI":5.5,BNP:0.3, "Wage Growth":5.5,Energy:55, "10 YR":5.5,VIX:28,Unemployment:6.5},
+  softlanding: {PMI:52,"Yield Curve":0.6, "Retail Sales":0.3, NFP:160,"Core CPI":2.1,BNP:2.0, "Wage Growth":3.8,Energy:5,  "10 YR":3.5,VIX:16,Unemployment:4.5},
+  ratehike:    {PMI:50,"Yield Curve":-0.2,"Retail Sales":0.15,NFP:90, "Core CPI":4.2,BNP:1.5, "Wage Growth":4.8,Energy:25, "10 YR":6.0,VIX:22,Unemployment:5.0},
+};
+
+// Fasekriterier til visuelt hint i slideren
+const IND_FASER = {
+  PMI:           [{l:30,lbl:"Recession"},{l:47,lbl:"Late"},{l:50,lbl:"Early"},{l:54,lbl:"Mid"}],
+  "Yield Curve": [{l:-2,lbl:"Recession"},{l:-0.3,lbl:"Late"},{l:0.3,lbl:"Mid"},{l:1.5,lbl:"Early"}],
+  "Retail Sales":[{l:-1,lbl:"Recession"},{l:0,lbl:"Late"},{l:0.15,lbl:"Early"},{l:0.4,lbl:"Mid"}],
+  NFP:           [{l:-100,lbl:"Recession"},{l:30,lbl:"Late"},{l:100,lbl:"Early"},{l:220,lbl:"Mid"}],
+  "Core CPI":    [{l:0,lbl:"Recession"},{l:1.5,lbl:"Early"},{l:2.5,lbl:"Mid"},{l:3.5,lbl:"Late"}],
+  BNP:           [{l:-4,lbl:"Recession"},{l:0,lbl:"Early"},{l:1,lbl:"Mid"},{l:2.5,lbl:"Late"}],
+  "Wage Growth": [{l:0,lbl:"Recession"},{l:2,lbl:"Early"},{l:3.5,lbl:"Mid"},{l:4.5,lbl:"Late"}],
+  Energy:        [{l:-60,lbl:"Recession"},{l:-25,lbl:"Early"},{l:10,lbl:"Mid"},{l:35,lbl:"Late"}],
+  "10 YR":       [{l:0,lbl:"Early"},{l:3,lbl:"Mid"},{l:4,lbl:"Late"},{l:4.75,lbl:"Recession"}],
+  VIX:           [{l:8,lbl:"Mid"},{l:15,lbl:"Early"},{l:20,lbl:"Late"},{l:30,lbl:"Recession"}],
+  Unemployment:  [{l:2,lbl:"Early"},{l:4.5,lbl:"Mid"},{l:6,lbl:"Late"},{l:8,lbl:"Recession"}],
 };
 
 function buildTemplateInputs(){
   if(!tmpl) return;
   const inds = tmpl.indikatorer;
-  const labels = {PMI:"PMI","BNP":"BNP vækst %","10 YR":"10-årig rente %","CPI":"Inflation (CPI) %","Baltic Dry":"Baltic Dry Index","VIX":"VIX","Currency":"EUR/USD","Unemployment":"Arbejdsløshed %"};
-  const ranges = {PMI:[30,65,0.5],"BNP":[-3,6,0.1],"10 YR":[0,8,0.05],"CPI":[0,10,0.1],"Baltic Dry":[500,5000,50],"VIX":[8,60,1],"Currency":[0.9,1.5,0.01],"Unemployment":[2,15,0.1]};
+  const typeMap = tmpl.indikator_type || {};
+  const ranges = {
+    PMI:           [30,  65,   0.5],
+    "Yield Curve": [-2,   3,   0.05],
+    "Retail Sales":[-1,   2,   0.05],
+    NFP:           [-100,500,  5],
+    "Core CPI":    [0,   8,    0.1],
+    BNP:           [-4,  6,    0.1],
+    "Wage Growth": [0,   8,    0.1],
+    Energy:        [-60, 80,   1],
+    "10 YR":       [0,   8,    0.05],
+    VIX:           [8,   65,   1],
+    Unemployment:  [2,   15,   0.1],
+  };
+  const typeColors = {ledende:"text-green-400",samtidig:"text-blue-400",lagging:"text-slate-500"};
 
   const region = activeRegion;
   const container = document.getElementById("makro-inputs");
@@ -594,18 +623,21 @@ function buildTemplateInputs(){
     const rv = simInputs?.[region]?.[ind];
     const val = typeof rv === "object" ? rv.vaerdi : rv;
     const [mn,mx,step] = ranges[ind]||[0,100,1];
-    const lbl = labels[ind]||ind;
+    const lbl = (simInputs?.[region]?.[ind]?.label) || ind;
+    const typCls = typeColors[typeMap[ind]] || "text-slate-500";
+    const typLbl = typeMap[ind] ? `<span class="${typCls} ml-1" style="font-size:.6rem">${typeMap[ind]}</span>` : "";
+    const vaegt = (tmpl.indikator_vaegter||{})[ind] || 1;
     return `
-      <div>
+      <div class="pb-1 border-b border-white/[0.04] last:border-0">
         <div class="flex items-center justify-between mb-1">
-          <span class="text-xs text-slate-400">${lbl}</span>
-          <div class="flex items-center gap-2">
-            <input type="number" id="inp-${ind.replace(/ /g,'_')}" value="${val}" min="${mn}" max="${mx}" step="${step}"
-              onchange="updateInput('${ind}',this.value)" class=""/>
-          </div>
+          <span class="text-xs text-slate-300">${lbl}${typLbl} <span class="text-slate-600">×${vaegt}</span></span>
+          <input type="number" id="inp-${ind.replace(/ /g,'_')}" value="${val!==undefined?val:''}" min="${mn}" max="${mx}" step="${step}"
+            onchange="updateInput('${ind}',this.value)"
+            style="width:72px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:2px 6px;color:#fff;font-size:.75rem;text-align:right"/>
         </div>
-        <input type="range" min="${mn}" max="${mx}" step="${step}" value="${val}" id="sl-${ind.replace(/ /g,'_')}"
-          oninput="syncSlider('${ind}',this.value)" class=""/>
+        <input type="range" min="${mn}" max="${mx}" step="${step}" value="${val!==undefined?val:mn}" id="sl-${ind.replace(/ /g,'_')}"
+          oninput="syncSlider('${ind}',this.value)"
+          style="width:100%;accent-color:#60a5fa"/>
       </div>`;
   }).join("");
 }

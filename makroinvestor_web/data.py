@@ -17,8 +17,26 @@ KVARTALER_HIST = ["Q1 2024","Q2 2024","Q3 2024","Q4 2024",
 KVARTALER_PROJ = ["Q1 2026","Q2 2026"]
 ALLE_KVARTALER = KVARTALER_HIST + KVARTALER_PROJ
 
-INDIKATORER = ["PMI","BNP","10 YR","CPI","Baltic Dry","VIX","Currency","Unemployment"]
-INDIKATOR_VAEGTER = {"PMI":3,"BNP":3,"10 YR":2,"CPI":2,"Baltic Dry":1,"VIX":2,"Currency":1,"Unemployment":2}
+# Optimeret indikatorliste — Baltic Dry og Currency fjernet (Asien-bias, ikke konjunkturel)
+# Tilføjet: Yield Curve (10Y-2Y), NFP, Retail Sales, Wage Growth, Energy (olie YoY%)
+# CPI → Core CPI (ex. food+energy) — mere pengepolitisk relevant
+INDIKATORER = [
+    "PMI", "Yield Curve", "Retail Sales", "NFP",
+    "Core CPI", "BNP", "Wage Growth",
+    "Energy", "10 YR", "VIX", "Unemployment",
+]
+INDIKATOR_VAEGTER = {
+    "PMI": 3, "Yield Curve": 3,
+    "Retail Sales": 2, "NFP": 2, "Core CPI": 2, "BNP": 2, "Wage Growth": 2,
+    "Energy": 1, "10 YR": 1, "VIX": 1, "Unemployment": 1,
+}
+# Kategorisering: ledende vs. lagging (til UI-visning)
+INDIKATOR_TYPE = {
+    "PMI": "ledende", "Yield Curve": "ledende",
+    "Retail Sales": "ledende", "NFP": "ledende",
+    "Core CPI": "samtidig", "BNP": "lagging", "Wage Growth": "samtidig",
+    "Energy": "ledende", "10 YR": "lagging", "VIX": "ledende", "Unemployment": "lagging",
+}
 
 SEKTOR_MAP = {
     "communications services":    "Communications Services",
@@ -69,37 +87,46 @@ FASE_META = {
     "Recession": ("Recession",      "Negativ vækst. Obligationer, guld og defensive sektorer.",        "⚠️", "#f87171"),
 }
 
-# Standard makro-inputs til simulation (bruges som template)
+# Standard makro-inputs (Q2 2026 estimater) — bruges som fallback og reset
 DEFAULT_MAKRO = {
     "Danmark": {
-        "PMI":         {"vaerdi": 52.5, "enhed": "",    "label": "PMI"},
-        "BNP":         {"vaerdi": 1.9,  "enhed": "%",   "label": "BNP vækst"},
-        "10 YR":       {"vaerdi": 3.05, "enhed": "%",   "label": "10-årig rente"},
-        "CPI":         {"vaerdi": 1.9,  "enhed": "%",   "label": "Inflation (CPI)"},
-        "Baltic Dry":  {"vaerdi": 1800, "enhed": "",    "label": "Baltic Dry Index"},
-        "VIX":         {"vaerdi": 17.0, "enhed": "",    "label": "VIX"},
-        "Currency":    {"vaerdi": 1.18, "enhed": "",    "label": "EUR/USD"},
-        "Unemployment":{"vaerdi": 3.3,  "enhed": "%",   "label": "Arbejdsløshed"},
+        "PMI":          {"vaerdi": 52.5, "enhed": "",   "label": "PMI"},
+        "Yield Curve":  {"vaerdi": 0.30, "enhed": "%",  "label": "Yield Curve (10Y-2Y)"},
+        "Retail Sales": {"vaerdi": 0.2,  "enhed": "%",  "label": "Retail Sales (MoM %)"},
+        "NFP":          {"vaerdi": 2.5,  "enhed": "k",  "label": "Beskæftigelsesvækst (t/md)"},
+        "Core CPI":     {"vaerdi": 1.5,  "enhed": "%",  "label": "Kerninflation (ex. energi/fødevarer)"},
+        "BNP":          {"vaerdi": 1.9,  "enhed": "%",  "label": "BNP vækst (YoY %)"},
+        "Wage Growth":  {"vaerdi": 3.5,  "enhed": "%",  "label": "Lønvækst (YoY %)"},
+        "Energy":       {"vaerdi": 3.0,  "enhed": "%",  "label": "Energipriser olie (YoY %)"},
+        "10 YR":        {"vaerdi": 3.05, "enhed": "%",  "label": "10-årig statsrente"},
+        "VIX":          {"vaerdi": 17.0, "enhed": "",   "label": "VIX (volatilitetsindeks)"},
+        "Unemployment": {"vaerdi": 3.3,  "enhed": "%",  "label": "Arbejdsløshed (%)"},
     },
     "Europa": {
-        "PMI":         {"vaerdi": 52.3, "enhed": "",    "label": "PMI"},
-        "BNP":         {"vaerdi": 1.3,  "enhed": "%",   "label": "BNP vækst"},
-        "10 YR":       {"vaerdi": 2.95, "enhed": "%",   "label": "10-årig rente"},
-        "CPI":         {"vaerdi": 1.8,  "enhed": "%",   "label": "Inflation (CPI)"},
-        "Baltic Dry":  {"vaerdi": 1800, "enhed": "",    "label": "Baltic Dry Index"},
-        "VIX":         {"vaerdi": 17.0, "enhed": "",    "label": "VIX"},
-        "Currency":    {"vaerdi": 1.18, "enhed": "",    "label": "EUR/USD"},
-        "Unemployment":{"vaerdi": 6.2,  "enhed": "%",   "label": "Arbejdsløshed"},
+        "PMI":          {"vaerdi": 52.3, "enhed": "",   "label": "PMI Eurozone Composite"},
+        "Yield Curve":  {"vaerdi": 0.40, "enhed": "%",  "label": "Yield Curve (10Y-2Y)"},
+        "Retail Sales": {"vaerdi": 0.2,  "enhed": "%",  "label": "Retail Sales (MoM %)"},
+        "NFP":          {"vaerdi": 80.0, "enhed": "k",  "label": "Beskæftigelsesvækst (t/md)"},
+        "Core CPI":     {"vaerdi": 2.1,  "enhed": "%",  "label": "Kerninflation (ex. energi/fødevarer)"},
+        "BNP":          {"vaerdi": 1.3,  "enhed": "%",  "label": "BNP vækst (YoY %)"},
+        "Wage Growth":  {"vaerdi": 3.0,  "enhed": "%",  "label": "Lønvækst (YoY %)"},
+        "Energy":       {"vaerdi": 3.0,  "enhed": "%",  "label": "Energipriser olie (YoY %)"},
+        "10 YR":        {"vaerdi": 2.95, "enhed": "%",  "label": "10-årig statsrente"},
+        "VIX":          {"vaerdi": 17.0, "enhed": "",   "label": "VIX (volatilitetsindeks)"},
+        "Unemployment": {"vaerdi": 6.2,  "enhed": "%",  "label": "Arbejdsløshed (%)"},
     },
     "USA": {
-        "PMI":         {"vaerdi": 52.5, "enhed": "",    "label": "PMI"},
-        "BNP":         {"vaerdi": 1.8,  "enhed": "%",   "label": "BNP vækst"},
-        "10 YR":       {"vaerdi": 4.25, "enhed": "%",   "label": "10-årig rente"},
-        "CPI":         {"vaerdi": 2.6,  "enhed": "%",   "label": "Inflation (CPI)"},
-        "Baltic Dry":  {"vaerdi": 1850, "enhed": "",    "label": "Baltic Dry Index"},
-        "VIX":         {"vaerdi": 17.0, "enhed": "",    "label": "VIX"},
-        "Currency":    {"vaerdi": 1.18, "enhed": "",    "label": "EUR/USD"},
-        "Unemployment":{"vaerdi": 4.4,  "enhed": "%",   "label": "Arbejdsløshed"},
+        "PMI":          {"vaerdi": 52.5, "enhed": "",   "label": "PMI Composite"},
+        "Yield Curve":  {"vaerdi": 0.20, "enhed": "%",  "label": "Yield Curve (10Y-2Y)"},
+        "Retail Sales": {"vaerdi": 0.3,  "enhed": "%",  "label": "Retail Sales (MoM %)"},
+        "NFP":          {"vaerdi": 185,  "enhed": "k",  "label": "Non-Farm Payrolls (t/md)"},
+        "Core CPI":     {"vaerdi": 2.8,  "enhed": "%",  "label": "Kerninflation (ex. energi/fødevarer)"},
+        "BNP":          {"vaerdi": 1.8,  "enhed": "%",  "label": "BNP vækst (YoY %)"},
+        "Wage Growth":  {"vaerdi": 4.1,  "enhed": "%",  "label": "Lønvækst / Avg. Hourly Earnings"},
+        "Energy":       {"vaerdi": 3.0,  "enhed": "%",  "label": "Energipriser olie (YoY %)"},
+        "10 YR":        {"vaerdi": 4.25, "enhed": "%",  "label": "10-årig Treasury rente"},
+        "VIX":          {"vaerdi": 17.0, "enhed": "",   "label": "VIX (volatilitetsindeks)"},
+        "Unemployment": {"vaerdi": 4.4,  "enhed": "%",  "label": "Arbejdsløshed (%)"},
     },
 }
 
@@ -116,107 +143,266 @@ def indlaes_wb():
 # ── Faseklassificering ────────────────────────────────────────────────────────
 
 def fase_pmi(v):
+    """PMI Manufacturing/Composite — ledende, stærkeste enkelt-indikator."""
     if v is None: return None
-    if v >= 53:   return "Mid"
+    if v >= 54:   return "Mid"
     if v >= 50:   return "Early"
     if v >= 47:   return "Late"
     return "Recession"
 
-def fase_bnp(v):         # v i % (1.9 ikke 0.019)
+def fase_yield_curve(v):
+    """
+    10Y-2Y spread i % — bedste recession-predictor (12-18 mdr. lead).
+    Negativ kurve → Late/Recession. Stejl kurve → Early/Mid (CB har lettet).
+    """
+    if v is None: return None
+    if v > 1.5:   return "Early"   # Meget stejl: CB har sænket aggressivt
+    if v > 0.3:   return "Mid"     # Normal positiv hældning
+    if v > -0.3:  return "Late"    # Flad til svagt inverteret
+    return "Recession"             # Dybt inverteret
+
+def fase_retail_sales(v):
+    """Retail Sales MoM % — direkte mål for forbrugsdrevet vækst."""
     if v is None: return None
     if v < 0:     return "Recession"
-    if v < 0.5:   return "Early"
-    if v < 1.5:   return "Mid"
+    if v < 0.15:  return "Late"
+    if v < 0.4:   return "Early"
+    return "Mid"
+
+def fase_nfp(v, region="USA"):
+    """
+    NFP/beskæftigelsesvækst i tusinde/md — region-justeret.
+    USA: NFP; Europa: Eurozone beskæftigelse; Danmark: national.
+    """
+    if v is None: return None
+    if region == "USA":
+        if v > 220:  return "Mid"
+        if v > 100:  return "Early"
+        if v > 30:   return "Late"
+        return "Recession"
+    elif region == "Europa":
+        if v > 150:  return "Mid"
+        if v > 50:   return "Early"
+        if v > 0:    return "Late"
+        return "Recession"
+    else:  # Danmark
+        if v > 3:    return "Mid"
+        if v > 1:    return "Early"
+        if v > 0:    return "Late"
+        return "Recession"
+
+def fase_core_cpi(v):
+    """
+    Kerninflation (ex. fødevarer og energi) YoY %.
+    Drivende for pengepolitik — mere stabil end headline CPI.
+    """
+    if v is None: return None
+    if v < 1.5:   return "Recession"  # Deflationspres
+    if v < 2.5:   return "Early"      # Under mål — ekspansiv pengepolitik
+    if v < 3.5:   return "Mid"        # Kontrolleret inflation
+    return "Late"                      # Over mål — stramning nødvendig
+
+def fase_bnp(v):
+    """BNP vækst YoY % — lagging, bekræfter fasen snarere end trigger."""
+    if v is None: return None
+    if v < 0:     return "Recession"
+    if v < 1.0:   return "Early"
+    if v < 2.5:   return "Mid"
+    return "Late"
+
+def fase_wage_growth(v):
+    """
+    Lønvækst YoY % (Avg. Hourly Earnings/tilsvarende).
+    Høj lønvækst = Late-signal (inflationspres + margin squeeze).
+    """
+    if v is None: return None
+    if v < 2.0:   return "Recession"
+    if v < 3.5:   return "Early"
+    if v < 4.5:   return "Mid"
+    return "Late"
+
+def fase_energy(v):
+    """
+    Oliepris YoY % (WTI/Brent). Kraftig stigning = stagflationsrisiko.
+    Kollaps = Recession-signal (efterspørgselsdrevet fald).
+    """
+    if v is None: return None
+    if v < -25:   return "Recession"
+    if v < 10:    return "Early"
+    if v < 35:    return "Mid"
     return "Late"
 
 def fase_rente(v, region="USA"):
+    """10-årig rente absolut niveau — lagging kontekst for yield curve."""
     if v is None: return None
     if region == "USA":
-        if v < 3.0:  return "Early"
-        if v < 4.0:  return "Mid"
-        if v < 4.75: return "Late"
+        if v < 3.0:   return "Early"
+        if v < 4.0:   return "Mid"
+        if v < 4.75:  return "Late"
         return "Recession"
     else:
-        if v < 1.5:  return "Early"
-        if v < 2.5:  return "Mid"
-        if v < 3.5:  return "Late"
+        if v < 1.5:   return "Early"
+        if v < 2.5:   return "Mid"
+        if v < 3.5:   return "Late"
         return "Recession"
 
-def fase_cpi(v):         # v i % (1.9 ikke 0.019)
-    if v is None: return None
-    if v < 1.0:   return "Recession"
-    if v < 2.0:   return "Early"
-    if v < 3.5:   return "Mid"
-    return "Late"
-
-def fase_bdi(v):
-    if v is None: return None
-    if v < 1000:  return "Recession"
-    if v < 1500:  return "Early"
-    if v < 2500:  return "Mid"
-    return "Late"
-
 def fase_vix(v):
+    """VIX — markedsbaseret risiko-sentiment. Høj VIX = Late/Recession."""
     if v is None: return None
     if v < 15:    return "Mid"
     if v < 20:    return "Early"
     if v < 30:    return "Late"
     return "Recession"
 
-def fase_currency(v):   # EUR/USD
-    if v is None: return None
-    if v < 1.05:  return "Recession"
-    if v < 1.10:  return "Late"
-    if v < 1.20:  return "Mid"
-    return "Early"
-
-def fase_unemployment(v):  # v i % (3.3 ikke 0.033)
+def fase_unemployment(v):
+    """Arbejdsløshed % — lagging indikator, bekræftelse, ikke trigger."""
     if v is None: return None
     if v > 8:     return "Recession"
     if v > 6:     return "Late"
-    if v > 4:     return "Mid"
+    if v > 4.5:   return "Mid"
     return "Early"
 
 KLASSIFICERINGER = {
-    "PMI":         fase_pmi,
-    "BNP":         fase_bnp,
-    "10 YR":       fase_rente,
-    "CPI":         fase_cpi,
-    "Baltic Dry":  fase_bdi,
-    "VIX":         fase_vix,
-    "Currency":    fase_currency,
-    "Unemployment":fase_unemployment,
+    "PMI":          fase_pmi,
+    "Yield Curve":  fase_yield_curve,
+    "Retail Sales": fase_retail_sales,
+    "NFP":          fase_nfp,          # region-aware — kaldes separat i klassificer_makro
+    "Core CPI":     fase_core_cpi,
+    "BNP":          fase_bnp,
+    "Wage Growth":  fase_wage_growth,
+    "Energy":       fase_energy,
+    "10 YR":        fase_rente,        # region-aware
+    "VIX":          fase_vix,
+    "Unemployment": fase_unemployment,
 }
 
-# Sektor-sensitivitet per fase per indikator (fra PMI-arket + BNP-arket)
-# Format: sektor -> {fase -> score 1-5}
+# ─────────────────────────────────────────────────────────────────────────────
+# SEKTOR_SENSITIVITET — evidensbaseret sektorrotation per indikator per fase
+# Scores 1-5: 5 = stærk outperformer, 1 = stærk underperformer
+# Baltic Dry og Currency FJERNET (Asien-bias / ikke konjunkturel)
+# ─────────────────────────────────────────────────────────────────────────────
 SEKTOR_SENSITIVITET = {
+    # ── PMI (ledende, vægt 3) ─────────────────────────────────────────────
+    # Cykliske sektorer reagerer kraftigt på PMI-bevægelser
     "PMI": {
         "Financials":              {"Early":4,"Mid":4,"Late":2,"Recession":1},
-        "Real Estate":             {"Early":5,"Mid":2,"Late":3,"Recession":1},
+        "Real Estate":             {"Early":4,"Mid":3,"Late":2,"Recession":1},
         "Consumer Discretionary":  {"Early":5,"Mid":4,"Late":2,"Recession":1},
-        "Information Technology":  {"Early":4,"Mid":5,"Late":3,"Recession":1},
+        "Information Technology":  {"Early":3,"Mid":5,"Late":3,"Recession":1},  # IT topper i Mid
         "Industrials":             {"Early":5,"Mid":4,"Late":2,"Recession":1},
-        "Materials":               {"Early":4,"Mid":2,"Late":3,"Recession":2},
+        "Materials":               {"Early":4,"Mid":3,"Late":2,"Recession":2},
         "Consumer Staples":        {"Early":2,"Mid":2,"Late":4,"Recession":5},
         "Health Care":             {"Early":2,"Mid":3,"Late":3,"Recession":5},
         "Energy":                  {"Early":2,"Mid":3,"Late":5,"Recession":1},
         "Communications Services": {"Early":3,"Mid":4,"Late":3,"Recession":2},
         "Utilities":               {"Early":2,"Mid":2,"Late":4,"Recession":5},
     },
+    # ── Yield Curve 10Y-2Y (ledende, vægt 3) ─────────────────────────────
+    # Stejl kurve = bankmargin stiger → Financials outperformer stærkt
+    # Inverteret kurve = duration-aktiver (Utilities, Staples) outperformer relativt
+    "Yield Curve": {
+        "Financials":              {"Early":5,"Mid":4,"Late":2,"Recession":1},  # Netto rentemarginal
+        "Real Estate":             {"Early":4,"Mid":3,"Late":1,"Recession":2},  # Refinansiering
+        "Consumer Discretionary":  {"Early":4,"Mid":4,"Late":2,"Recession":1},
+        "Information Technology":  {"Early":4,"Mid":5,"Late":2,"Recession":2},  # Duration-sensitiv
+        "Industrials":             {"Early":5,"Mid":4,"Late":2,"Recession":1},
+        "Materials":               {"Early":4,"Mid":3,"Late":2,"Recession":2},
+        "Consumer Staples":        {"Early":2,"Mid":2,"Late":4,"Recession":4},
+        "Health Care":             {"Early":2,"Mid":3,"Late":3,"Recession":4},
+        "Energy":                  {"Early":3,"Mid":3,"Late":4,"Recession":2},
+        "Communications Services": {"Early":3,"Mid":4,"Late":3,"Recession":2},
+        "Utilities":               {"Early":2,"Mid":2,"Late":4,"Recession":5},  # Bond-proxy
+    },
+    # ── Retail Sales MoM% (ledende, vægt 2) ──────────────────────────────
+    # Direkte forbrugsmål — Consumer Discretionary reagerer mest
+    "Retail Sales": {
+        "Financials":              {"Early":3,"Mid":4,"Late":2,"Recession":1},
+        "Real Estate":             {"Early":3,"Mid":3,"Late":2,"Recession":1},
+        "Consumer Discretionary":  {"Early":5,"Mid":5,"Late":2,"Recession":1},
+        "Information Technology":  {"Early":4,"Mid":4,"Late":3,"Recession":1},
+        "Industrials":             {"Early":4,"Mid":4,"Late":2,"Recession":1},
+        "Materials":               {"Early":3,"Mid":3,"Late":2,"Recession":2},
+        "Consumer Staples":        {"Early":3,"Mid":3,"Late":4,"Recession":4},  # Recession-defensiv
+        "Health Care":             {"Early":2,"Mid":3,"Late":3,"Recession":4},
+        "Energy":                  {"Early":3,"Mid":4,"Late":3,"Recession":2},
+        "Communications Services": {"Early":3,"Mid":4,"Late":3,"Recession":2},
+        "Utilities":               {"Early":2,"Mid":2,"Late":3,"Recession":4},
+    },
+    # ── NFP / Beskæftigelsesvækst (ledende, vægt 2) ───────────────────────
+    # Jobvækst driver forbrug og forbrugertillid
+    "NFP": {
+        "Financials":              {"Early":4,"Mid":4,"Late":2,"Recession":1},
+        "Real Estate":             {"Early":4,"Mid":3,"Late":2,"Recession":1},
+        "Consumer Discretionary":  {"Early":5,"Mid":5,"Late":2,"Recession":1},
+        "Information Technology":  {"Early":4,"Mid":4,"Late":3,"Recession":1},
+        "Industrials":             {"Early":5,"Mid":4,"Late":2,"Recession":1},
+        "Materials":               {"Early":4,"Mid":3,"Late":2,"Recession":2},
+        "Consumer Staples":        {"Early":2,"Mid":2,"Late":3,"Recession":5},
+        "Health Care":             {"Early":2,"Mid":3,"Late":3,"Recession":5},
+        "Energy":                  {"Early":3,"Mid":3,"Late":4,"Recession":2},
+        "Communications Services": {"Early":3,"Mid":4,"Late":3,"Recession":2},
+        "Utilities":               {"Early":2,"Mid":2,"Late":3,"Recession":5},
+    },
+    # ── Core CPI (samtidig, vægt 2) ───────────────────────────────────────
+    # Kerninflation driver pengepolitik. Høj core CPI = Late-fase stramning
+    "Core CPI": {
+        "Financials":              {"Early":4,"Mid":4,"Late":2,"Recession":2},
+        "Real Estate":             {"Early":4,"Mid":3,"Late":1,"Recession":2},  # Renter slår RE hårdt
+        "Consumer Discretionary":  {"Early":4,"Mid":4,"Late":2,"Recession":1},
+        "Information Technology":  {"Early":4,"Mid":5,"Late":2,"Recession":1},  # Duration-effekt ved høj CPI
+        "Industrials":             {"Early":4,"Mid":4,"Late":2,"Recession":1},
+        "Materials":               {"Early":3,"Mid":3,"Late":4,"Recession":2},  # Materialpriser stiger
+        "Consumer Staples":        {"Early":2,"Mid":2,"Late":4,"Recession":5},
+        "Health Care":             {"Early":3,"Mid":3,"Late":3,"Recession":4},
+        "Energy":                  {"Early":2,"Mid":3,"Late":5,"Recession":1},
+        "Communications Services": {"Early":3,"Mid":4,"Late":3,"Recession":2},
+        "Utilities":               {"Early":2,"Mid":2,"Late":4,"Recession":5},
+    },
+    # ── BNP vækst (lagging, vægt 2) ───────────────────────────────────────
     "BNP": {
-        "Financials":              {"Early":4,"Mid":3,"Late":2,"Recession":1},
-        "Real Estate":             {"Early":5,"Mid":3,"Late":4,"Recession":1},
-        "Consumer Discretionary":  {"Early":5,"Mid":3,"Late":1,"Recession":2},
+        "Financials":              {"Early":4,"Mid":4,"Late":2,"Recession":1},
+        "Real Estate":             {"Early":4,"Mid":3,"Late":3,"Recession":1},
+        "Consumer Discretionary":  {"Early":5,"Mid":4,"Late":1,"Recession":1},
         "Information Technology":  {"Early":4,"Mid":4,"Late":2,"Recession":1},
-        "Industrials":             {"Early":5,"Mid":3,"Late":2,"Recession":1},
-        "Materials":               {"Early":4,"Mid":1,"Late":2,"Recession":2},
-        "Consumer Staples":        {"Early":2,"Mid":3,"Late":4,"Recession":5},
+        "Industrials":             {"Early":5,"Mid":4,"Late":2,"Recession":1},
+        "Materials":               {"Early":4,"Mid":3,"Late":2,"Recession":2},
+        "Consumer Staples":        {"Early":2,"Mid":2,"Late":4,"Recession":5},
         "Health Care":             {"Early":2,"Mid":3,"Late":3,"Recession":5},
         "Energy":                  {"Early":2,"Mid":3,"Late":5,"Recession":1},
         "Communications Services": {"Early":3,"Mid":4,"Late":3,"Recession":2},
         "Utilities":               {"Early":2,"Mid":2,"Late":4,"Recession":5},
     },
+    # ── Lønvækst (samtidig, vægt 2) ───────────────────────────────────────
+    # Høj lønvækst gavner Consumer Disc. men presser marginer (Late-signal)
+    "Wage Growth": {
+        "Financials":              {"Early":3,"Mid":4,"Late":2,"Recession":1},
+        "Real Estate":             {"Early":3,"Mid":3,"Late":2,"Recession":1},
+        "Consumer Discretionary":  {"Early":4,"Mid":5,"Late":2,"Recession":1},  # Købekraft topper i Mid
+        "Information Technology":  {"Early":4,"Mid":4,"Late":3,"Recession":1},
+        "Industrials":             {"Early":4,"Mid":4,"Late":2,"Recession":1},
+        "Materials":               {"Early":3,"Mid":3,"Late":3,"Recession":2},
+        "Consumer Staples":        {"Early":2,"Mid":2,"Late":3,"Recession":4},
+        "Health Care":             {"Early":2,"Mid":3,"Late":3,"Recession":4},
+        "Energy":                  {"Early":3,"Mid":3,"Late":4,"Recession":2},
+        "Communications Services": {"Early":3,"Mid":4,"Late":3,"Recession":2},
+        "Utilities":               {"Early":2,"Mid":2,"Late":3,"Recession":4},
+    },
+    # ── Energipriser olie YoY% (ledende, vægt 1) ──────────────────────────
+    # Kraftig oliestigning = stagflationsrisiko. Energy-sektor outperformer i Mid/Late
+    "Energy": {
+        "Financials":              {"Early":3,"Mid":3,"Late":2,"Recession":2},
+        "Real Estate":             {"Early":3,"Mid":3,"Late":2,"Recession":2},
+        "Consumer Discretionary":  {"Early":4,"Mid":3,"Late":1,"Recession":2},  # Energipris presser forbrug
+        "Information Technology":  {"Early":3,"Mid":4,"Late":2,"Recession":2},
+        "Industrials":             {"Early":4,"Mid":4,"Late":2,"Recession":2},
+        "Materials":               {"Early":4,"Mid":4,"Late":3,"Recession":2},
+        "Consumer Staples":        {"Early":2,"Mid":2,"Late":3,"Recession":4},
+        "Health Care":             {"Early":3,"Mid":3,"Late":3,"Recession":4},
+        "Energy":                  {"Early":4,"Mid":5,"Late":5,"Recession":1},  # Direkte priseksponering
+        "Communications Services": {"Early":3,"Mid":3,"Late":2,"Recession":2},
+        "Utilities":               {"Early":3,"Mid":3,"Late":4,"Recession":3},
+    },
+    # ── 10-årig rente absolut (lagging, vægt 1) ───────────────────────────
     "10 YR": {
         "Financials":              {"Early":5,"Mid":4,"Late":2,"Recession":2},
         "Real Estate":             {"Early":4,"Mid":3,"Late":1,"Recession":2},
@@ -230,35 +416,10 @@ SEKTOR_SENSITIVITET = {
         "Communications Services": {"Early":3,"Mid":4,"Late":3,"Recession":2},
         "Utilities":               {"Early":3,"Mid":3,"Late":4,"Recession":4},
     },
-    "CPI": {
-        "Financials":              {"Early":4,"Mid":4,"Late":2,"Recession":2},
-        "Real Estate":             {"Early":3,"Mid":3,"Late":2,"Recession":2},
-        "Consumer Discretionary":  {"Early":4,"Mid":4,"Late":2,"Recession":1},
-        "Information Technology":  {"Early":4,"Mid":5,"Late":2,"Recession":1},
-        "Industrials":             {"Early":4,"Mid":4,"Late":2,"Recession":1},
-        "Materials":               {"Early":3,"Mid":2,"Late":4,"Recession":2},
-        "Consumer Staples":        {"Early":2,"Mid":2,"Late":4,"Recession":5},
-        "Health Care":             {"Early":3,"Mid":3,"Late":3,"Recession":4},
-        "Energy":                  {"Early":2,"Mid":3,"Late":5,"Recession":1},
-        "Communications Services": {"Early":3,"Mid":4,"Late":3,"Recession":2},
-        "Utilities":               {"Early":2,"Mid":2,"Late":4,"Recession":5},
-    },
-    "Baltic Dry": {
-        "Financials":              {"Early":4,"Mid":4,"Late":3,"Recession":2},
-        "Real Estate":             {"Early":4,"Mid":3,"Late":3,"Recession":2},
-        "Consumer Discretionary":  {"Early":5,"Mid":4,"Late":3,"Recession":1},
-        "Information Technology":  {"Early":4,"Mid":4,"Late":3,"Recession":2},
-        "Industrials":             {"Early":5,"Mid":4,"Late":3,"Recession":1},
-        "Materials":               {"Early":5,"Mid":3,"Late":3,"Recession":2},
-        "Consumer Staples":        {"Early":2,"Mid":2,"Late":3,"Recession":3},
-        "Health Care":             {"Early":2,"Mid":2,"Late":3,"Recession":3},
-        "Energy":                  {"Early":3,"Mid":3,"Late":4,"Recession":2},
-        "Communications Services": {"Early":3,"Mid":3,"Late":3,"Recession":2},
-        "Utilities":               {"Early":2,"Mid":2,"Late":3,"Recession":3},
-    },
+    # ── VIX (ledende, vægt 1) ─────────────────────────────────────────────
     "VIX": {
         "Financials":              {"Early":4,"Mid":4,"Late":2,"Recession":1},
-        "Real Estate":             {"Early":5,"Mid":3,"Late":2,"Recession":1},
+        "Real Estate":             {"Early":4,"Mid":3,"Late":2,"Recession":1},
         "Consumer Discretionary":  {"Early":5,"Mid":4,"Late":2,"Recession":1},
         "Information Technology":  {"Early":5,"Mid":4,"Late":2,"Recession":1},
         "Industrials":             {"Early":5,"Mid":4,"Late":2,"Recession":1},
@@ -269,22 +430,10 @@ SEKTOR_SENSITIVITET = {
         "Communications Services": {"Early":3,"Mid":4,"Late":3,"Recession":2},
         "Utilities":               {"Early":2,"Mid":3,"Late":4,"Recession":5},
     },
-    "Currency": {
-        "Financials":              {"Early":3,"Mid":3,"Late":3,"Recession":2},
-        "Real Estate":             {"Early":3,"Mid":3,"Late":3,"Recession":3},
-        "Consumer Discretionary":  {"Early":4,"Mid":3,"Late":2,"Recession":2},
-        "Information Technology":  {"Early":4,"Mid":4,"Late":2,"Recession":2},
-        "Industrials":             {"Early":4,"Mid":3,"Late":2,"Recession":2},
-        "Materials":               {"Early":4,"Mid":3,"Late":3,"Recession":2},
-        "Consumer Staples":        {"Early":3,"Mid":3,"Late":4,"Recession":4},
-        "Health Care":             {"Early":3,"Mid":3,"Late":3,"Recession":3},
-        "Energy":                  {"Early":3,"Mid":4,"Late":4,"Recession":2},
-        "Communications Services": {"Early":3,"Mid":3,"Late":3,"Recession":2},
-        "Utilities":               {"Early":3,"Mid":3,"Late":4,"Recession":4},
-    },
+    # ── Arbejdsløshed (lagging, vægt 1) ───────────────────────────────────
     "Unemployment": {
         "Financials":              {"Early":4,"Mid":3,"Late":2,"Recession":1},
-        "Real Estate":             {"Early":4,"Mid":3,"Late":3,"Recession":1},
+        "Real Estate":             {"Early":4,"Mid":3,"Late":2,"Recession":1},
         "Consumer Discretionary":  {"Early":5,"Mid":4,"Late":2,"Recession":1},
         "Information Technology":  {"Early":4,"Mid":4,"Late":3,"Recession":1},
         "Industrials":             {"Early":5,"Mid":4,"Late":2,"Recession":1},
@@ -519,31 +668,23 @@ def hent_afstemning(wb):
 
 def klassificer_makro(region_inputs, region="USA"):
     """
-    Klassificer et sæt makroværdier til faser per indikator + samlet fase.
+    Klassificer et sæt makroværdier til faser per indikator + samlet vægtet fase.
     region_inputs: {indikator: vaerdi}
-    Returnerer: {indikator: fase, '_global': fase, '_point': {fase: n}}
     """
     v = region_inputs
     faser = {}
 
-    # Normaliser: omregn procent-værdier til absolute
-    pmi  = v.get("PMI")
-    bnp  = v.get("BNP")           # forventer % (1.9)
-    rate = v.get("10 YR")         # forventer % (3.05)
-    cpi  = v.get("CPI")           # forventer % (1.9)
-    bdi  = v.get("Baltic Dry")
-    vix  = v.get("VIX")
-    curr = v.get("Currency")
-    unemp= v.get("Unemployment")  # forventer % (3.3)
-
-    faser["PMI"]          = fase_pmi(pmi)
-    faser["BNP"]          = fase_bnp(bnp)
-    faser["10 YR"]        = fase_rente(rate, region)
-    faser["CPI"]          = fase_cpi(cpi)
-    faser["Baltic Dry"]   = fase_bdi(bdi)
-    faser["VIX"]          = fase_vix(vix)
-    faser["Currency"]     = fase_currency(curr)
-    faser["Unemployment"] = fase_unemployment(unemp)
+    faser["PMI"]          = fase_pmi(v.get("PMI"))
+    faser["Yield Curve"]  = fase_yield_curve(v.get("Yield Curve"))
+    faser["Retail Sales"] = fase_retail_sales(v.get("Retail Sales"))
+    faser["NFP"]          = fase_nfp(v.get("NFP"), region)        # region-aware
+    faser["Core CPI"]     = fase_core_cpi(v.get("Core CPI"))
+    faser["BNP"]          = fase_bnp(v.get("BNP"))
+    faser["Wage Growth"]  = fase_wage_growth(v.get("Wage Growth"))
+    faser["Energy"]       = fase_energy(v.get("Energy"))
+    faser["10 YR"]        = fase_rente(v.get("10 YR"), region)    # region-aware
+    faser["VIX"]          = fase_vix(v.get("VIX"))
+    faser["Unemployment"] = fase_unemployment(v.get("Unemployment"))
 
     # Vægtet afstemning
     point = {"Early":0,"Mid":0,"Late":0,"Recession":0}
@@ -555,55 +696,79 @@ def klassificer_makro(region_inputs, region="USA"):
     total = sum(point.values())
 
     faser["_global"] = global_fase
-    faser["_point"] = point
-    faser["_pct"] = {f: round(v/total*100) for f,v in point.items()} if total else {}
+    faser["_point"]  = point
+    faser["_pct"]    = {f: round(p/total*100) for f,p in point.items()} if total else {}
     return faser
 
 
+def _pct(raw):
+    """Omregn decimal til procent (0.019 → 1.9) hvis nødvendigt."""
+    if raw is None: return None
+    return round(raw * 100, 2) if abs(raw) < 1 else round(raw, 2)
+
 def beregn_makrofase(fremtid):
-    """Beregn global makrofase fra fremtid-data."""
+    """
+    Beregn global makrofase fra Excel Fremtid vækst-data.
+    Nye indikatorer (Yield Curve, NFP, Retail Sales, Wage Growth, Energy)
+    hentes fra DEFAULT_MAKRO som bedst-mulige estimat, da de ikke er i Excel.
+    """
     global_point = {"Early":0,"Mid":0,"Late":0,"Recession":0}
     detaljer = []
 
-    for region, data in fremtid.items():
-        # Omregn til absolut skala
-        bnp_raw = data.get("BNP",{}).get("q2")
-        bnp_pct = bnp_raw * 100 if bnp_raw and bnp_raw < 1 else bnp_raw
-        cpi_raw = data.get("CPI",{}).get("q2")
-        cpi_pct = cpi_raw * 100 if cpi_raw and cpi_raw < 1 else cpi_raw
-        unemp_raw = data.get("Unemployment",{}).get("q2")
-        unemp_pct = unemp_raw * 100 if unemp_raw and unemp_raw < 1 else unemp_raw
+    for region in ("Danmark","Europa","USA"):
+        data = fremtid.get(region, {})
+        dflt = DEFAULT_MAKRO.get(region, {})
+
+        def ex(excel_key, fallback_ind):
+            """Hent fra Excel, fallback til DEFAULT_MAKRO."""
+            raw = data.get(excel_key, {}).get("q2")
+            if raw is not None:
+                return _pct(raw) if excel_key not in ("PMI","10 YR rate","VIX","Baltic Dry Index") else raw
+            return dflt.get(fallback_ind, {}).get("vaerdi")
 
         inputs = {
-            "PMI":         data.get("PMI",{}).get("q2"),
-            "BNP":         bnp_pct,
-            "10 YR":       data.get("10 YR rate",{}).get("q2"),
-            "CPI":         cpi_pct,
-            "Baltic Dry":  data.get("Baltic Dry Index",{}).get("q2"),
-            "VIX":         data.get("VIX",{}).get("q2"),
-            "Currency":    data.get("Currency (EUR/USD)",{}).get("q2"),
-            "Unemployment":unemp_pct,
+            "PMI":          ex("PMI",         "PMI"),
+            "Yield Curve":  dflt.get("Yield Curve",  {}).get("vaerdi"),  # ikke i Excel
+            "Retail Sales": dflt.get("Retail Sales",{}).get("vaerdi"),  # ikke i Excel
+            "NFP":          dflt.get("NFP",         {}).get("vaerdi"),  # ikke i Excel
+            "Core CPI":     ex("CPI",         "Core CPI"),   # brug CPI som proxy
+            "BNP":          ex("BNP",         "BNP"),
+            "Wage Growth":  dflt.get("Wage Growth",{}).get("vaerdi"),  # ikke i Excel
+            "Energy":       dflt.get("Energy",      {}).get("vaerdi"),  # ikke i Excel
+            "10 YR":        ex("10 YR rate",  "10 YR"),
+            "VIX":          ex("VIX",         "VIX"),
+            "Unemployment": ex("Unemployment","Unemployment"),
         }
 
         faser = klassificer_makro(inputs, region)
-        global_fase = faser["_global"]
         for f, pts in faser["_point"].items():
             global_point[f] += pts
 
         ind_liste = []
         for ind in INDIKATORER:
             val = inputs.get(ind)
-            vis = f"{val:.2f}" if isinstance(val, float) else (str(val) if val else "N/A")
-            if ind in ("BNP","CPI","Unemployment") and val: vis += "%"
-            ind_liste.append({"navn":ind,"vaerdi":vis,"fase":faser.get(ind),"vaegt":INDIKATOR_VAEGTER.get(ind,1)})
+            enhed = DEFAULT_MAKRO.get(region,{}).get(ind,{}).get("enhed","")
+            if isinstance(val, float): vis = f"{val:.2f}"
+            elif val is not None: vis = str(val)
+            else: vis = "N/A"
+            if enhed: vis += enhed
+            ind_liste.append({
+                "navn": ind, "vaerdi": vis,
+                "fase": faser.get(ind),
+                "vaegt": INDIKATOR_VAEGTER.get(ind, 1),
+                "type": INDIKATOR_TYPE.get(ind, ""),
+            })
 
-        detaljer.append({"region":region,"fase":global_fase,"indikatorer":ind_liste,
-                         "point":faser["_point"],"pct":faser["_pct"]})
+        detaljer.append({
+            "region": region, "fase": faser["_global"],
+            "indikatorer": ind_liste,
+            "point": faser["_point"], "pct": faser["_pct"],
+        })
 
     global_fase = max(global_point, key=global_point.get)
     total = sum(global_point.values())
-    fase_pct = {f: round(v/total*100) for f,v in global_point.items()} if total else {}
-    titel,beskr,ikon,farve = FASE_META.get(global_fase,("?","","❓","#fff"))
+    fase_pct = {f: round(p/total*100) for f,p in global_point.items()} if total else {}
+    titel, beskr, ikon, farve = FASE_META.get(global_fase, ("?","","❓","#fff"))
 
     return {"fase":global_fase,"titel":titel,"beskrivelse":beskr,"ikon":ikon,
             "farve":farve,"fase_pct":fase_pct,"detaljer":detaljer,"point":global_point}
@@ -758,54 +923,45 @@ def parse_fordeling(s):
 
 # ── Samlet indlæsning ─────────────────────────────────────────────────────────
 
+# Excel Fremtid vækst → ny indikator-navngivning
 _FREMTID_NAVNE = {
-    "PMI":               "PMI",
-    "BNP":               "BNP",
-    "10 YR rate":        "10 YR",
-    "CPI":               "CPI",
-    "Baltic Dry Index":  "Baltic Dry",
-    "VIX":               "VIX",
-    "Currency (EUR/USD)":"Currency",
-    "Unemployment":      "Unemployment",
+    "PMI":         "PMI",
+    "BNP":         "BNP",
+    "10 YR rate":  "10 YR",
+    "CPI":         "Core CPI",   # bruges som Core CPI-proxy
+    "VIX":         "VIX",
+    "Unemployment":"Unemployment",
+    # Baltic Dry Index og Currency (EUR/USD) ignoreres
 }
-_PROCENT_INDS = {"BNP", "CPI", "Unemployment"}
-_ENHED = {"PMI":"","BNP":"%","10 YR":"%","CPI":"%","Baltic Dry":"","VIX":"","Currency":"","Unemployment":"%"}
-_LABEL = {"PMI":"PMI","BNP":"BNP vækst","10 YR":"10-årig rente","CPI":"Inflation (CPI)",
-          "Baltic Dry":"Baltic Dry Index","VIX":"VIX","Currency":"EUR/USD","Unemployment":"Arbejdsløshed"}
+_PROCENT_INDS = {"BNP", "Core CPI", "Unemployment"}
 
 def byg_seneste_makro(fremtid):
     """
-    Konvertér Excel Fremtid vækst-data til samme format som DEFAULT_MAKRO.
-    Bruges til at præ-udfylde sliders med faktiske Excel-værdier.
+    Byg seneste makro-snapshot til at præ-udfylde sliders.
+    Excel-data bruges for indikatorer der findes i Fremtid vækst-arket;
+    DEFAULT_MAKRO bruges som fallback for nye indikatorer.
     """
-    REGION_MAP = {"Danmark":"Danmark","Europa":"Europa","USA":"USA"}
     result = {}
-    for region, data in fremtid.items():
-        if region not in REGION_MAP:
-            continue
-        result[region] = {}
-        for fremtid_key, ind_key in _FREMTID_NAVNE.items():
-            entry = data.get(fremtid_key, {})
-            # Brug Q2, fallback til Q1
-            raw = entry.get("q2") or entry.get("q1")
-            if raw is None:
-                # Brug DEFAULT_MAKRO som fallback
-                raw = DEFAULT_MAKRO.get(region, {}).get(ind_key, {}).get("vaerdi", 0)
-            else:
-                # Omregn decimal → % for BNP, CPI, Unemployment
-                if ind_key in _PROCENT_INDS and raw < 1:
-                    raw = round(raw * 100, 2)
-                else:
-                    raw = round(raw, 4)
-            result[region][ind_key] = {
-                "vaerdi": raw,
-                "enhed":  _ENHED[ind_key],
-                "label":  _LABEL[ind_key],
-            }
-    # Fyld manglende regioner med DEFAULT_MAKRO
     for region in ("Danmark", "Europa", "USA"):
-        if region not in result:
-            result[region] = DEFAULT_MAKRO[region]
+        data = fremtid.get(region, {})
+        dflt = DEFAULT_MAKRO.get(region, {})
+        result[region] = {}
+
+        for ind_key, ind_meta in dflt.items():
+            # Find Excel-nøgle for denne indikator
+            excel_key = next((k for k,v in _FREMTID_NAVNE.items() if v == ind_key), None)
+            if excel_key and excel_key in data:
+                raw = data[excel_key].get("q2") or data[excel_key].get("q1")
+                if raw is not None:
+                    if ind_key in _PROCENT_INDS and abs(raw) < 1:
+                        raw = round(raw * 100, 2)
+                    else:
+                        raw = round(float(raw), 4)
+                    result[region][ind_key] = {**ind_meta, "vaerdi": raw}
+                    continue
+            # Fallback: DEFAULT_MAKRO
+            result[region][ind_key] = ind_meta.copy()
+
     return result
 
 
