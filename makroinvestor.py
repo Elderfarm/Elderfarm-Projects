@@ -85,11 +85,13 @@ def hent_spoergeskema(wb):
             continue
         q_tekst = row[0]
         svar_og_scores = []
+        display_nr = 1
         for i in range(4):
             sv = row[1 + i]
             sc = row[5 + i]
             if sv is not None and sc is not None:
-                svar_og_scores.append((i + 1, str(sv), int(sc)))
+                svar_og_scores.append((display_nr, str(sv), int(sc)))
+                display_nr += 1
         if q_tekst and svar_og_scores:
             spoergsmaal.append((q_tekst, svar_og_scores))
     return spoergsmaal
