@@ -258,7 +258,46 @@ KLASSIFICERINGER = {
 # ─────────────────────────────────────────────────────────────────────────────
 # SEKTOR_SENSITIVITET — evidensbaseret sektorrotation per indikator per fase
 # Scores 1-5: 5 = stærk outperformer, 1 = stærk underperformer
-# Baltic Dry og Currency FJERNET (Asien-bias / ikke konjunkturel)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Energiafhængigheds-justeringer ───────────────────────────────────────────
+# Europa er nettoimportør af energi (særligt naturgas og olie fra Mellemøsten/Rusland).
+# Stigende energipriser (Energy = Mid/Late) rammer europæiske forbrugere og
+# industrien hårdere end USA, som er nettooeksportør siden shale-revolutionen.
+# Justeringerne tilføjes oveni basis-scoren og clampes til [1, 5].
+# Stærkere effekt i Late end Mid (energipriser har haft tid til at slå igennem).
+ENERGI_AFHAENGIGHED = {
+    "Europa": {
+        # Forbrugere rammes af høje energiregninger → presser reelt forbrug
+        "Consumer Discretionary": {"Mid": -0.4, "Late": -0.9},
+        # Tung industri med høje energiomkostninger
+        "Industrials":            {"Mid": -0.3, "Late": -0.7},
+        "Materials":              {"Mid": -0.3, "Late": -0.6},
+        "Consumer Staples":       {"Mid": -0.2, "Late": -0.4},
+        # Europæiske energiselskaber profiterer delvist
+        "Energy":                 {"Mid": +0.3, "Late": +0.5},
+    },
+    "USA": {
+        # USA er nettoeksportør → energiprisstigninger gavner energisektoren ekstra
+        "Energy":      {"Mid": +0.4, "Late": +0.7},
+        # Olie-service og raffinaderier
+        "Industrials": {"Mid": +0.2, "Late": +0.3},
+        # Forbrugere rammes dog stadig, men mindre end Europa
+        "Consumer Discretionary": {"Late": -0.3},
+    },
+}
+
+# ── USA's strukturelle AI-fordel ─────────────────────────────────────────────
+# USA huser verdens dominerende AI-infrastruktur (NVIDIA, Microsoft, Google,
+# Meta, OpenAI). Denne strukturelle fordel giver IT og Communications Services
+# en vedvarende premium ift. Europa, særligt i vækstfaser (Early/Mid) hvor
+# AI-monetarisering og capex-cycles er stærkest.
+# Ingen tilsvarende European AI-champion i samme liga endnu (2025-2026 horizon).
+AI_FORDEL_USA = {
+    "Information Technology":  {"Early": +0.6, "Mid": +0.8, "Late": +0.3, "Recession": +0.1},
+    "Communications Services": {"Early": +0.4, "Mid": +0.6, "Late": +0.2, "Recession": +0.1},
+}
+
 # ─────────────────────────────────────────────────────────────────────────────
 SEKTOR_SENSITIVITET = {
     # ── PMI (ledende, vægt 3) ─────────────────────────────────────────────
@@ -841,6 +880,39 @@ def byg_heatmap(historisk_bnp, sim_scores):
     return heatmap
 
 
+def _score_sektor_region(sektor, region, f):
+    """
+    Beregn vægtet score for én sektor i én region fra en allerede klassificeret
+    fase-dict f (output fra klassificer_makro). Anvender:
+      1. SEKTOR_SENSITIVITET — basis indikator-scores
+      2. ENERGI_AFHAENGIGHED — Europa/USA energijustering baseret på Energy-fase
+      3. AI_FORDEL_USA — strukturel IT/ComSvcs premium for USA
+    Returnerer float [1,5] eller None hvis ingen data.
+    """
+    vs, vv = 0, 0
+    for ind in INDIKATORER:
+        ind_fase = f.get(ind)
+        if ind_fase and sektor in SEKTOR_SENSITIVITET.get(ind, {}):
+            s = SEKTOR_SENSITIVITET[ind][sektor][ind_fase]
+            w = INDIKATOR_VAEGTER[ind]
+            vs += s * w; vv += w
+    if vv == 0: return None
+    base = vs / vv
+
+    # Energiafhængighedsjustering (aktiv når Energy-indikatoren = Mid eller Late)
+    energy_fase = f.get("Energy")
+    if energy_fase in ("Mid", "Late"):
+        adj = ENERGI_AFHAENGIGHED.get(region, {}).get(sektor, {}).get(energy_fase, 0)
+        base += adj
+
+    # USA's strukturelle AI-fordel (aktiv i alle faser, stærkest i Early/Mid)
+    if region == "USA":
+        global_fase = f.get("_global", "Mid")
+        base += AI_FORDEL_USA.get(sektor, {}).get(global_fase, 0)
+
+    return round(max(1.0, min(5.0, base)), 2)
+
+
 def simuler_sektorer(makro_inputs):
     """
     Simuler sektorscorer fra bruger-definerede makroværdier.
@@ -857,31 +929,14 @@ def simuler_sektorer(makro_inputs):
     for sektor in SEKTOR_RÆKKEFØLGE:
         region_scores = []
         for region, inputs in makro_inputs.items():
-            f = faser[region]
-            global_fase = f["_global"]
-            # Vægtet score fra alle indikatorer
-            vs, vv = 0, 0
-            for ind in INDIKATORER:
-                ind_fase = f.get(ind)
-                if ind_fase and sektor in SEKTOR_SENSITIVITET.get(ind, {}):
-                    s = SEKTOR_SENSITIVITET[ind][sektor][ind_fase]
-                    w = INDIKATOR_VAEGTER[ind]
-                    vs += s*w; vv += w
-            if vv > 0: region_scores.append(vs/vv)
+            sc = _score_sektor_region(sektor, region, faser[region])
+            if sc is not None: region_scores.append(sc)
 
         avg = round(sum(region_scores)/len(region_scores),2) if region_scores else 0
         region_score_map = {}
-        i_reg = 0
         for region in makro_inputs:
-            f = faser[region]
-            vs, vv = 0, 0
-            for ind in INDIKATORER:
-                ind_fase = f.get(ind)
-                if ind_fase and sektor in SEKTOR_SENSITIVITET.get(ind, {}):
-                    s = SEKTOR_SENSITIVITET[ind][sektor][ind_fase]
-                    w = INDIKATOR_VAEGTER[ind]
-                    vs += s*w; vv += w
-            region_score_map[region] = round(vs/vv, 2) if vv > 0 else 0
+            sc = _score_sektor_region(sektor, region, faser[region])
+            region_score_map[region] = sc if sc is not None else 0
         resultater.append({"sektor":sektor,"ikon":SEKTOR_IKONER.get(sektor,"📊"),"score":avg,
                            "region_scores": region_score_map})
 
@@ -902,25 +957,44 @@ def simuler_sektorer(makro_inputs):
 def sektor_ind_scores(seneste_makro, sektor):
     """
     Returnerer per-indikator score for en sektor baseret på seneste_makro.
-    Output: {region: [{ind, fase, score, vaegt}], totals: {region: float}}
+    Totals inkluderer energiafhængigheds- og AI-justeringer (samme som simuler_sektorer).
+    Output: {region: [{ind, fase, score, vaegt}], totals: {region: float},
+             justeringer: {region: {label, delta}}}
     """
     result = {}
     totals = {}
+    justeringer = {}
     for region, inds in seneste_makro.items():
         inputs = {k: v["vaerdi"] for k, v in inds.items()}
         f = klassificer_makro(inputs, region)
         rows = []
-        vs, vv = 0, 0
         for ind in INDIKATORER:
             fase = f.get(ind)
             if fase and sektor in SEKTOR_SENSITIVITET.get(ind, {}):
                 sc = SEKTOR_SENSITIVITET[ind][sektor][fase]
                 w = INDIKATOR_VAEGTER[ind]
                 rows.append({"ind": ind, "fase": fase, "score": sc, "vaegt": w})
-                vs += sc * w; vv += w
         result[region] = rows
-        totals[region] = round(vs / vv, 2) if vv else 0
-    return {"regioner": result, "totals": totals}
+
+        # Totals via _score_sektor_region (inkl. justeringer)
+        total = _score_sektor_region(sektor, region, f)
+        totals[region] = total if total is not None else 0
+
+        # Beregn hvilke justeringer der er aktive
+        adjs = []
+        energy_fase = f.get("Energy")
+        if energy_fase in ("Mid", "Late"):
+            delta = ENERGI_AFHAENGIGHED.get(region, {}).get(sektor, {}).get(energy_fase, 0)
+            if delta != 0:
+                adjs.append({"label": f"Energiafhængighed ({region})", "delta": round(delta, 2)})
+        if region == "USA":
+            global_fase = f.get("_global", "Mid")
+            delta = AI_FORDEL_USA.get(sektor, {}).get(global_fase, 0)
+            if delta != 0:
+                adjs.append({"label": "USA AI-strukturel fordel", "delta": round(delta, 2)})
+        justeringer[region] = adjs
+
+    return {"regioner": result, "totals": totals, "justeringer": justeringer}
 
 
 # ── Risikoprofil ──────────────────────────────────────────────────────────────
