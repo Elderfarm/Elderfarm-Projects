@@ -478,6 +478,7 @@ def hent_historisk_bnp(wb):
             result.setdefault(cur_sektor, {kv: {} for kv in KVARTALER_HIST})
         elif cur_sektor and row[1] in ("Europa ","USA","Europa"):
             region = row[1].strip()
+            if region == "Danmark": continue
             for i, kv in enumerate(KVARTALER_HIST):
                 val = row[2+i] if len(row) > 2+i else None
                 if isinstance(val, (int,float)):
@@ -811,34 +812,31 @@ def beregn_sektorscorer(dk, eu, usa, fase):
     return res
 
 
-def byg_heatmap(historisk_bnp, ranglister_dk, ranglister_eu, ranglister_usa):
+def byg_heatmap(historisk_bnp, sim_scores):
     """
     Byg multi-kvartal heatmap data.
+    historisk_bnp: {sektor: {kvartal: {region: score}}} — fra BNP-ark (EU+USA)
+    sim_scores: {sektor: score} — fra simuler_sektorer(), bruges til Q1+Q2 2026
     Returnerer: {sektor: {kvartal: {'score': float, 'kilde': str}}}
     """
-    dk, eu, usa = ranglister_dk, ranglister_eu, ranglister_usa
     heatmap = {}
 
     for sektor in SEKTOR_RÆKKEFØLGE:
         heatmap[sektor] = {}
 
-        # Historiske kvartaler fra BNP-arket (Q1 2024 - Q4 2025)
+        # Historiske kvartaler fra BNP-arket (Q1 2024 - Q4 2025), kun EU+USA
         bnp_data = historisk_bnp.get(sektor, {})
         for kv in KVARTALER_HIST:
             region_vals = bnp_data.get(kv, {})
-            vals = [v for v in region_vals.values() if isinstance(v,(int,float))]
+            vals = [v for r,v in region_vals.items() if isinstance(v,(int,float)) and r != "Danmark"]
             if vals:
                 heatmap[sektor][kv] = {"score": round(sum(vals)/len(vals),2), "kilde":"historisk"}
 
-        # Projekterede kvartaler fra Ranglister
-        for kv in KVARTALER_PROJ:
-            kv_key = "Q1 2026" if "Q1" in kv else "Q2 2026"
-            scores = []
-            for d in [dk.get(sektor,{}), eu.get(sektor,{}), usa.get(sektor,{})]:
-                v = d.get(kv_key)
-                if isinstance(v,(int,float)): scores.append(v)
-            if scores:
-                heatmap[sektor][kv] = {"score": round(sum(scores)/len(scores),2), "kilde":"prognose"}
+        # Projekterede kvartaler: brug simulator-score (samme som dashboard)
+        score = sim_scores.get(sektor)
+        if score is not None:
+            for kv in KVARTALER_PROJ:
+                heatmap[sektor][kv] = {"score": score, "kilde":"prognose"}
 
     return heatmap
 
@@ -997,7 +995,9 @@ def hent_alle_data():
         s["usa"] = rs.get("USA", None)
         s["composite"] = s["score"]
 
-    heatmap = byg_heatmap(historisk_bnp, dk, eu, usa)
+    # Byg sim_scores lookup til heatmap projection: {sektor: score}
+    sim_scores_map = {s["sektor"]: s["score"] for s in sektorer}
+    heatmap = byg_heatmap(historisk_bnp, sim_scores_map)
 
     # Seneste kvartal med data
     seneste_kvartal = ALLE_KVARTALER[-1]
