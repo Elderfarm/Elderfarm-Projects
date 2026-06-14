@@ -26,9 +26,21 @@ INDIKATORER = [
     "Energy", "10 YR", "VIX", "Unemployment",
 ]
 INDIKATOR_VAEGTER = {
-    "PMI": 3, "Yield Curve": 3,
-    "Retail Sales": 2, "NFP": 2, "Core CPI": 2, "BNP": 2, "Wage Growth": 2,
-    "Energy": 1, "10 YR": 1, "VIX": 1, "Unemployment": 1,
+    # Pillar: Growth (35%) — ledende + lagging vækstmål
+    "PMI":          4,   # Stærkeste enkelt-indikator, 2-3 mdr. lead
+    "BNP":          2,   # Lagging bekræftelse
+    "Retail Sales": 2,   # Coincident forbrugsdrevet vækst
+    # Pillar: Labor (25%) — driver forbrug og inflationspres
+    "NFP":          3,   # Stærkeste labor-signal (markedsbevægende)
+    "Wage Growth":  2,   # Inflationspres + købekraft
+    "Unemployment": 2,   # Lagging men vigtig regime-bekræftelse
+    # Pillar: Inflation (20%) — driver pengepolitik
+    "Core CPI":     3,   # Mest relevant for Fed/ECB
+    "Energy":       1,   # Støj-indikator — rammer via ENERGI_AFHAENGIGHED
+    # Pillar: Financial Conditions (20%)
+    "Yield Curve":  3,   # 12-18 mdr. recession-predictor
+    "10 YR":        1,   # Niveau-kontekst, delvis redundant med YC
+    "VIX":          1,   # Markedssentiment, reaktiv ikke predictiv
 }
 # Kategorisering: ledende vs. lagging (til UI-visning)
 INDIKATOR_TYPE = {
@@ -130,116 +142,142 @@ def indlaes_wb():
 # ── Faseklassificering ────────────────────────────────────────────────────────
 
 def fase_pmi(v):
-    """PMI Manufacturing/Composite — ledende, stærkeste enkelt-indikator."""
+    """
+    PMI Composite — stærkeste leading indikator, 2-3 mdr. lead.
+    50 = neutral, >50 = ekspansion, <50 = kontraktion.
+    Threshold-zoner baseret på historisk cyklus-analyse.
+    """
     if v is None: return None
-    if v >= 54:   return "Mid"
-    if v >= 50:   return "Early"
-    if v >= 47:   return "Late"
-    return "Recession"
+    if v >= 54:   return "Mid"       # Stærk ekspansion — Mid-cycle momentum
+    if v >= 50:   return "Early"     # Over 50 men ikke stærkt — early recovery
+    if v >= 46:   return "Late"      # Svag kontraktion — Late/deceleration
+    return "Recession"               # Dyb kontraktion
 
 def fase_yield_curve(v):
     """
-    10Y-2Y spread i % — bedste recession-predictor (12-18 mdr. lead).
-    Negativ kurve → Late/Recession. Stejl kurve → Early/Mid (CB har lettet).
+    10Y-2Y spread % — bedste recession-predictor, 12-18 mdr. lead.
+    VIGTIGT: Stejl kurve EFTER inversion = CB har lettet = Early signal.
+    Postiv kurve i normal vækst = Mid. Inverteret = Late/Recession.
     """
     if v is None: return None
-    if v > 1.5:   return "Early"   # Meget stejl: CB har sænket aggressivt
-    if v > 0.3:   return "Mid"     # Normal positiv hældning
-    if v > -0.3:  return "Late"    # Flad til svagt inverteret
-    return "Recession"             # Dybt inverteret
+    if v > 1.2:   return "Early"     # Meget stejl: CB har sænket post-recession
+    if v > 0.2:   return "Mid"       # Normal positiv hældning = sund vækst
+    if v > -0.5:  return "Late"      # Flad til let inverteret = stramning bider
+    return "Recession"               # Dybt inverteret (> -0.5%) = recession imminent
 
 def fase_retail_sales(v):
-    """Retail Sales MoM % — direkte mål for forbrugsdrevet vækst."""
+    """
+    Retail Sales MoM % — coincident forbrugsmål.
+    Gentagne negative måneder = recession. Stabil >0.3% = solid forbrug.
+    """
     if v is None: return None
-    if v < 0:     return "Recession"
-    if v < 0.15:  return "Late"
-    if v < 0.4:   return "Early"
-    return "Mid"
+    if v < -0.2:  return "Recession" # Klart negativt
+    if v < 0.1:   return "Late"      # Stagnation/svagt
+    if v < 0.35:  return "Early"     # Moderat vækst
+    return "Mid"                      # Solid forbrugsvækst
 
 def fase_nfp(v, region="USA"):
-    """NFP/beskæftigelsesvækst i tusinde/md — region-justeret (USA og Europa)."""
+    """
+    NFP/jobbvækst — market-moving coincident/leading indikator.
+    Negativ = recession-bekræftelse. Høj = mid-cycle acceleration.
+    """
     if v is None: return None
     if region == "USA":
-        if v > 220:  return "Mid"
-        if v > 100:  return "Early"
-        if v > 30:   return "Late"
-        return "Recession"
-    else:  # Europa (Eurozone månedlig beskæftigelse)
-        if v > 150:  return "Mid"
-        if v > 50:   return "Early"
+        if v > 200:  return "Mid"      # Stærk vækst — mid-cycle momentum
+        if v > 80:   return "Early"    # Moderat vækst — early recovery
+        if v > 0:    return "Late"     # Svag/positiv — deceleration
+        return "Recession"             # Tab af jobs
+    else:
+        if v > 120:  return "Mid"
+        if v > 40:   return "Early"
         if v > 0:    return "Late"
         return "Recession"
 
 def fase_core_cpi(v):
     """
-    Kerninflation (ex. fødevarer og energi) YoY %.
-    Drivende for pengepolitik — mere stabil end headline CPI.
+    Kerninflation YoY % — primær driver for pengepolitik.
+    Peak-score ved 2.0% (Fed-mål). Stigende over 3% = stramning = Late-signal.
+    IKKE-monoton: både for lav (<1.5%) og for høj (>3.5%) er negativt.
     """
     if v is None: return None
-    if v < 1.5:   return "Recession"  # Deflationspres
-    if v < 2.5:   return "Early"      # Under mål — ekspansiv pengepolitik
-    if v < 3.5:   return "Mid"        # Kontrolleret inflation
-    return "Late"                      # Over mål — stramning nødvendig
+    if v < 1.2:   return "Recession"  # Deflationspres — CB mister handlingsrum
+    if v < 2.0:   return "Early"      # Under mål — ekspansiv pengepolitik mulig
+    if v < 3.0:   return "Mid"        # Acceptabel zone — 2-3% er kontrolleret
+    return "Late"                      # Over 3% = stramning nødvendig (sænket threshold fra 3.5%)
 
 def fase_bnp(v):
-    """BNP vækst YoY % — lagging, bekræfter fasen snarere end trigger."""
+    """
+    BNP vækst YoY % — lagging bekræftelse.
+    US potentiel vækst ~2%, Eurozone ~1.5%. Over potentiel = Late-signal.
+    """
     if v is None: return None
     if v < 0:     return "Recession"
-    if v < 1.0:   return "Early"
-    if v < 2.5:   return "Mid"
-    return "Late"
+    if v < 0.8:   return "Early"      # Svag men positiv vækst — tidlig recovery
+    if v < 2.2:   return "Mid"        # Omkring/over potentiel (sænket fra 2.5)
+    return "Late"                      # Over potentiel = overophedning
 
 def fase_wage_growth(v):
     """
-    Lønvækst YoY % (Avg. Hourly Earnings/tilsvarende).
-    Høj lønvækst = Late-signal (inflationspres + margin squeeze).
+    Lønvækst YoY % — coincident/lagging. Høj lønvækst driver inflation (Late).
+    3-4% = normalt i stærkt marked. >4.5% = Fed bekymret.
     """
     if v is None: return None
-    if v < 2.0:   return "Recession"
-    if v < 3.5:   return "Early"
-    if v < 4.5:   return "Mid"
-    return "Late"
+    if v < 1.8:   return "Recession"
+    if v < 3.2:   return "Early"
+    if v < 4.2:   return "Mid"        # 3.2-4.2% = stærkt men acceptabelt
+    return "Late"                      # >4.2% = inflationspres (sænket fra 4.5%)
 
 def fase_energy(v):
     """
-    Oliepris YoY % (WTI/Brent). Kraftig stigning = stagflationsrisiko.
-    Kollaps = Recession-signal (efterspørgselsdrevet fald).
+    Oliepris YoY % — støj-indikator. Primær effekt via ENERGI_AFHAENGIGHED.
+    Giver faseindikation for energisektorens relativperformance.
     """
     if v is None: return None
-    if v < -25:   return "Recession"
-    if v < 10:    return "Early"
-    if v < 35:    return "Mid"
-    return "Late"
+    if v < -30:   return "Recession"  # Demand-drevet kollaps
+    if v < 5:     return "Early"      # Stabil/let faldende priser
+    if v < 30:    return "Mid"        # Stigende priser — industriel efterspørgsel
+    return "Late"                      # Kraftig stigning = stagflationsrisiko
 
 def fase_rente(v, region="USA"):
-    """10-årig rente absolut niveau — lagging kontekst for yield curve."""
+    """
+    10-årig rente absolut niveau — lagging finansiel kontekst.
+    Bruges som supplement til yield curve — fanger tightening-niveau.
+    """
     if v is None: return None
     if region == "USA":
-        if v < 3.0:   return "Early"
-        if v < 4.0:   return "Mid"
-        if v < 4.75:  return "Late"
-        return "Recession"
+        if v < 3.0:   return "Early"   # Lave renter = akkommodativ CB
+        if v < 4.2:   return "Mid"     # Normalt niveau
+        if v < 5.0:   return "Late"    # Restriktivt (sænket øvre grænse fra 4.75→5.0)
+        return "Recession"             # Ekstremt restriktivt — credit crunch risiko
     else:
-        if v < 1.5:   return "Early"
-        if v < 2.5:   return "Mid"
-        if v < 3.5:   return "Late"
+        if v < 1.2:   return "Early"
+        if v < 2.2:   return "Mid"
+        if v < 3.2:   return "Late"
         return "Recession"
 
 def fase_vix(v):
-    """VIX — markedsbaseret risiko-sentiment. Høj VIX = Late/Recession."""
+    """
+    VIX — markedsbaseret risiko-sentiment. Reaktiv, ikke predictiv.
+    VIGTIGT: I Early cycle er VIX ofte 18-25 (fortsat usikkerhed).
+    Meget lav VIX (<14) kan signalere Mid-cycle complacency.
+    """
     if v is None: return None
-    if v < 15:    return "Mid"
-    if v < 20:    return "Early"
-    if v < 30:    return "Late"
-    return "Recession"
+    if v < 14:    return "Mid"         # Lav vol = complacency/mid-cycle
+    if v < 22:    return "Early"       # Moderat vol = recovery med usikkerhed (hævet fra 20→22)
+    if v < 32:    return "Late"        # Høj vol = stressede markeder
+    return "Recession"                 # Krise-vol
 
 def fase_unemployment(v):
-    """Arbejdsløshed % — lagging indikator, bekræftelse, ikke trigger."""
+    """
+    Arbejdsløshed % — lagging indikator. Bekræfter regime, trigger ikke.
+    USA fuld-beskæftigelse ~3.5-4%. Europa strukturelt højere (~6.5-7%).
+    Tærsklerne er globale — region-specificitet håndteres via NFP.
+    """
     if v is None: return None
-    if v > 8:     return "Recession"
-    if v > 6:     return "Late"
-    if v > 4.5:   return "Mid"
-    return "Early"
+    if v > 7.5:   return "Recession"  # Klart forhøjet (sænket fra 8% for tidligere signal)
+    if v > 5.5:   return "Late"       # Over normalt (sænket fra 6%)
+    if v > 4.0:   return "Mid"        # Normalt arbejdsmarked (sænket fra 4.5%)
+    return "Early"                     # Meget tight — stærkt arbejdsmarked
 
 KLASSIFICERINGER = {
     "PMI":          fase_pmi,
@@ -294,8 +332,11 @@ ENERGI_AFHAENGIGHED = {
 # AI-monetarisering og capex-cycles er stærkest.
 # Ingen tilsvarende European AI-champion i samme liga endnu (2025-2026 horizon).
 AI_FORDEL_USA = {
-    "Information Technology":  {"Early": +0.6, "Mid": +0.8, "Late": +0.3, "Recession": +0.1},
-    "Communications Services": {"Early": +0.4, "Mid": +0.6, "Late": +0.2, "Recession": +0.1},
+    # USA's AI-strukturelle fordel er størst i vækstfaser (capex-cycles, monetarisering).
+    # I recession rammes selv FAANG hårdt af multiples-kompression og capex-cuts.
+    # Bonus = 0 i Recession (realistisk — systemisk krise rammer alle).
+    "Information Technology":  {"Early": +0.6, "Mid": +0.8, "Late": +0.3, "Recession": 0},
+    "Communications Services": {"Early": +0.4, "Mid": +0.6, "Late": +0.2, "Recession": 0},
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -303,33 +344,38 @@ SEKTOR_SENSITIVITET = {
     # ── PMI (ledende, vægt 3) ─────────────────────────────────────────────
     # Cykliske sektorer reagerer kraftigt på PMI-bevægelser
     "PMI": {
+        # PMI driver cykliske sektorer. IT starter tidligt (capex recovery).
+        # Materials topper i Mid (industriel efterspørgsel peak). Energy Late.
         "Financials":              {"Early":4,"Mid":4,"Late":2,"Recession":1},
-        "Real Estate":             {"Early":4,"Mid":3,"Late":2,"Recession":1},
+        "Real Estate":             {"Early":3,"Mid":3,"Late":2,"Recession":1},
         "Consumer Discretionary":  {"Early":5,"Mid":4,"Late":2,"Recession":1},
-        "Information Technology":  {"Early":3,"Mid":5,"Late":3,"Recession":1},  # IT topper i Mid
+        "Information Technology":  {"Early":4,"Mid":5,"Late":3,"Recession":1},  # Early↑: capex recovery
         "Industrials":             {"Early":5,"Mid":4,"Late":2,"Recession":1},
-        "Materials":               {"Early":4,"Mid":3,"Late":2,"Recession":2},
+        "Materials":               {"Early":4,"Mid":5,"Late":3,"Recession":1},  # Mid↑: peak industriel demand
         "Consumer Staples":        {"Early":2,"Mid":2,"Late":4,"Recession":5},
         "Health Care":             {"Early":2,"Mid":3,"Late":3,"Recession":5},
-        "Energy":                  {"Early":2,"Mid":3,"Late":5,"Recession":1},
+        "Energy":                  {"Early":2,"Mid":4,"Late":5,"Recession":2},  # Recession↑: 1→2 (ikke katastrofe)
         "Communications Services": {"Early":3,"Mid":4,"Late":3,"Recession":2},
-        "Utilities":               {"Early":2,"Mid":2,"Late":4,"Recession":5},
+        "Utilities":               {"Early":1,"Mid":2,"Late":4,"Recession":5},  # Early↓: alternativ cost
     },
     # ── Yield Curve 10Y-2Y (ledende, vægt 3) ─────────────────────────────
     # Stejl kurve = bankmargin stiger → Financials outperformer stærkt
     # Inverteret kurve = duration-aktiver (Utilities, Staples) outperformer relativt
     "Yield Curve": {
-        "Financials":              {"Early":5,"Mid":4,"Late":2,"Recession":1},  # Netto rentemarginal
-        "Real Estate":             {"Early":4,"Mid":3,"Late":1,"Recession":2},  # Refinansiering
+        # Stejl kurve = bankmargin + kreditvækst = Financials/Industrials outperformer.
+        # Flad/inverteret = duration premium: Utilities/Staples relativt bedre.
+        # RE: dybt sensitiv til renteniveau — Late score sænket til 1.
+        "Financials":              {"Early":5,"Mid":4,"Late":2,"Recession":2},  # NIM benefit
+        "Real Estate":             {"Early":4,"Mid":3,"Late":1,"Recession":3},  # Recession↑: CB letter
         "Consumer Discretionary":  {"Early":4,"Mid":4,"Late":2,"Recession":1},
-        "Information Technology":  {"Early":4,"Mid":5,"Late":2,"Recession":2},  # Duration-sensitiv
+        "Information Technology":  {"Early":4,"Mid":4,"Late":2,"Recession":2},  # Mid↓: duration-risk
         "Industrials":             {"Early":5,"Mid":4,"Late":2,"Recession":1},
         "Materials":               {"Early":4,"Mid":3,"Late":2,"Recession":2},
-        "Consumer Staples":        {"Early":2,"Mid":2,"Late":4,"Recession":4},
+        "Consumer Staples":        {"Early":2,"Mid":2,"Late":3,"Recession":4},
         "Health Care":             {"Early":2,"Mid":3,"Late":3,"Recession":4},
         "Energy":                  {"Early":3,"Mid":3,"Late":4,"Recession":2},
-        "Communications Services": {"Early":3,"Mid":4,"Late":3,"Recession":2},
-        "Utilities":               {"Early":2,"Mid":2,"Late":4,"Recession":5},  # Bond-proxy
+        "Communications Services": {"Early":3,"Mid":4,"Late":3,"Recession":3},
+        "Utilities":               {"Early":1,"Mid":2,"Late":4,"Recession":5},  # Bond-proxy, Early↓
     },
     # ── Retail Sales MoM% (ledende, vægt 2) ──────────────────────────────
     # Direkte forbrugsmål — Consumer Discretionary reagerer mest
@@ -685,10 +731,21 @@ def hent_afstemning(wb):
 
 # ── Fasebregning ──────────────────────────────────────────────────────────────
 
+_FASE_SCORE = {"Early": 2, "Mid": 3, "Late": 1, "Recession": 0}
+
 def klassificer_makro(region_inputs, region="USA"):
     """
-    Klassificer et sæt makroværdier til faser per indikator + samlet vægtet fase.
-    region_inputs: {indikator: vaerdi}
+    Klassificer makroværdier til faser per indikator + vægtet global fase.
+
+    ARKITEKTUR (4-pillar model):
+      Growth     (35%): PMI w4, BNP w2, Retail Sales w2
+      Labor      (25%): NFP w3, Wage Growth w2, Unemployment w2
+      Inflation  (20%): Core CPI w3, Energy w1
+      Financial  (20%): Yield Curve w3, 10 YR w1, VIX w1
+
+    Global fase bestemmes ved PILLAR-REGLER — ikke simpel afstemning.
+    Dette eliminerer cliff-effects og giver mere robust regime-detection.
+    Afstemningen (point/_pct) bevares til UI-visning og konfidensvisning.
     """
     v = region_inputs
     faser = {}
@@ -696,27 +753,59 @@ def klassificer_makro(region_inputs, region="USA"):
     faser["PMI"]          = fase_pmi(v.get("PMI"))
     faser["Yield Curve"]  = fase_yield_curve(v.get("Yield Curve"))
     faser["Retail Sales"] = fase_retail_sales(v.get("Retail Sales"))
-    faser["NFP"]          = fase_nfp(v.get("NFP"), region)        # region-aware
+    faser["NFP"]          = fase_nfp(v.get("NFP"), region)
     faser["Core CPI"]     = fase_core_cpi(v.get("Core CPI"))
     faser["BNP"]          = fase_bnp(v.get("BNP"))
     faser["Wage Growth"]  = fase_wage_growth(v.get("Wage Growth"))
     faser["Energy"]       = fase_energy(v.get("Energy"))
-    faser["10 YR"]        = fase_rente(v.get("10 YR"), region)    # region-aware
+    faser["10 YR"]        = fase_rente(v.get("10 YR"), region)
     faser["VIX"]          = fase_vix(v.get("VIX"))
     faser["Unemployment"] = fase_unemployment(v.get("Unemployment"))
 
-    # Vægtet afstemning
+    # ── Pillar-aggregering ──────────────────────────────────────────────────
+    def pillar_score(inds_weights):
+        """Vægtet gennemsnit af _FASE_SCORE for en pillar. Returnerer 0-3."""
+        s, w = 0, 0
+        for ind, wt in inds_weights:
+            f = faser.get(ind)
+            if f:
+                s += _FASE_SCORE[f] * wt; w += wt
+        return s / w if w else 1.5
+
+    growth_p = pillar_score([("PMI",4),("BNP",2),("Retail Sales",2)])
+    labor_p  = pillar_score([("NFP",3),("Wage Growth",2),("Unemployment",2)])
+    infl_p   = pillar_score([("Core CPI",3),("Energy",1)])
+    fin_p    = pillar_score([("Yield Curve",3),("10 YR",1),("VIX",1)])
+
+    # ── Pillar-baseret fasebeslutning (prioriteret rækkefølge) ──────────────
+    # Recession: klart growth-kollaps
+    if growth_p < 0.8 or (growth_p < 1.3 and labor_p < 0.8):
+        global_fase = "Recession"
+    # Late: inflationsoverhedning (infl i Late-zone ≤1.5) + finansiel stramning + decelererende vækst
+    elif infl_p <= 1.5 and fin_p < 1.8 and growth_p < 2.0:
+        global_fase = "Late"
+    # Late: stagflation — høj inflation selvom finansielle forhold ikke ekstreme
+    elif infl_p <= 1.2 and growth_p < 1.8:
+        global_fase = "Late"
+    # Mid: stærk vækst + solidt arbejdsmarked (begge over neutral)
+    elif growth_p >= 2.2 and labor_p >= 2.0:
+        global_fase = "Mid"
+    # Early: recovery — alt andet
+    else:
+        global_fase = "Early"
+
+    # ── Afstemning bevares til fase_pct UI-visning ──────────────────────────
     point = {"Early":0,"Mid":0,"Late":0,"Recession":0}
     for ind, fase in faser.items():
-        if fase:
+        if fase and not ind.startswith("_"):
             point[fase] += INDIKATOR_VAEGTER.get(ind, 1)
-
-    global_fase = max(point, key=point.get)
     total = sum(point.values())
 
-    faser["_global"] = global_fase
-    faser["_point"]  = point
-    faser["_pct"]    = {f: round(p/total*100) for f,p in point.items()} if total else {}
+    faser["_global"]   = global_fase
+    faser["_point"]    = point
+    faser["_pct"]      = {f: round(p/total*100) for f,p in point.items()} if total else {}
+    faser["_pillars"]  = {"Growth": round(growth_p,2), "Labor": round(labor_p,2),
+                          "Inflation": round(infl_p,2), "Financial": round(fin_p,2)}
     return faser
 
 
