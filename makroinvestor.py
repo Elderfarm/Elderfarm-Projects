@@ -1,565 +1,857 @@
 #!/usr/bin/env python3
 """
-Makroinvestor — analyserer makrotendenser og anbefaler sektorer at investere i.
-Baseret på Excel-arket: Makroinvestoren_Final.xlsx
+Makroinvestor - Dansk makroøkonomisk investeringsanalyseværktøj
+Analyserer makrotendenser fra Excel og anbefaler investeringssektorer.
 """
 
 import sys
 import os
 import argparse
-import openpyxl
 
 # ── ANSI farver ──────────────────────────────────────────────────────────────
-RESET  = "\033[0m"
-BOLD   = "\033[1m"
-GREEN  = "\033[92m"
-YELLOW = "\033[93m"
-RED    = "\033[91m"
-CYAN   = "\033[96m"
-BLUE   = "\033[94m"
-GRAY   = "\033[90m"
-WHITE  = "\033[97m"
+RESET   = "\033[0m"
+BOLD    = "\033[1m"
+DIM     = "\033[2m"
+RED     = "\033[91m"
+GREEN   = "\033[92m"
+YELLOW  = "\033[93m"
+BLUE    = "\033[94m"
+MAGENTA = "\033[95m"
+CYAN    = "\033[96m"
+WHITE   = "\033[97m"
 
-DEFAULT_EXCEL = os.path.join(os.path.dirname(__file__),
-    "/root/.claude/uploads/4353b6a9-163f-529f-a054-f6c3b69a4fdb/4eb3c991-Makroinvestoren_Final.xlsx")
+# ── Standard Excel-fil ───────────────────────────────────────────────────────
+DEFAULT_EXCEL = (
+    "/root/.claude/uploads/4353b6a9-163f-529f-a054-f6c3b69a4fdb/"
+    "4eb3c991-Makroinvestoren_Final.xlsx"
+)
 
-# ── Hjælpefunktioner ─────────────────────────────────────────────────────────
+# ── Hjælpefunktioner til formattering ───────────────────────────────────────
+def boks_top(titel, bredde=70):
+    print(f"{BOLD}{CYAN}╔{'═'*(bredde-2)}╗{RESET}")
+    padding = bredde - 4 - len(titel)
+    padding = max(0, padding)
+    print(f"{BOLD}{CYAN}║ {WHITE}{BOLD}{titel}{' '*padding} {CYAN}║{RESET}")
+    print(f"{BOLD}{CYAN}╠{'═'*(bredde-2)}╣{RESET}")
 
-def c(color, text):
-    return f"{color}{text}{RESET}"
+def boks_bund(bredde=70):
+    print(f"{BOLD}{CYAN}╚{'═'*(bredde-2)}╝{RESET}")
 
-def header(title):
-    w = 62
+def boks_linje(tekst, bredde=70):
+    synlig_laengde = len(tekst.encode('ascii', errors='ignore').decode('ascii'))
+    # strip ANSI
+    import re
+    ansi_escape = re.compile(r'\033\[[0-9;]*m')
+    ren = ansi_escape.sub('', tekst)
+    padding = bredde - 4 - len(ren)
+    padding = max(0, padding)
+    print(f"{BOLD}{CYAN}║{RESET} {tekst}{' '*padding} {BOLD}{CYAN}║{RESET}")
+
+def sektion(titel, bredde=70):
     print()
-    print(c(CYAN, "═" * w))
-    print(c(CYAN, f"  {BOLD}{title}"))
-    print(c(CYAN, "═" * w))
+    print(f"{BOLD}{YELLOW}{'━'*bredde}{RESET}")
+    print(f"{BOLD}{YELLOW}  {titel}{RESET}")
+    print(f"{BOLD}{YELLOW}{'━'*bredde}{RESET}")
 
-def subheader(title):
-    print(f"\n{c(BOLD, '── ' + title + ' ──')}")
-
-def bar(score, max_score=5.0, width=20):
-    filled = int(round(score / max_score * width))
-    b = "█" * filled + "░" * (width - filled)
-    if score >= 3.5:
-        col = GREEN
-    elif score >= 2.5:
-        col = YELLOW
-    else:
-        col = RED
-    return c(col, b) + f" {score:.2f}"
-
-def phase_color(phase):
-    colors = {"Early": GREEN, "Mid": BLUE, "Late": YELLOW, "Recession": RED}
-    return c(colors.get(phase, WHITE), phase)
-
-def ask(question, options):
-    """Stil et spørgsmål med nummererede svar og returnér valgt score."""
-    print(f"\n{c(BOLD, question)}")
-    for i, (opt, _score) in enumerate(options, 1):
-        print(f"  {c(GRAY, str(i)+'.')} {opt}")
-    while True:
-        try:
-            val = int(input(c(CYAN, "  Dit svar (1-4): ")).strip())
-            if 1 <= val <= len(options):
-                return options[val - 1][1]
-        except (ValueError, EOFError):
-            pass
-        print(c(RED, "  Indtast venligst et tal mellem 1 og 4."))
+def ascii_bar(score, max_score=5.0, bredde=20, farve=GREEN):
+    filled = int((score / max_score) * bredde) if max_score > 0 else 0
+    filled = max(0, min(filled, bredde))
+    bar = "█" * filled + "░" * (bredde - filled)
+    return f"{farve}{bar}{RESET}"
 
 # ── Indlæs Excel ─────────────────────────────────────────────────────────────
-
 def load_workbook(path):
     try:
-        return openpyxl.load_workbook(path, data_only=True)
-    except FileNotFoundError:
-        print(c(RED, f"\nFejl: Kan ikke finde Excel-filen: {path}"))
-        print("Brug --excel <sti> til at angive en anden sti.")
+        import openpyxl
+    except ImportError:
+        print(f"{RED}Fejl: openpyxl er ikke installeret. Kør: pip install openpyxl{RESET}")
+        sys.exit(1)
+    if not os.path.exists(path):
+        print(f"{RED}Fejl: Excel-filen blev ikke fundet: {path}{RESET}")
+        sys.exit(1)
+    try:
+        wb = openpyxl.load_workbook(path, data_only=True)
+        return wb
+    except Exception as e:
+        print(f"{RED}Fejl ved indlæsning af Excel: {e}{RESET}")
         sys.exit(1)
 
-def parse_rangliste(ws):
-    """Returnér dict sektor -> (Q1_2026, Q2_2026)"""
-    result = {}
-    for row in ws.iter_rows(values_only=True):
-        sektor = row[2] if len(row) > 2 else None
-        q1 = row[3] if len(row) > 3 else None
-        q2 = row[4] if len(row) > 4 else None
-        if isinstance(sektor, str) and sektor not in ("Sektor",) and isinstance(q1, (int, float)):
-            result[sektor] = (float(q1), float(q2) if isinstance(q2, (int, float)) else float(q1))
-    return result
-
-def parse_bnp_phases(ws):
-    """Returnér dict sektor -> {fase -> int} og BNP-faser per region."""
-    phase_scores = {"++": 2, "+": 1, None: 0, "–": -1, "--": -2, "-": -1}
-    sectors = {}
-    bnp_phases = {"Danmark": [], "Europa": [], "USA": []}  # (kvartal, fase)
-
-    rows = list(ws.iter_rows(values_only=True))
-
-    # Sektor-fase sensitivitet (rækker 2-13, 0-indeks)
-    phase_order = ["Early", "Mid", "Late", "Recession"]
-    for row in rows[2:14]:
-        sektor = row[1]
-        if isinstance(sektor, str):
-            entry = {}
-            for i, phase in enumerate(phase_order):
-                val = row[2 + i] if len(row) > 2 + i else None
-                entry[phase] = phase_scores.get(val, 0)
-            sectors[sektor.strip()] = entry
-
-    # BNP-historik per region
-    current_region = None
-    for row in rows:
-        if row[1] in ("Danmark", "Europa", "USA") and row[2] is None:
-            current_region = row[1]
-        if current_region and isinstance(row[2], str) and row[2].startswith("Q") and isinstance(row[4], str):
-            bnp_phases[current_region].append((row[2], row[4]))
-
-    return sectors, bnp_phases
-
-def parse_pmi(ws):
-    """Returnér seneste PMI-fase per region."""
-    regions = {"USA PMI": "USA", "Euroområdet PMI": "Europa", "Danmark PMI": "Danmark"}
-    latest = {}
-    current_header = None
-    for row in ws.iter_rows(values_only=True):
-        label = row[4] if len(row) > 4 else None
-        if label in regions:
-            current_header = regions[label]
-        if current_header and isinstance(row[3], str) and row[3].startswith("Q") and isinstance(row[5], str):
-            latest[current_header] = (row[3], row[5])
-    return latest
-
-def parse_macro_indicators(wb):
-    """Hent seneste fase-signaler fra alle makroindikatorer."""
-    signals = {}
-
-    def last_phase(sheetname, region_col, phase_col, region_label, header_col=4):
-        if sheetname not in wb.sheetnames:
-            return None
-        ws = wb[sheetname]
-        current = None
-        last = None
-        for row in ws.iter_rows(values_only=True):
-            lbl = row[header_col] if len(row) > header_col else None
-            if lbl == region_label:
-                current = True
-            if current and isinstance(row[region_col], str) and row[region_col].startswith("Q") and isinstance(row[phase_col], str):
-                last = (row[region_col], row[phase_col])
-        return last
-
-    # PMI
-    pmi = parse_pmi(wb["PMI"])
-    signals["PMI"] = pmi
-
-    # 10yr rate
-    rate_phases = {}
-    ws = wb["10 yr rate"]
-    mapping = {3: ("USA 10 year", "USA"), 9: ("Euroområdet 10 year", "Europa")}
-    for col_kv, (label, region) in mapping.items():
-        last = None
-        for row in ws.iter_rows(values_only=True):
-            if row[col_kv] is not None and isinstance(row[col_kv], str) and row[col_kv].startswith("Q"):
-                if len(row) > col_kv + 2 and isinstance(row[col_kv + 2], str):
-                    last = (row[col_kv], row[col_kv + 2])
-        if last:
-            rate_phases[region] = last
-    # Simple parse: scan all rows
-    rate_phases2 = {}
-    ws = wb["10 yr rate"]
-    cur_region = None
-    for row in ws.iter_rows(values_only=True):
-        if row[2] == "Kvartal" and row[3] == "USA 10 year":
-            cur_region = "USA"
-        elif row[2] == "Kvartal" and row[3] == "Euroområdet 10 year":
-            cur_region = "Europa"
-        if cur_region and isinstance(row[2], str) and row[2].startswith("Q") and isinstance(row[4], str):
-            rate_phases2[cur_region] = (row[2], row[4])
-    signals["10yr"] = rate_phases2
-
-    # CPI
-    cpi_phases = {}
-    ws = wb["CPI(Inflation)"]
-    cur_region = None
-    for row in ws.iter_rows(values_only=True):
-        if row[2] == "Kvartal":
-            cur_region = str(row[3]).split()[0] if row[3] else None
-            if "Danmark" in str(row[3]):
-                cur_region = "Danmark"
-            elif "Euroområdet" in str(row[3]):
-                cur_region = "Europa"
-        if cur_region and isinstance(row[2], str) and row[2].startswith("Q") and isinstance(row[4], str):
-            cpi_phases[cur_region] = (row[2], row[4])
-    signals["CPI"] = cpi_phases
-
-    # VIX
-    vix_phases = {}
-    ws = wb["VIX"]
-    cur_region = None
-    for row in ws.iter_rows(values_only=True):
-        if row[3] == "Kvartal" and row[4] == "Europa":
-            cur_region = "Europa"
-        elif row[3] == "Kvartal" and row[4] == "USA":
-            cur_region = "USA"
-        if cur_region and isinstance(row[3], str) and row[3].startswith("Q") and isinstance(row[5], str):
-            vix_phases[cur_region] = (row[3], row[5])
-    signals["VIX"] = vix_phases
-
-    return signals
-
-def determine_phase(signals, region="Europa"):
-    """Bestem den dominerende fase for en region ud fra alle signaler."""
-    phase_points = {"Early": 0, "Mid": 0, "Late": 0, "Recession": 0}
-    sources = []
-
-    for indicator, data in signals.items():
-        if indicator == "PMI":
-            entry = data.get(region)
-        else:
-            entry = data.get(region)
-
-        if entry:
-            kvartal, fase = entry
-            if fase in phase_points:
-                phase_points[fase] += 1
-                sources.append((indicator, kvartal, fase))
-
-    if not sources:
-        return "Mid", []
-
-    dominant = max(phase_points, key=phase_points.get)
-    return dominant, sources
-
-def parse_etf_liste(ws):
-    """Returnér dict: sektor (normalized) -> liste af ETF dicts."""
-    etfs = {}
-    for row in ws.iter_rows(values_only=True):
-        if row[0] == "Kategori":
+# ── Spørgeskema ───────────────────────────────────────────────────────────────
+def hent_spoergeskema(wb):
+    ws = wb["Spørgeskema"]
+    spoergsmaal = []
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        if not row[0]:
             continue
-        kategori, navn, isin, region, sektor = (row[i] if len(row) > i else None for i in range(5))
-        if navn and sektor:
-            key = sektor.strip().lower()
-            if key not in etfs:
-                etfs[key] = []
-            etfs[key].append({"navn": navn, "isin": isin, "region": region, "sektor": sektor})
-    return etfs
+        q_tekst = row[0]
+        svar_og_scores = []
+        for i in range(4):
+            sv = row[1 + i]
+            sc = row[5 + i]
+            if sv is not None and sc is not None:
+                svar_og_scores.append((i + 1, str(sv), int(sc)))
+        if q_tekst and svar_og_scores:
+            spoergsmaal.append((q_tekst, svar_og_scores))
+    return spoergsmaal
 
-def parse_aktieliste(ws):
-    """Returnér liste af aktie-dicts, filtreret for gyldige rækker."""
-    aktier = []
-    header_done = False
-    for row in ws.iter_rows(values_only=True):
-        if not header_done:
-            header_done = True
-            continue
-        navn = row[0] if row[0] else None
-        price = row[1]
-        mkt_cap = row[2]
-        sektor = row[5] if len(row) > 5 else None
-        ticker = row[7] if len(row) > 7 else None
-        pe = row[6] if len(row) > 6 else None
-        beta = row[9] if len(row) > 9 else None
-
-        if ticker and isinstance(ticker, str) and sektor and isinstance(mkt_cap, (int, float)):
-            aktier.append({
-                "ticker": ticker,
-                "sektor": sektor.strip() if sektor else "",
-                "price": price,
-                "market_cap": mkt_cap,
-                "pe": pe,
-                "beta": beta,
-            })
-    return aktier
-
-def parse_sporgeskema(ws):
-    """Returnér liste af (question, [(svar, score), ...])."""
-    questions = []
-    for row in ws.iter_rows(values_only=True):
-        q = row[0]
-        if not isinstance(q, str) or q.startswith("Spørg"):
-            continue
-        svar = [row[i] for i in range(1, 5) if row[i] is not None]
-        scores = [row[i] for i in range(5, 9) if row[i] is not None]
-        pairs = list(zip(svar, scores))
-        if pairs:
-            questions.append((q, pairs))
-    return questions
-
-def parse_profiler(ws):
-    """Returnér liste af profil-dicts."""
-    profiler = []
-    for row in ws.iter_rows(values_only=True):
-        if row[0] == "Profilnavn":
-            continue
-        navn, fra, til, beskrivelse, aktivfordeling, alternativer = (row[i] if len(row) > i else None for i in range(6))
-        if navn and isinstance(fra, (int, float)):
-            profiler.append({
-                "navn": navn, "fra": fra, "til": til,
-                "beskrivelse": beskrivelse,
-                "aktivfordeling": aktivfordeling,
-                "alternativer": alternativer,
-            })
-    return profiler
-
-# ── Sektornormalisering ───────────────────────────────────────────────────────
-
-SEKTOR_ALIAS = {
-    "infomation technology": "Information Technology",
-    "information technology": "Information Technology",
-    "financials": "Financials",
-    "real estate": "Real Estate",
-    "consumer discretionary": "Consumer Discretionary",
-    "industrials": "Industrials",
-    "materials": "Materials",
-    "consumer staples": "Consumer Staples",
-    "health care": "Health Care",
-    "healthcare": "Health Care",
-    "energy": "Energy",
-    "communications sercives": "Communications Services",
-    "communications services": "Communications Services",
-    "communication services": "Communications Services",
-    "utilities": "Utilities",
-}
-
-def norm_sektor(s):
-    if not s:
-        return s
-    return SEKTOR_ALIAS.get(s.strip().lower(), s.strip())
-
-# ── Beregn sektor-scores ──────────────────────────────────────────────────────
-
-def compute_sector_scores(dk_scores, eu_scores, usa_scores, bnp_sectors, phase):
-    """Kombiner makroscorer og BNP-fase til en samlet score per sektor."""
-    all_sektorer = set(dk_scores) | set(eu_scores) | set(usa_scores)
-    results = {}
-
-    for sektor in all_sektorer:
-        region_scores = []
-        for d in [dk_scores, eu_scores, usa_scores]:
-            if sektor in d:
-                region_scores.append(d[sektor][1])  # Q2 2026
-
-        if not region_scores:
-            continue
-
-        makro_avg = sum(region_scores) / len(region_scores)
-
-        # Find BNP-bonus (match på normaliseret sektornavn)
-        bnp_bonus = 0
-        for bnp_key, phases in bnp_sectors.items():
-            if norm_sektor(bnp_key) == sektor:
-                bnp_bonus = phases.get(phase, 0)
-                break
-
-        # Kombiner: 70% makroscore (skala 1-5) + 30% BNP-bonus (skala -2 til +2 -> 0-5)
-        bnp_normalized = (bnp_bonus + 2) / 4 * 5  # omregn til 0-5 skala
-        composite = makro_avg * 0.70 + bnp_normalized * 0.30
-
-        results[sektor] = {
-            "makro_avg": makro_avg,
-            "bnp_bonus": bnp_bonus,
-            "composite": composite,
-            "dk": dk_scores.get(sektor, (None, None))[1],
-            "eu": eu_scores.get(sektor, (None, None))[1],
-            "usa": usa_scores.get(sektor, (None, None))[1],
-        }
-
-    return dict(sorted(results.items(), key=lambda x: x[1]["composite"], reverse=True))
-
-# ── Risikoprofil ──────────────────────────────────────────────────────────────
-
-def run_questionnaire(sporgeskema, profiler):
-    header("Risikoprofil — 8 spørgsmål")
-    print(c(GRAY, "  Besvar hvert spørgsmål ved at taste et tal (1-4)."))
+def koer_spoergeskema(spoergsmaal):
+    sektion("RISIKOANALYSE – Spørgeskema")
+    print(f"{DIM}  Besvar venligst de følgende {len(spoergsmaal)} spørgsmål.{RESET}")
+    print(f"{DIM}  Angiv nummeret på dit svar (f.eks. 1, 2, 3 eller 4).{RESET}\n")
 
     total_score = 0
     max_score = 0
 
-    for q, pairs in sporgeskema:
-        score = ask(q, pairs)
-        total_score += score
-        max_score += max(p[1] for p in pairs)
+    for idx, (q, svar) in enumerate(spoergsmaal, 1):
+        print(f"  {BOLD}{WHITE}{idx}. {q}{RESET}")
+        for nr, sv_tekst, sc in svar:
+            print(f"     {CYAN}{nr}{RESET}. {sv_tekst}")
+        mulige = [str(nr) for nr, _, _ in svar]
+        maks_for_q = max(sc for _, _, sc in svar)
+        max_score += maks_for_q
 
-    ratio = total_score / max_score
+        while True:
+            try:
+                valg = input(f"     {YELLOW}Dit valg [{'/'.join(mulige)}]: {RESET}").strip()
+                if valg not in mulige:
+                    print(f"     {RED}Ugyldigt valg. Prøv igen.{RESET}")
+                    continue
+                valg_nr = int(valg)
+                for nr, _, sc in svar:
+                    if nr == valg_nr:
+                        total_score += sc
+                        break
+                break
+            except KeyboardInterrupt:
+                print(f"\n{RED}Afbrudt.{RESET}")
+                sys.exit(0)
+        print()
 
-    # Match profil
-    profil = profiler[-1]
+    return total_score, max_score
+
+# ── Risikoprofil ──────────────────────────────────────────────────────────────
+def hent_profiler(wb):
+    ws = wb["Profiler"]
+    profiler = []
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        if not row[0]:
+            continue
+        profiler.append({
+            "navn": row[0],
+            "fra": float(row[1]) if row[1] is not None else 0.0,
+            "til": float(row[2]) if row[2] is not None else 1.0,
+            "beskrivelse": row[3] or "",
+            "aktivfordeling": row[4] or "",
+            "alternativer": row[5] or "",
+        })
+    return profiler
+
+def bestem_profil(ratio, profiler):
     for p in profiler:
         if p["fra"] <= ratio <= p["til"]:
-            profil = p
-            break
+            return p
+    if ratio < profiler[0]["fra"]:
+        return profiler[0]
+    return profiler[-1]
 
-    return profil, ratio, total_score, max_score
+def parse_aktivfordeling(fordeling_str):
+    result = {}
+    if not fordeling_str:
+        return result
+    parts = [p.strip() for p in fordeling_str.split(",")]
+    for part in parts:
+        try:
+            idx = part.rfind(" ")
+            if idx == -1:
+                continue
+            navn = part[:idx].strip()
+            pct_str = part[idx+1:].strip().replace("%", "")
+            pct_val = float(pct_str) / 100.0
+            result[navn] = pct_val
+        except (ValueError, AttributeError):
+            pass
+    return result
 
-# ── Vis resultater ────────────────────────────────────────────────────────────
+# ── Makrofase-detektion ───────────────────────────────────────────────────────
+def pmi_til_fase(v):
+    if v is None:
+        return "Ukendt"
+    if v < 45:
+        return "Recession"
+    elif v < 50:
+        return "Early"
+    elif v < 55:
+        return "Mid"
+    else:
+        return "Late"
 
-def vis_makro_analyse(signals, fase_dk, fase_eu, fase_usa):
-    header("Makrofaseanalyse")
+def rente_til_fase(v):
+    if v is None:
+        return "Ukendt"
+    if v < 2.5:
+        return "Early"
+    elif v < 3.5:
+        return "Mid"
+    else:
+        return "Late"
 
-    for region, fase, sources in [
-        ("Danmark", fase_dk[0], fase_dk[1]),
-        ("Europa",  fase_eu[0], fase_eu[1]),
-        ("USA",     fase_usa[0], fase_usa[1]),
-    ]:
-        print(f"\n  {c(BOLD, region):20s} → Fase: {phase_color(fase)}")
-        for ind, kv, f in sources:
-            print(f"    {c(GRAY, f'  {ind} ({kv}):')} {phase_color(f)}")
+def cpi_til_fase(v):
+    if v is None:
+        return "Ukendt"
+    if v < 0.015:
+        return "Recession"
+    elif v < 0.02:
+        return "Early"
+    elif v < 0.025:
+        return "Mid"
+    else:
+        return "Late"
 
-def vis_sektor_ranking(scored, top_n=5):
-    header(f"Sektorer — Top {top_n} anbefalinger")
-    print(c(GRAY, "  Baseret på makroscorer (Q2 2026) + BNP-fasebonus\n"))
-    print(f"  {'Rang':<5} {'Sektor':<28} {'Score':>6}  {'Bar'}")
-    print(f"  {'-'*65}")
+def vix_til_fase(v):
+    if v is None:
+        return "Ukendt"
+    if v < 15:
+        return "Early"
+    elif v < 20:
+        return "Mid"
+    elif v < 25:
+        return "Late"
+    else:
+        return "Recession"
 
-    for i, (sektor, data) in enumerate(list(scored.items())[:top_n], 1):
-        rank_col = GREEN if i <= 3 else YELLOW
-        bnp_str = f"{'+' if data['bnp_bonus'] >= 0 else ''}{data['bnp_bonus']}"
-        print(f"  {c(rank_col, f'#{i}')}    {sektor:<28} {data['composite']:5.2f}  {bar(data['composite'])}"
-              f"  {c(GRAY, f'BNP:{bnp_str}')}")
+FASE_POINT = {"Early": 1, "Mid": 2, "Late": 3, "Recession": 0, "Ukendt": -1}
 
-    print(f"\n  {c(GRAY, 'Regionsscorer (Q2 2026):')}")
-    print(f"  {'Sektor':<28} {'DK':>6} {'EU':>6} {'USA':>6}")
-    print(f"  {'-'*50}")
-    for sektor, data in list(scored.items())[:top_n]:
-        dk  = f"{data['dk']:.2f}"  if data['dk']  else "  N/A"
-        eu  = f"{data['eu']:.2f}"  if data['eu']  else "  N/A"
-        usa = f"{data['usa']:.2f}" if data['usa'] else "  N/A"
-        print(f"  {sektor:<28} {dk:>6} {eu:>6} {usa:>6}")
+def hent_makrodata(wb):
+    data = {}
 
-def vis_etf_og_aktier(scored, etf_liste, aktier_dk, aktier_eu, aktier_usa, top_n=3):
-    header("ETF'er & Aktier pr. top-sektor")
+    # ── PMI ──
+    ws = wb["PMI"]
+    pmi_rows = list(ws.iter_rows(values_only=True))
+    usa_pmi_q, usa_pmi_v = None, None
+    eu_pmi_q, eu_pmi_v   = None, None
+    dk_pmi_q, dk_pmi_v   = None, None
+    mode = None
+    for row in pmi_rows:
+        if row[3] == "Kvartal" and isinstance(row[4], str):
+            if "USA" in row[4]:
+                mode = "USA"
+            elif "Euro" in row[4]:
+                mode = "EU"
+            elif "Dan" in row[4] or "mark" in row[4]:
+                mode = "DK"
+            continue
+        if row[3] and isinstance(row[3], str) and row[3].startswith("Q"):
+            if row[4] is not None and isinstance(row[4], (int, float)):
+                if mode == "USA":
+                    usa_pmi_q, usa_pmi_v = row[3], row[4]
+                elif mode == "EU":
+                    eu_pmi_q, eu_pmi_v = row[3], row[4]
+                elif mode == "DK":
+                    dk_pmi_q, dk_pmi_v = row[3], row[4]
+    data["pmi"] = {
+        "USA": (usa_pmi_q, usa_pmi_v),
+        "EU":  (eu_pmi_q,  eu_pmi_v),
+        "DK":  (dk_pmi_q,  dk_pmi_v),
+    }
 
-    for sektor, data in list(scored.items())[:top_n]:
-        subheader(f"{sektor}  (score: {data['composite']:.2f})")
+    # ── 10yr rate ──
+    ws = wb["10 yr rate"]
+    rate_rows = list(ws.iter_rows(values_only=True))
+    usa_r_q, usa_r_v = None, None
+    eu_r_q, eu_r_v   = None, None
+    dk_r_q, dk_r_v   = None, None
+    mode = None
+    for row in rate_rows:
+        if row[2] == "Kvartal" and isinstance(row[3], str):
+            if "USA" in row[3]:
+                mode = "USA"
+            elif "Euro" in row[3]:
+                mode = "EU"
+            elif "Dan" in row[3] or "mark" in row[3]:
+                mode = "DK"
+            continue
+        if row[2] and isinstance(row[2], str) and row[2].startswith("Q"):
+            if row[3] is not None and isinstance(row[3], (int, float)):
+                if mode == "USA":
+                    usa_r_q, usa_r_v = row[2], row[3]
+                elif mode == "EU":
+                    eu_r_q, eu_r_v = row[2], row[3]
+                elif mode == "DK":
+                    dk_r_q, dk_r_v = row[2], row[3]
+    data["rate10yr"] = {
+        "USA": (usa_r_q, usa_r_v),
+        "EU":  (eu_r_q,  eu_r_v),
+        "DK":  (dk_r_q,  dk_r_v),
+    }
 
-        # ETF'er
-        sektor_lower = sektor.lower()
-        etf_match = []
-        for key, etfs in etf_liste.items():
-            if key in sektor_lower or sektor_lower in key:
-                etf_match.extend(etfs)
-        # fallback — fuzzy
-        if not etf_match:
-            for key, etfs in etf_liste.items():
-                words = sektor_lower.split()
-                if any(w in key for w in words if len(w) > 4):
-                    etf_match.extend(etfs)
+    # ── CPI ──
+    ws = wb["CPI(Inflation)"]
+    cpi_rows = list(ws.iter_rows(values_only=True))
+    usa_c_q, usa_c_v = None, None
+    eu_c_q,  eu_c_v  = None, None
+    dk_c_q,  dk_c_v  = None, None
+    mode = None
+    for row in cpi_rows:
+        if row[1] == "Kvartal":
+            label = str(row[3]) if row[3] else ""
+            if "USA" in label or "\U0001f1fa\U0001f1f8" in label:
+                mode = "USA"
+            elif "Euro" in label or "\U0001f1ea\U0001f1fa" in label:
+                mode = "EU"
+            elif "Dan" in label or "\U0001f1e9\U0001f1f0" in label:
+                mode = "DK"
+            continue
+        if row[2] and isinstance(row[2], str) and row[2].startswith("Q"):
+            if row[3] is not None and isinstance(row[3], (int, float)):
+                if mode == "USA":
+                    usa_c_q, usa_c_v = row[2], row[3]
+                elif mode == "EU":
+                    eu_c_q,  eu_c_v  = row[2], row[3]
+                elif mode == "DK":
+                    dk_c_q,  dk_c_v  = row[2], row[3]
+    data["cpi"] = {
+        "USA": (usa_c_q, usa_c_v),
+        "EU":  (eu_c_q,  eu_c_v),
+        "DK":  (dk_c_q,  dk_c_v),
+    }
 
-        if etf_match:
-            etf_label = c(BOLD, "ETF'er:")
-            print(f"  {etf_label}")
-            for e in etf_match[:3]:
-                print(f"    • {e['navn']}  {c(GRAY, '(' + (e['isin'] or '') + ')')}")
+    # ── VIX ──
+    ws = wb["VIX"]
+    vix_rows = list(ws.iter_rows(values_only=True))
+    usa_vx_q, usa_vx_v = None, None
+    eu_vx_q,  eu_vx_v  = None, None
+    dk_vx_q,  dk_vx_v  = None, None
+    mode = None
+    for row in vix_rows:
+        if row[3] == "Kvartal":
+            if row[4] == "USA":
+                mode = "USA"
+            elif row[4] == "Europa":
+                mode = "EU"
+            elif row[4] == "Danmark":
+                mode = "DK"
+            continue
+        if row[3] and isinstance(row[3], str) and row[3].startswith("Q"):
+            if row[4] is not None and isinstance(row[4], (int, float)):
+                if mode == "USA":
+                    usa_vx_q, usa_vx_v = row[3], row[4]
+                elif mode == "EU":
+                    eu_vx_q,  eu_vx_v  = row[3], row[4]
+                elif mode == "DK":
+                    dk_vx_q,  dk_vx_v  = row[3], row[4]
+    data["vix"] = {
+        "USA": (usa_vx_q, usa_vx_v),
+        "EU":  (eu_vx_q,  eu_vx_v),
+        "DK":  (dk_vx_q,  dk_vx_v),
+    }
+
+    return data
+
+def bestem_makrofase(makrodata):
+    votes = []
+    detaljer = {}
+
+    for region in ["DK", "EU", "USA"]:
+        q, v = makrodata["pmi"][region]
+        if v is not None:
+            fase = pmi_til_fase(v)
+            votes.append(FASE_POINT[fase])
+            detaljer[f"PMI {region}"] = (q, v, fase)
+
+    for region in ["DK", "EU", "USA"]:
+        q, v = makrodata["rate10yr"][region]
+        if v is not None:
+            fase = rente_til_fase(v)
+            votes.append(FASE_POINT[fase])
+            detaljer[f"10yr rente {region}"] = (q, v, fase)
+
+    for region in ["DK", "EU", "USA"]:
+        q, v = makrodata["cpi"][region]
+        if v is not None:
+            fase = cpi_til_fase(v)
+            votes.append(FASE_POINT[fase])
+            detaljer[f"CPI {region}"] = (q, v * 100, fase)
+
+    for region in ["DK", "EU", "USA"]:
+        q, v = makrodata["vix"][region]
+        if v is not None:
+            fase = vix_til_fase(v)
+            votes.append(FASE_POINT[fase])
+            detaljer[f"VIX {region}"] = (q, v, fase)
+
+    gyldige = [x for x in votes if x >= 0]
+    if not gyldige:
+        return "Mid", detaljer
+
+    avg = sum(gyldige) / len(gyldige)
+    if avg < 0.5:
+        return "Recession", detaljer
+    elif avg < 1.5:
+        return "Early", detaljer
+    elif avg < 2.5:
+        return "Mid", detaljer
+    else:
+        return "Late", detaljer
+
+def fase_farve(fase):
+    return {"Early": GREEN, "Mid": BLUE, "Late": YELLOW, "Recession": RED}.get(fase, WHITE)
+
+def fase_dansk(fase):
+    return {
+        "Early": "Tidlig vækst",
+        "Mid": "Mellemfase",
+        "Late": "Sen vækst",
+        "Recession": "Recession",
+    }.get(fase, fase)
+
+# ── Sektor-scoring ────────────────────────────────────────────────────────────
+SEKTORER = [
+    "Financials",
+    "Real Estate",
+    "Consumer Discretionary",
+    "Information Technology",
+    "Industrials",
+    "Materials",
+    "Consumer Staples",
+    "Health Care",
+    "Energy",
+    "Communications Services",
+    "Utilities",
+]
+
+BNP_SEKTOR_MAP = {
+    "financials": "Financials",
+    "real estate": "Real Estate",
+    "consumer discretionary": "Consumer Discretionary",
+    "infomation technology": "Information Technology",
+    "information technology": "Information Technology",
+    "industrials": "Industrials",
+    "materials": "Materials",
+    "consumer staples": "Consumer Staples",
+    "health care": "Health Care",
+    "energy": "Energy",
+    "communications sercives": "Communications Services",
+    "communications services": "Communications Services",
+    "utilities": "Utilities",
+}
+
+RATING_MAP = {"++": 2, "+": 1, None: 0, "-": -1, "--": -2}
+
+def hent_bnp_sensitivitet(wb):
+    ws = wb["BNP"]
+    sensitivitet = {}
+    for row in ws.iter_rows(values_only=True):
+        if row[2] in ("Early", "Mid", "Late", "Recession"):
+            continue
+        if row[1] and isinstance(row[1], str):
+            key = row[1].strip().lower()
+            if key in BNP_SEKTOR_MAP:
+                sn = BNP_SEKTOR_MAP[key]
+                sensitivitet[sn] = {
+                    "Early":     RATING_MAP.get(row[2], 0),
+                    "Mid":       RATING_MAP.get(row[3], 0),
+                    "Late":      RATING_MAP.get(row[4], 0),
+                    "Recession": RATING_MAP.get(row[5], 0),
+                }
+    return sensitivitet
+
+def hent_makroscores(wb):
+    ws = wb["Makro analyse"]
+    scores = {s: {"DK": None, "EU": None, "USA": None} for s in SEKTORER}
+
+    sektor_map = {}
+    for s in SEKTORER:
+        sektor_map[s.lower()] = s
+    sektor_map["communications services"] = "Communications Services"
+    sektor_map["communications sercives"] = "Communications Services"
+
+    mode = None
+    for row in ws.iter_rows(values_only=True):
+        if row[1] in ("Danmark", "Europa", "USA") and row[2] == "PMI":
+            mode = row[1] if row[1] in ("Europa", "USA") else "DK"
+            if row[1] == "Danmark":
+                mode = "DK"
+            elif row[1] == "Europa":
+                mode = "EU"
+            continue
+        if mode and row[1] and isinstance(row[1], str):
+            key = row[1].strip().lower()
+            if key in sektor_map:
+                s = sektor_map[key]
+                makro_score = row[10]
+                if makro_score is not None and isinstance(makro_score, (int, float)):
+                    scores[s][mode] = float(makro_score)
+    return scores
+
+def beregn_composite_score(scores, bnp_sensitivitet, fase):
+    resultater = {}
+    for sektor in SEKTORER:
+        region_scores = [v for v in scores[sektor].values() if v is not None]
+        avg_makro = sum(region_scores) / len(region_scores) if region_scores else 3.0
+
+        bnp_bonus = 0
+        if sektor in bnp_sensitivitet:
+            bnp_bonus = bnp_sensitivitet[sektor].get(fase, 0)
+
+        # Skaler BNP bonus fra -2..+2 til 0..5
+        bnp_skaleret = (bnp_bonus + 2) * (5.0 / 4.0)
+        composite = avg_makro * 0.7 + bnp_skaleret * 0.3
+
+        resultater[sektor] = {
+            "makro_avg":   avg_makro,
+            "bnp_bonus":   bnp_bonus,
+            "bnp_skaleret": bnp_skaleret,
+            "composite":   composite,
+            "dk":          scores[sektor]["DK"],
+            "eu":          scores[sektor]["EU"],
+            "usa":         scores[sektor]["USA"],
+        }
+    return resultater
+
+# ── ETF og aktier ─────────────────────────────────────────────────────────────
+def hent_etf_liste(wb):
+    ws = wb["ETF - Liste"]
+    etf_liste = []
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        if not row[1]:
+            continue
+        etf_liste.append({
+            "kategori": row[0] or "",
+            "navn":     row[1] or "",
+            "isin":     row[2] or "",
+            "region":   row[3] or "",
+            "sektor":   row[4] or "",
+        })
+    return etf_liste
+
+def find_etf_for_sektor(etf_liste, sektor):
+    sektor_l = sektor.lower()
+    resultater = []
+    seen = set()
+    for etf in etf_liste:
+        etf_s = etf["sektor"].lower()
+        if etf_s == sektor_l or sektor_l in etf_s or etf_s in sektor_l:
+            if etf["navn"] not in seen:
+                seen.add(etf["navn"])
+                resultater.append(etf)
+    return resultater
+
+AKTIE_SEKTOR_NORM = {
+    "financials": "Financials",
+    "financial services": "Financials",
+    "health care": "Health Care",
+    "healthcare": "Health Care",
+    "information technology": "Information Technology",
+    "technology": "Information Technology",
+    "consumer discretionary": "Consumer Discretionary",
+    "consumer staples": "Consumer Staples",
+    "industrials": "Industrials",
+    "materials": "Materials",
+    "energy": "Energy",
+    "utilities": "Utilities",
+    "real estate": "Real Estate",
+    "communication services": "Communications Services",
+    "communications services": "Communications Services",
+}
+
+def hent_aktier(wb, region):
+    ark = {"DK": "Aktieliste DK", "EU": "Aktieliste EU", "USA": "Aktieliste USA"}[region]
+    ws = wb[ark]
+    aktier = []
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        market_cap = row[2]
+        sektor = row[5]
+        if not sektor or not isinstance(market_cap, (int, float)):
+            continue
+        ticker = row[7] if region == "DK" else row[6]
+        navn = row[0]
+        if navn == "#VALUE!" or not navn:
+            navn = ticker or "Ukendt"
+        aktier.append({
+            "navn":       str(navn),
+            "pris":       row[1],
+            "market_cap": float(market_cap),
+            "sektor":     str(sektor),
+            "ticker":     str(ticker) if ticker else "",
+            "region":     region,
+        })
+    return aktier
+
+def find_aktier_for_sektor(aktier, sektor, top_n=3):
+    sektor_l = sektor.lower()
+    matches = []
+    for a in aktier:
+        a_sektor_l = a["sektor"].lower()
+        normaliseret = AKTIE_SEKTOR_NORM.get(a_sektor_l, a_sektor_l)
+        if normaliseret.lower() == sektor_l or a_sektor_l == sektor_l:
+            matches.append(a)
+        elif sektor_l in a_sektor_l or a_sektor_l in sektor_l:
+            matches.append(a)
+    matches.sort(key=lambda x: x["market_cap"], reverse=True)
+    return matches[:top_n]
+
+# ── Vis-funktioner ────────────────────────────────────────────────────────────
+def vis_profil_resultat(profil, total_score, max_score, ratio):
+    sektion("RISIKOPROFIL")
+    titel = f"Din risikoprofil: {profil['navn']}"
+    boks_top(titel, 70)
+
+    score_farve = GREEN if ratio > 0.6 else (YELLOW if ratio > 0.45 else BLUE)
+    score_bar = ascii_bar(ratio, 1.0, 28, score_farve)
+    boks_linje(f"Score: {total_score}/{max_score}  ({ratio*100:.1f}%)  {score_bar}", 70)
+    boks_linje("", 70)
+
+    besk = profil["beskrivelse"] or ""
+    # Wrap ved 62 tegn
+    ord_liste = besk.split()
+    linje_buf = "Beskrivelse: "
+    for ord in ord_liste:
+        if len(linje_buf) + len(ord) + 1 > 62:
+            boks_linje(linje_buf, 70)
+            linje_buf = "             " + ord
         else:
-            print(f"  {c(GRAY, 'Ingen ETF fundet for denne sektor.')}")
+            linje_buf += (" " if linje_buf != "Beskrivelse: " else "") + ord
+    if linje_buf.strip():
+        boks_linje(linje_buf, 70)
 
-        # Aktier
-        for region_label, aktier in [("Danmark", aktier_dk), ("Europa", aktier_eu), ("USA", aktier_usa)]:
-            matches = [a for a in aktier if norm_sektor(a["sektor"]) == sektor]
-            matches.sort(key=lambda a: a["market_cap"] or 0, reverse=True)
+    boks_bund(70)
+
+def vis_makrofase(fase, detaljer):
+    sektion("MAKROØKONOMISK FASE")
+    farve = fase_farve(fase)
+    print(f"\n  Samlet vurderet fase: {BOLD}{farve}{fase_dansk(fase)} ({fase}){RESET}\n")
+    print(f"  {DIM}{'Indikator':<26} {'Kvartal':<10} {'Værdi':>10}  {'Fase':<12}{RESET}")
+    print(f"  {'─'*62}")
+
+    for navn in sorted(detaljer.keys()):
+        q, v, f = detaljer[navn]
+        f_farve = fase_farve(f)
+        q_str = q or "N/A"
+        if isinstance(v, float):
+            v_str = f"{v:.2f}" if v >= 1 else f"{v:.3f}"
+        else:
+            v_str = str(v)
+        print(f"  {navn:<26} {q_str:<10} {v_str:>10}  {f_farve}{f:<12}{RESET}")
+
+    print(f"  {'─'*62}")
+    fase_forklaring = {
+        "Early":     "Tidlig vækst: PMI stiger, lav inflation, lave obligationsrenter.",
+        "Mid":       "Mellemfase: Solid vækst, PMI over 50, inflation moderat.",
+        "Late":      "Sen vækst: Høj rente og inflation, PMI begynder at falde.",
+        "Recession": "Recession: PMI under 45, negativ vækst, høj markedsvolatilitet.",
+    }
+    print(f"\n  {DIM}{fase_forklaring.get(fase, '')}{RESET}")
+
+def vis_sektor_anbefalinger(composite_scores, top_n=5):
+    sektion("SEKTORSCORE OG ANBEFALINGER")
+    sorteret = sorted(
+        composite_scores.items(),
+        key=lambda x: x[1]["composite"],
+        reverse=True
+    )
+
+    print(f"  {'Rang':<5} {'Sektor':<30} {'Score':>6}  {'Bar (maks 5)':<22} {'DK':>5} {'EU':>5} {'USA':>5}")
+    print(f"  {'─'*80}")
+
+    for rang, (sektor, d) in enumerate(sorteret, 1):
+        score = d["composite"]
+        if rang <= top_n:
+            rang_farve = GREEN
+            prefix = f"{BOLD}{GREEN}★ {RESET}"
+        elif rang <= len(SEKTORER) - 3:
+            rang_farve = WHITE
+            prefix = "  "
+        else:
+            rang_farve = RED
+            prefix = "  "
+
+        bar = ascii_bar(score, 5.0, 20, rang_farve)
+        dk_s  = f"{d['dk']:.2f}"  if d["dk"]  is not None else "  N/A"
+        eu_s  = f"{d['eu']:.2f}"  if d["eu"]  is not None else "  N/A"
+        usa_s = f"{d['usa']:.2f}" if d["usa"] is not None else "  N/A"
+
+        print(f"  {prefix}{rang_farve}{rang:<3}{RESET}  {sektor:<30} "
+              f"{rang_farve}{score:>5.2f}{RESET}  {bar} {dk_s:>5} {eu_s:>5} {usa_s:>5}")
+
+    print()
+    return [s for s, _ in sorteret[:top_n]]
+
+def vis_etf_og_aktier(top_sektorer, etf_liste, alle_aktier, top_per_region=2):
+    sektion("ETF OG AKTIEFORSLAG")
+
+    region_navne = {"DK": "Danmark", "EU": "Europa", "USA": "USA"}
+
+    for rang, sektor in enumerate(top_sektorer, 1):
+        print(f"\n  {BOLD}{CYAN}#{rang} {sektor}{RESET}")
+        print(f"  {'─'*60}")
+
+        etfs = find_etf_for_sektor(etf_liste, sektor)
+        if etfs:
+            print(f"  {BOLD}{GREEN}ETF'er:{RESET}")
+            for etf in etfs[:3]:
+                print(f"    • {etf['navn']}")
+                print(f"      {DIM}ISIN: {etf['isin']}  |  Region: {etf['region']}{RESET}")
+        else:
+            print(f"  {DIM}Ingen specifikke ETF'er fundet for denne sektor.{RESET}")
+
+        print(f"\n  {BOLD}{CYAN}Top aktier:{RESET}")
+        fundet = False
+        for region in ["DK", "EU", "USA"]:
+            matches = find_aktier_for_sektor(alle_aktier[region], sektor, top_per_region)
             if matches:
-                print(f"  {c(BOLD, region_label + ':')} ", end="")
-                print(", ".join(f"{a['ticker']}" for a in matches[:3]))
+                fundet = True
+                print(f"    {YELLOW}{region_navne[region]}:{RESET}")
+                for a in matches:
+                    mc = a["market_cap"]
+                    if mc >= 1e9:
+                        mc_str = f"{mc/1e9:.1f} mia."
+                    else:
+                        mc_str = f"{mc/1e6:.0f} mio."
+                    print(f"      • {a['ticker']:<10} {a['navn'][:22]:<24} MarkedsCap: {mc_str}")
+        if not fundet:
+            print(f"    {DIM}Ingen aktier fundet for denne sektor.{RESET}")
 
-def vis_profil_og_fordeling(profil, beloeb):
-    header("Din Risikoprofil & Porteføljefordeling")
-    print(f"\n  Profil:       {c(BOLD + GREEN, profil['navn'])}")
-    print(f"  Beskrivelse:  {profil['beskrivelse']}")
-    print(f"  Alternativer: {c(GRAY, profil['alternativer'] or 'N/A')}")
-    print(f"\n  {c(BOLD, 'Anbefalet aktivfordeling:')}")
+def vis_aktivallokering(profil, beloeb):
+    fordeling = parse_aktivfordeling(profil["aktivfordeling"])
+    ALLOK_FARVER = {
+        "Obligationer": BLUE,
+        "ETF":          GREEN,
+        "Aktier":       CYAN,
+        "Alternative":  MAGENTA,
+    }
 
-    fordeling_str = profil["aktivfordeling"] or ""
-    print(f"  {fordeling_str}")
+    print(f"\n  {BOLD}Aktivfordeling for profil: {profil['navn']}{RESET}")
+    print(f"  {'─'*55}")
 
-    if beloeb > 0:
-        print(f"\n  {c(BOLD, f'Fordeling af {beloeb:,.0f} DKK:')}")
-        # Parse "Obligationer 50%, ETF 25%, Aktier 15%, Alternative 10%"
-        import re
-        parts = re.findall(r'([A-Za-zæøåÆØÅ ]+?)\s+(\d+)%', fordeling_str)
-        for navn, pct in parts:
-            amount = beloeb * int(pct) / 100
-            bar_w = int(int(pct) / 5)
-            col = GREEN if int(pct) >= 40 else (YELLOW if int(pct) >= 20 else BLUE)
-            print(f"    {navn.strip():<20} {pct:>3}%  {c(col, '█' * bar_w):<30} {amount:>12,.0f} DKK")
+    total = 0.0
+    for aktivklasse, pct in fordeling.items():
+        dkk = beloeb * pct
+        total += dkk
+        farve = ALLOK_FARVER.get(aktivklasse, WHITE)
+        bar_w = int(pct * 30)
+        bar = "█" * bar_w + "░" * (30 - bar_w)
+        print(f"  {farve}{aktivklasse:<14}{RESET} {farve}{bar}{RESET} "
+              f"{pct*100:5.0f}%   {YELLOW}{dkk:>12,.0f} DKK{RESET}")
 
-# ── Hovedprogram ──────────────────────────────────────────────────────────────
+    print(f"  {'─'*55}")
+    print(f"  {'Total':<14} {'':30} {' ':5}   {YELLOW}{total:>12,.0f} DKK{RESET}")
 
+    if profil.get("alternativer"):
+        print(f"\n  {DIM}Alternative muligheder: {profil['alternativer']}{RESET}")
+
+def vis_afslutning(profil, fase, top_sektorer, beloeb):
+    sektion("SAMMENFATNING")
+    print(f"  {BOLD}Risikoprofil:{RESET}        {GREEN}{profil['navn']}{RESET}")
+    farve = fase_farve(fase)
+    print(f"  {BOLD}Makrofase:{RESET}           {farve}{fase_dansk(fase)} ({fase}){RESET}")
+    print(f"  {BOLD}Investeringsbeløb:{RESET}   {YELLOW}{beloeb:,.0f} DKK{RESET}")
+    print()
+    print(f"  {BOLD}Top anbefalede sektorer:{RESET}")
+    for i, s in enumerate(top_sektorer, 1):
+        print(f"    {GREEN}{i}.{RESET} {s}")
+    print()
+    print(f"  {DIM}Bemærk: Denne analyse er baseret på historiske og fremskrevne data.{RESET}")
+    print(f"  {DIM}Det er ikke finansiel rådgivning. Søg professionel vejledning ved behov.{RESET}")
+    print()
+
+def vis_velkomst():
+    print()
+    w = 70
+    print(f"{BOLD}{CYAN}╔{'═'*(w-2)}╗{RESET}")
+    l1 = "MAKROINVESTOR – Intelligent Investeringsanalyse"
+    l2 = "Baseret på makroøkonomiske data og sektoranalyse"
+    p1 = " " * ((w - 2 - len(l1)) // 2)
+    p2 = " " * ((w - 2 - len(l2)) // 2)
+    print(f"{BOLD}{CYAN}║{WHITE}{p1}{l1}{p1}{' ' if (w-2-len(l1))%2 else ''}{CYAN}║{RESET}")
+    print(f"{BOLD}{CYAN}║{DIM}{p2}{l2}{p2}{' ' if (w-2-len(l2))%2 else ''}{CYAN}║{RESET}")
+    print(f"{BOLD}{CYAN}╚{'═'*(w-2)}╝{RESET}")
+    print()
+    print(f"  {DIM}Programmet analyserer aktuelle makrotendenser og hjælper dig med at{RESET}")
+    print(f"  {DIM}identificere de bedste investeringssektorer baseret på din risikoprofil.{RESET}")
+    print()
+
+# ── Hoved-program ─────────────────────────────────────────────────────────────
 def main():
-    parser = argparse.ArgumentParser(description="Makroinvestor — sektoranalyse baseret på makrotendenser")
-    parser.add_argument("--excel", default=DEFAULT_EXCEL, help="Sti til Excel-filen")
-    parser.add_argument("--skip-questionnaire", action="store_true", help="Spring spørgeskema over (bruger Balanceret)")
+    parser = argparse.ArgumentParser(
+        description="Makroinvestor – Dansk investeringsanalyseværktøj",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Eksempel:
+  python3 makroinvestor.py
+  python3 makroinvestor.py --excel /sti/til/fil.xlsx
+        """
+    )
+    parser.add_argument(
+        "--excel",
+        default=DEFAULT_EXCEL,
+        help=f"Sti til Excel-fil (standard: {DEFAULT_EXCEL})"
+    )
     args = parser.parse_args()
 
-    print(c(BOLD + CYAN, "\n╔══════════════════════════════════════════════════════════════╗"))
-    print(c(BOLD + CYAN,   "║          M A K R O I N V E S T O R  2026                    ║"))
-    print(c(BOLD + CYAN,   "╚══════════════════════════════════════════════════════════════╝"))
-    print(c(GRAY, "  Analyserer makrotendenser og finder de bedste sektorer.\n"))
+    vis_velkomst()
 
-    # Indlæs data
+    print(f"  {DIM}Indlæser Excel-data ...{RESET}")
     wb = load_workbook(args.excel)
+    print(f"  {GREEN}✓ Excel-data indlæst.{RESET}\n")
 
-    dk_scores  = parse_rangliste(wb["Ranglisten DK"])
-    eu_scores  = parse_rangliste(wb["Ranglisten EU"])
-    usa_scores = parse_rangliste(wb["Ranglisten USA"])
+    # Trin 1: Spørgeskema
+    spoergsmaal = hent_spoergeskema(wb)
+    total_score, max_score = koer_spoergeskema(spoergsmaal)
+    ratio = total_score / max_score if max_score > 0 else 0.5
 
-    bnp_sectors, _ = parse_bnp_phases(wb["BNP"])
-    etf_liste       = parse_etf_liste(wb["ETF - Liste"])
-    aktier_dk       = parse_aktieliste(wb["Aktieliste DK"])
-    aktier_eu       = parse_aktieliste(wb["Aktieliste EU"])
-    aktier_usa      = parse_aktieliste(wb["Aktieliste USA"])
-    sporgeskema     = parse_sporgeskema(wb["Spørgeskema"])
-    profiler        = parse_profiler(wb["Profiler"])
+    # Trin 2: Risikoprofil
+    profiler = hent_profiler(wb)
+    profil = bestem_profil(ratio, profiler)
+    vis_profil_resultat(profil, total_score, max_score, ratio)
 
-    # Makrofaseanalyse
-    signals = parse_macro_indicators(wb)
-    fase_dk  = determine_phase(signals, "Danmark")
-    fase_eu  = determine_phase(signals, "Europa")
-    fase_usa = determine_phase(signals, "USA")
+    # Trin 3: Makrofase
+    makrodata = hent_makrodata(wb)
+    fase, fase_detaljer = bestem_makrofase(makrodata)
+    vis_makrofase(fase, fase_detaljer)
 
-    # Dominerende global fase (simpelt flertal)
-    from collections import Counter
-    alle_faser = [fase_dk[0], fase_eu[0], fase_usa[0]]
-    global_fase = Counter(alle_faser).most_common(1)[0][0]
+    # Trin 4: Sektor-scoring
+    makro_scores    = hent_makroscores(wb)
+    bnp_sensitivitet = hent_bnp_sensitivitet(wb)
+    composite_scores = beregn_composite_score(makro_scores, bnp_sensitivitet, fase)
+    top_sektorer    = vis_sektor_anbefalinger(composite_scores, top_n=5)
 
-    vis_makro_analyse(signals, fase_dk, fase_eu, fase_usa)
-    print(f"\n  {c(BOLD, 'Dominerende global fase:')} {phase_color(global_fase)}")
+    # Trin 5: ETF og aktier
+    etf_liste  = hent_etf_liste(wb)
+    alle_aktier = {
+        "DK":  hent_aktier(wb, "DK"),
+        "EU":  hent_aktier(wb, "EU"),
+        "USA": hent_aktier(wb, "USA"),
+    }
+    vis_etf_og_aktier(top_sektorer, etf_liste, alle_aktier, top_per_region=2)
 
-    # Sektor-scoring
-    scored = compute_sector_scores(dk_scores, eu_scores, usa_scores, bnp_sectors, global_fase)
-
-    vis_sektor_ranking(scored, top_n=5)
-    vis_etf_og_aktier(scored, etf_liste, aktier_dk, aktier_eu, aktier_usa, top_n=3)
-
-    # Risikoprofil
-    if args.skip_questionnaire:
-        profil = next((p for p in profiler if p["navn"] == "Balanceret"), profiler[1])
-        print(c(GRAY, "\n  (Spørgeskema sprunget over — bruger Balanceret)"))
-    else:
-        profil, ratio, total, max_s = run_questionnaire(sporgeskema, profiler)
-        print(f"\n  {c(GRAY, f'Score: {total}/{max_s} ({ratio:.0%})')}")
-
-    # Investeringsbeløb
-    header("Investeringsbeløb")
+    # Trin 6: Investeringsbeløb og aktivallokering
+    sektion("INVESTERINGSBELØB OG AKTIVALLOKERING")
+    print()
     while True:
         try:
-            beloeb_str = input(c(CYAN, "  Hvor meget ønsker du at investere (DKK)? ")).strip().replace(".", "").replace(",", "")
-            beloeb = float(beloeb_str)
+            svar = input(f"  {YELLOW}Hvor meget ønsker du at investere (DKK)? {RESET}").strip()
+            svar_renset = svar.replace(".", "").replace(",", "").replace(" ", "")
+            beloeb = float(svar_renset)
+            if beloeb <= 0:
+                print(f"  {RED}Beløbet skal være positivt.{RESET}")
+                continue
             break
-        except (ValueError, EOFError):
-            print(c(RED, "  Indtast venligst et gyldigt beløb."))
+        except ValueError:
+            print(f"  {RED}Ugyldigt beløb. Angiv et tal (f.eks. 100000).{RESET}")
+        except KeyboardInterrupt:
+            print(f"\n{RED}Afbrudt.{RESET}")
+            sys.exit(0)
 
-    vis_profil_og_fordeling(profil, beloeb)
+    vis_aktivallokering(profil, beloeb)
 
-    # Afslutning
-    header("Opsummering")
-    print(f"  Global makrofase:   {phase_color(global_fase)}")
-    print(f"  Risikoprofil:       {c(BOLD, profil['navn'])}")
-    print(f"  Bedste sektor:      {c(GREEN + BOLD, list(scored.keys())[0])}")
-    print(f"  #2 sektor:          {c(GREEN, list(scored.keys())[1])}")
-    print(f"  #3 sektor:          {c(YELLOW, list(scored.keys())[2])}")
+    # Trin 7: Sammenfatning
+    vis_afslutning(profil, fase, top_sektorer, beloeb)
+
+    print(f"{BOLD}{CYAN}{'═'*70}{RESET}")
+    print(f"{BOLD}{GREEN}  Tak for at bruge Makroinvestor! God investering!{RESET}")
+    print(f"{BOLD}{CYAN}{'═'*70}{RESET}")
     print()
-    print(c(GRAY, "  ⚠  Dette er ikke finansiel rådgivning. Invester altid med omhu."))
-    print()
+
 
 if __name__ == "__main__":
     main()
