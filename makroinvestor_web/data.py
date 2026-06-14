@@ -1078,7 +1078,19 @@ def hent_alle_data():
     profiler       = hent_profiler(wb)
     afstemning     = hent_afstemning(wb)
 
-    seneste_makro  = byg_seneste_makro(fremtid)
+    # Byg seneste_makro: Excel → live FRED/ECB data (hvis tilgængeligt) → DEFAULT_MAKRO
+    seneste_makro_excel = byg_seneste_makro(fremtid)
+    try:
+        from live_data import hent_live_makro, flet_med_default
+        live = hent_live_makro()
+        if live:
+            seneste_makro = flet_med_default(live, seneste_makro_excel)
+        else:
+            seneste_makro = seneste_makro_excel
+    except Exception as _e:
+        import logging; logging.getLogger(__name__).warning(f"live_data fejl: {_e}")
+        seneste_makro = seneste_makro_excel
+
     makro_fase     = beregn_makrofase(fremtid)
 
     # Brug samme algoritme som "Mine forventninger" så tallene stemmer overens

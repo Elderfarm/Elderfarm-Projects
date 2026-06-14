@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template, jsonify, request
 from data import (hent_alle_data, match_profil, parse_fordeling,
                   simuler_sektorer, sektor_ind_scores, INDIKATORER, SEKTOR_RÆKKEFØLGE,
@@ -131,6 +132,30 @@ def api_sektor(navn):
     ma = {region: d["makro_analyse"].get(region,{}).get(s["sektor"],{})
           for region in ["Europa","USA"]}
     return jsonify({**s,"etfs":etfs,"aktier":aktier,"historisk":hist,"makro_analyse":ma})
+
+
+@app.route("/api/live_status")
+def api_live_status():
+    """Status på live datahentning + hvilke felter der er live vs. estimat."""
+    d = get_data()
+    status = {"fred_key": bool(os.environ.get("FRED_API_KEY")), "regioner": {}}
+    for region, inds in d["seneste_makro"].items():
+        status["regioner"][region] = {
+            ind: v.get("kilde","?") for ind, v in inds.items()
+        }
+    return jsonify(status)
+
+
+@app.route("/api/refresh", methods=["POST"])
+def api_refresh():
+    """Ryd cache og hent friske data (live + Excel)."""
+    _cache.clear()
+    d = get_data()
+    live_count = sum(
+        1 for rg in d["seneste_makro"].values()
+        for v in rg.values() if isinstance(v, dict) and v.get("kilde") == "live"
+    )
+    return jsonify({"status": "ok", "live_felter": live_count, "opdateret": d["opdateret"]})
 
 
 if __name__ == "__main__":

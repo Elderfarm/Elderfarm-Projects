@@ -279,7 +279,9 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
         <div style="font-size:.72rem;color:#475569">
           Præ-udfyldt med seneste data (<span id="tmpl-kvartal" style="color:#60a5fa">—</span>).
           <span style="font-size:.6rem;background:rgba(16,185,129,.12);color:#34D399;border:1px solid rgba(16,185,129,.25);border-radius:3px;padding:0 4px">EXCEL</span> = fra din Excel-fil &nbsp;
-          <span style="font-size:.6rem;background:rgba(148,163,184,.08);color:#64748b;border:1px solid rgba(148,163,184,.15);border-radius:3px;padding:0 4px">EST.</span> = estimeret
+          <span style="font-size:.6rem;background:rgba(16,185,129,.12);color:#10B981;border:1px solid rgba(16,185,129,.3);border-radius:3px;padding:0 4px">● LIVE</span> = FRED/ECB API &nbsp;
+          <span style="font-size:.6rem;background:rgba(99,102,241,.1);color:#818CF8;border:1px solid rgba(99,102,241,.25);border-radius:3px;padding:0 4px">EXCEL</span> = Excel-fil &nbsp;
+          <span style="font-size:.6rem;background:rgba(148,163,184,.08);color:#64748b;border:1px solid rgba(148,163,184,.15);border-radius:3px;padding:0 4px">EST.</span> = estimat
         </div>
       </div>
 
@@ -500,9 +502,26 @@ window.addEventListener("DOMContentLoaded",async ()=>{
   document.getElementById("loading").style.display="none";
   showContent("dashboard");
   renderDashboard();
-  document.getElementById("hdr-status").innerHTML=
-    `<span style="color:#10B981">●</span> <span>${D.opdateret}</span>`;
   document.getElementById("ftr-dato").textContent = D.opdateret;
+  // Live data status
+  fetch("/api/live_status").then(r=>r.json()).then(s=>{
+    const liveFelter = Object.values(s.regioner).flatMap(r=>Object.values(r)).filter(k=>k==="live").length;
+    const hasFred = s.fred_key;
+    document.getElementById("hdr-status").innerHTML =
+      `<span style="color:${hasFred&&liveFelter>0?'#10B981':'#F59E0B'}">●</span>
+       <span>${D.opdateret}</span>
+       ${liveFelter>0?`<span style="font-size:.65rem;color:#10B981;background:rgba(16,185,129,.1);padding:1px 6px;border-radius:4px;border:1px solid rgba(16,185,129,.2)">LIVE ${liveFelter} felter</span>`
+         :`<span style="font-size:.65rem;color:#F59E0B;background:rgba(245,158,11,.1);padding:1px 6px;border-radius:4px;border:1px solid rgba(245,158,11,.2)">${hasFred?'FRED FEJL':'INGEN API-NØGLE'}</span>`}
+       <button onclick="refreshData()" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.2);color:#818CF8;border-radius:6px;padding:2px 8px;font-size:.65rem;cursor:pointer">↻ Opdater</button>`;
+  });
+
+async function refreshData(){
+  document.getElementById("hdr-status").innerHTML='<span class="spinner" style="width:12px;height:12px;display:inline-block"></span> Henter data...';
+  await fetch("/api/refresh",{method:"POST"});
+  const [dash] = await Promise.all([fetch("/api/dashboard").then(r=>r.json())]);
+  D = dash; renderDashboard();
+  location.reload();
+}
 });
 
 function showContent(tab){
@@ -848,8 +867,10 @@ function buildTemplateInputs(){
     const vaegt = (tmpl.indikator_vaegter||{})[ind] || 1;
     const rv_meta = simInputs?.[region]?.[ind];
     const kilde = rv_meta?.kilde;
-    const kildeLbl = kilde==="excel"
-      ? `<span style="font-size:.55rem;background:rgba(16,185,129,.12);color:#34D399;border:1px solid rgba(16,185,129,.25);border-radius:3px;padding:0 4px;margin-left:4px">EXCEL</span>`
+    const kildeLbl = kilde==="live"
+      ? `<span style="font-size:.55rem;background:rgba(16,185,129,.12);color:#10B981;border:1px solid rgba(16,185,129,.3);border-radius:3px;padding:0 4px;margin-left:4px">● LIVE</span>`
+      : kilde==="excel"
+      ? `<span style="font-size:.55rem;background:rgba(99,102,241,.1);color:#818CF8;border:1px solid rgba(99,102,241,.25);border-radius:3px;padding:0 4px;margin-left:4px">EXCEL</span>`
       : `<span style="font-size:.55rem;background:rgba(148,163,184,.08);color:#64748b;border:1px solid rgba(148,163,184,.15);border-radius:3px;padding:0 4px;margin-left:4px">EST.</span>`;
     return `
       <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">
