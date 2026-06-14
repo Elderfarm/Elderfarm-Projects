@@ -1,712 +1,869 @@
 <!DOCTYPE html>
 <html lang="da">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Makroinvestor — Sektoranalyse 2026</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <style>
-    :root {
-      --accent: #3b82f6;
-      --accent2: #8b5cf6;
-    }
-    body { background: #0f1117; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; }
-    .glass { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(12px); }
-    .glow-blue  { box-shadow: 0 0 20px rgba(59,130,246,0.15); }
-    .glow-green { box-shadow: 0 0 20px rgba(34,197,94,0.15); }
-    .score-bar-bg { background: rgba(255,255,255,0.06); border-radius: 999px; height: 8px; }
-    .score-bar    { border-radius: 999px; height: 8px; transition: width 0.6s ease; }
-    .tab-btn { transition: all 0.2s; }
-    .tab-btn.active { background: #3b82f6; color: white; }
-    .tab-btn:not(.active) { color: #94a3b8; }
-    .tab-btn:not(.active):hover { color: #e2e8f0; background: rgba(255,255,255,0.06); }
-    .fase-chip { border-radius: 999px; padding: 2px 12px; font-size: 0.75rem; font-weight: 600; }
-    .fase-Early     { background: rgba(34,197,94,0.15);  color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
-    .fase-Mid       { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
-    .fase-Late      { background: rgba(234,179,8,0.15);  color: #facc15; border: 1px solid rgba(234,179,8,0.3); }
-    .fase-Recession { background: rgba(239,68,68,0.15);  color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
-    .rank-badge { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; }
-    .rank-1 { background: linear-gradient(135deg,#f59e0b,#d97706); color: #000; }
-    .rank-2 { background: linear-gradient(135deg,#94a3b8,#64748b); color: #000; }
-    .rank-3 { background: linear-gradient(135deg,#b45309,#92400e); color: #fff; }
-    .rank-n { background: rgba(255,255,255,0.1); color: #94a3b8; }
-    .sektor-card { cursor: pointer; transition: all 0.2s; border: 1px solid rgba(255,255,255,0.06); }
-    .sektor-card:hover { border-color: rgba(59,130,246,0.4); background: rgba(59,130,246,0.05); }
-    .sektor-card.selected { border-color: #3b82f6; background: rgba(59,130,246,0.08); }
-    .answer-btn { transition: all 0.15s; border: 1px solid rgba(255,255,255,0.1); }
-    .answer-btn:hover   { border-color: #3b82f6; background: rgba(59,130,246,0.1); }
-    .answer-btn.selected{ border-color: #3b82f6; background: rgba(59,130,246,0.2); color: #60a5fa; }
-    .progress-ring { transform: rotate(-90deg); }
-    .alloc-bar { border-radius: 4px; height: 32px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); min-width: 4px; }
-    .tooltip-box { position: absolute; background: #1e2433; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 8px 12px; font-size: 0.75rem; pointer-events: none; z-index: 50; white-space: nowrap; }
-    .spinner { border: 3px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; width: 32px; height: 32px; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .slide-in { animation: slideIn 0.4s ease; }
-    @keyframes slideIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-    .change-pos { color: #4ade80; }
-    .change-neg { color: #f87171; }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Makroinvestor 2026</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0b0e15;--surface:#13171f;--border:rgba(255,255,255,0.07);--text:#e2e8f0;--muted:#64748b}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;min-height:100vh}
+.glass{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.tab-btn{padding:6px 16px;border-radius:8px;font-size:.85rem;font-weight:500;transition:all .2s;color:var(--muted);white-space:nowrap}
+.tab-btn.active{background:#3b82f6;color:#fff}
+.tab-btn:hover:not(.active){background:rgba(255,255,255,0.06);color:#e2e8f0}
+.fase-chip{border-radius:999px;padding:2px 10px;font-size:.72rem;font-weight:700;display:inline-flex;align-items:center}
+.fase-Early{background:rgba(74,222,128,.15);color:#4ade80;border:1px solid rgba(74,222,128,.3)}
+.fase-Mid{background:rgba(96,165,250,.15);color:#60a5fa;border:1px solid rgba(96,165,250,.3)}
+.fase-Late{background:rgba(250,204,21,.15);color:#facc15;border:1px solid rgba(250,204,21,.3)}
+.fase-Recession{background:rgba(248,113,113,.15);color:#f87171;border:1px solid rgba(248,113,113,.3)}
+.score-bar{height:6px;border-radius:3px;transition:width .5s ease}
+.score-bg{background:rgba(255,255,255,.06);border-radius:3px;height:6px}
+/* Heatmap */
+.hm-cell{width:52px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;cursor:pointer;transition:transform .15s;border:1px solid transparent}
+.hm-cell:hover{transform:scale(1.1);z-index:10;position:relative}
+.hm-h{background:rgba(74,222,128,.25);color:#4ade80;border-color:rgba(74,222,128,.3)}
+.hm-mh{background:rgba(132,204,22,.2);color:#a3e635;border-color:rgba(132,204,22,.3)}
+.hm-m{background:rgba(250,204,21,.2);color:#facc15;border-color:rgba(250,204,21,.3)}
+.hm-ml{background:rgba(249,115,22,.2);color:#fb923c;border-color:rgba(249,115,22,.3)}
+.hm-l{background:rgba(248,113,113,.2);color:#f87171;border-color:rgba(248,113,113,.3)}
+.hm-na{background:rgba(255,255,255,.03);color:var(--muted);border-color:rgba(255,255,255,.05)}
+.kv-hist{color:var(--muted)}
+.kv-proj{color:#60a5fa}
+/* Template sliders */
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:rgba(255,255,255,.1);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#3b82f6;cursor:pointer}
+input[type=number]{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:4px 8px;color:#fff;width:80px;font-size:.85rem;text-align:right}
+input[type=number]:focus{outline:none;border-color:#3b82f6}
+/* Answer btns */
+.ans-btn{border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 14px;text-align:left;font-size:.85rem;transition:all .15s;cursor:pointer;background:transparent;color:var(--text);width:100%}
+.ans-btn:hover{border-color:#3b82f6;background:rgba(59,130,246,.08)}
+.ans-btn.sel{border-color:#3b82f6;background:rgba(59,130,246,.18);color:#93c5fd}
+/* Rank badges */
+.rb{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0}
+.rb-1{background:linear-gradient(135deg,#f59e0b,#d97706);color:#000}
+.rb-2{background:linear-gradient(135deg,#94a3b8,#64748b);color:#000}
+.rb-3{background:linear-gradient(135deg,#b45309,#92400e);color:#fff}
+.rb-n{background:rgba(255,255,255,.08);color:var(--muted)}
+.spinner{border:3px solid rgba(255,255,255,.08);border-top-color:#3b82f6;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.slide{animation:slide .35s ease}
+@keyframes slide{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.alloc-fill{border-radius:4px;height:28px;transition:width .7s cubic-bezier(.4,0,.2,1);min-width:2px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:3px}
+</style>
 </head>
-<body class="min-h-screen">
+<body>
 
 <!-- HEADER -->
-<header class="sticky top-0 z-40 border-b border-white/5" style="background:rgba(15,17,23,0.92);backdrop-filter:blur(16px)">
-  <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <span class="text-2xl">📈</span>
-      <div>
-        <span class="font-bold text-white text-base">Makroinvestor</span>
-        <span class="text-xs text-slate-500 ml-2">Sektoranalyse</span>
-      </div>
+<header style="background:rgba(11,14,21,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)" class="sticky top-0 z-50">
+  <div class="max-w-screen-xl mx-auto px-4 h-13 flex items-center justify-between" style="height:52px">
+    <div class="flex items-center gap-2">
+      <span class="text-xl">📈</span>
+      <span class="font-bold text-white">Makroinvestor</span>
+      <span class="text-xs text-slate-600 hidden sm:block">Sektoranalyse 2026</span>
     </div>
-    <div class="flex items-center gap-2 text-xs text-slate-500" id="header-status">
-      <div class="spinner" style="width:14px;height:14px;border-width:2px"></div>
-      <span>Indlæser data…</span>
+    <div id="hdr-status" class="flex items-center gap-2 text-xs text-slate-500">
+      <div class="spinner" style="width:13px;height:13px;border-width:2px"></div><span>Indlæser…</span>
     </div>
   </div>
 </header>
 
-<!-- NAV TABS -->
-<div class="border-b border-white/5 sticky top-14 z-30" style="background:rgba(15,17,23,0.92);backdrop-filter:blur(16px)">
-  <div class="max-w-7xl mx-auto px-4 flex gap-1 py-2">
-    <button class="tab-btn active rounded-lg px-4 py-1.5 text-sm font-medium" onclick="showTab('dashboard')">📊 Dashboard</button>
-    <button class="tab-btn rounded-lg px-4 py-1.5 text-sm font-medium" onclick="showTab('sektorer')">🏆 Sektorer</button>
-    <button class="tab-btn rounded-lg px-4 py-1.5 text-sm font-medium" onclick="showTab('profil')">👤 Risikoprofil</button>
-    <button class="tab-btn rounded-lg px-4 py-1.5 text-sm font-medium" onclick="showTab('historik')">📅 Historik</button>
+<!-- TABS -->
+<div style="background:rgba(11,14,21,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)" class="sticky top-[52px] z-40">
+  <div class="max-w-screen-xl mx-auto px-4 py-2 flex gap-1 overflow-x-auto">
+    <button class="tab-btn active" onclick="goTab('dashboard',this)">📊 Dashboard</button>
+    <button class="tab-btn" onclick="goTab('heatmap',this)">🗺️ Multi-kvartal</button>
+    <button class="tab-btn" onclick="goTab('skabelon',this)">🎛️ Makro-skabelon</button>
+    <button class="tab-btn" onclick="goTab('sektorer',this)">🏆 Sektorer</button>
+    <button class="tab-btn" onclick="goTab('profil',this)">👤 Risikoprofil</button>
+    <button class="tab-btn" onclick="goTab('historik',this)">📅 Historik</button>
   </div>
 </div>
 
-<main class="max-w-7xl mx-auto px-4 py-6 space-y-6" id="main-content">
+<main class="max-w-screen-xl mx-auto px-4 py-6">
 
-  <!-- LOADING STATE -->
-  <div id="loading" class="flex items-center justify-center h-64">
-    <div class="text-center space-y-4">
-      <div class="spinner mx-auto"></div>
-      <p class="text-slate-400">Analyserer makroøkonomiske data…</p>
+<!-- LOADING -->
+<div id="loading" class="flex items-center justify-center h-64 gap-4">
+  <div class="spinner" style="width:36px;height:36px"></div>
+  <span class="text-slate-400">Analyserer makroøkonomiske data…</span>
+</div>
+
+<!-- ═══════════ DASHBOARD ═══════════ -->
+<div id="tab-dashboard" class="hidden space-y-5 slide">
+
+  <!-- Fase banner -->
+  <div class="glass p-5">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+      <div class="text-5xl" id="fase-ikon">⏳</div>
+      <div class="flex-1">
+        <div class="flex items-center gap-3 flex-wrap mb-1">
+          <h2 class="text-xl font-bold text-white" id="fase-titel">—</h2>
+          <span class="fase-chip" id="fase-chip">—</span>
+        </div>
+        <p class="text-sm text-slate-400" id="fase-beskr">—</p>
+      </div>
+      <div class="flex gap-1.5 flex-wrap" id="fase-pct"></div>
     </div>
   </div>
 
-  <!-- DASHBOARD TAB -->
-  <div id="tab-dashboard" class="hidden space-y-6">
-
-    <!-- Makrofase banner -->
-    <div id="fase-banner" class="glass rounded-2xl p-6 glow-blue slide-in">
-      <div class="flex flex-col md:flex-row md:items-center gap-4">
-        <div class="text-5xl" id="fase-ikon">⏳</div>
-        <div class="flex-1">
-          <div class="flex items-center gap-3 mb-1">
-            <h2 class="text-xl font-bold" id="fase-titel">—</h2>
-            <span class="fase-chip" id="fase-chip">—</span>
-          </div>
-          <p class="text-slate-400 text-sm" id="fase-beskrivelse">—</p>
-        </div>
-        <div class="flex gap-2 flex-wrap" id="fase-pct-badges"></div>
-      </div>
-    </div>
-
-    <!-- Makroindikatorer grid -->
-    <div>
-      <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Makroindikatorer — Q2 2026</h3>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="makro-indikatorer-grid"></div>
-    </div>
-
-    <!-- Top sektorer mini-tabel -->
-    <div class="glass rounded-2xl overflow-hidden">
-      <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
-        <h3 class="font-semibold">🏆 Sektorrankering</h3>
-        <span class="text-xs text-slate-500">Composite score (makro 70% + BNP-fase 30%)</span>
-      </div>
-      <div id="sektor-tabel" class="divide-y divide-white/5"></div>
-    </div>
-
-    <!-- Afstemning til virkelighed -->
-    <div class="glass rounded-2xl overflow-hidden">
-      <div class="px-6 py-4 border-b border-white/5">
-        <h3 class="font-semibold">✅ Afstemning: Makroscore vs. faktisk afkast (Q3 2025)</h3>
-        <p class="text-xs text-slate-500 mt-1">Validering af modellens forudsigelseskraft</p>
-      </div>
-      <div class="p-6">
-        <canvas id="afstemning-chart" height="220"></canvas>
-      </div>
-    </div>
-
+  <!-- Indikatorer grid -->
+  <div>
+    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Makroindikatorer — Q2 2026</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="ind-grid"></div>
   </div>
 
-  <!-- SEKTORER TAB -->
-  <div id="tab-sektorer" class="hidden space-y-6">
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" id="sektor-cards"></div>
+  <!-- Sektor ranking tabel -->
+  <div class="card overflow-hidden">
+    <div class="px-5 py-3.5 border-b border-white/5 flex items-center justify-between">
+      <span class="font-semibold">🏆 Sektorrankering</span>
+      <span class="text-xs text-slate-500">Makroscore Q2 2026</span>
+    </div>
+    <div id="dash-sektor-tabel"></div>
+  </div>
 
-    <!-- Sektor detalje -->
-    <div id="sektor-detalje" class="hidden glass rounded-2xl p-6 slide-in">
-      <div class="flex items-center gap-3 mb-4">
-        <span class="text-3xl" id="sd-ikon"></span>
-        <div>
-          <h3 class="text-lg font-bold" id="sd-navn"></h3>
-          <div class="flex gap-2 mt-1" id="sd-scores"></div>
-        </div>
-        <button onclick="document.getElementById('sektor-detalje').classList.add('hidden')" class="ml-auto text-slate-400 hover:text-white">✕</button>
+  <!-- Afstemning chart -->
+  <div class="card overflow-hidden">
+    <div class="px-5 py-3.5 border-b border-white/5">
+      <p class="font-semibold">✅ Validering: makroscore vs. faktisk afkast (Q3 2025)</p>
+      <p class="text-xs text-slate-500 mt-0.5">Korrelation bekræfter modellens forudsigelseskraft</p>
+    </div>
+    <div class="p-5"><canvas id="afstemning-chart" height="200"></canvas></div>
+  </div>
+</div>
+
+<!-- ═══════════ HEATMAP ═══════════ -->
+<div id="tab-heatmap" class="hidden space-y-5 slide">
+  <div class="card overflow-hidden">
+    <div class="px-5 py-3.5 border-b border-white/5 flex items-center justify-between">
+      <div>
+        <p class="font-semibold">🗺️ Sektor × Kvartal heatmap</p>
+        <p class="text-xs text-slate-500 mt-0.5">
+          <span class="kv-hist">■ Historisk (BNP-scores 1-5)</span>
+          &nbsp;·&nbsp;
+          <span class="kv-proj">■ Prognose (makroscorer)</span>
+        </p>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">ETF'er</h4>
-          <div id="sd-etfs" class="space-y-2"></div>
-        </div>
-        <div>
-          <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Top aktier</h4>
-          <div id="sd-aktier" class="space-y-2"></div>
-        </div>
+      <div class="flex gap-2 text-xs">
+        <span class="px-2 py-0.5 rounded" style="background:rgba(74,222,128,.2);color:#4ade80">4.5+ Høj</span>
+        <span class="px-2 py-0.5 rounded" style="background:rgba(250,204,21,.2);color:#facc15">3.0 Mid</span>
+        <span class="px-2 py-0.5 rounded" style="background:rgba(248,113,113,.2);color:#f87171">1.5 Lav</span>
       </div>
-      <div id="sd-historik" class="mt-4 p-4 rounded-xl bg-white/[0.03] text-sm text-slate-300 hidden"></div>
+    </div>
+    <div class="overflow-x-auto p-4">
+      <table class="text-xs border-separate" style="border-spacing:3px" id="heatmap-table"></table>
     </div>
   </div>
 
-  <!-- PROFIL TAB -->
-  <div id="tab-profil" class="hidden space-y-6">
-    <!-- Step 1: Beløb -->
-    <div id="profil-step-1" class="glass rounded-2xl p-6 space-y-4">
-      <h3 class="font-semibold text-lg">💰 Investeringsbeløb</h3>
-      <div class="flex gap-3 items-end">
-        <div class="flex-1">
-          <label class="text-xs text-slate-400 mb-1 block">Beløb i DKK</label>
-          <input id="beloeb-input" type="number" placeholder="100000" min="1000"
-            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-lg focus:outline-none focus:border-blue-500"
-            value="100000"/>
-        </div>
-        <button onclick="startSpoergeskema()" class="bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-6 py-3 font-semibold transition-colors">
-          Start →
-        </button>
-      </div>
-      <div class="flex gap-2 flex-wrap">
-        <span class="text-xs text-slate-500">Hurtig vælg:</span>
-        <button onclick="setBeloeb(50000)"  class="text-xs px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">50.000</button>
-        <button onclick="setBeloeb(100000)" class="text-xs px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">100.000</button>
-        <button onclick="setBeloeb(250000)" class="text-xs px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">250.000</button>
-        <button onclick="setBeloeb(500000)" class="text-xs px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">500.000</button>
+  <!-- Indikator-breakdown per sektor -->
+  <div class="card overflow-hidden">
+    <div class="px-5 py-3.5 border-b border-white/5">
+      <p class="font-semibold">🔬 Indikator-bidrag per sektor (Q2 2026)</p>
+      <p class="text-xs text-slate-500 mt-0.5">Klik på en sektor herunder for at se score per indikator</p>
+    </div>
+    <div class="p-4 overflow-x-auto">
+      <div id="sektor-selector" class="flex flex-wrap gap-2 mb-4"></div>
+      <div id="ind-breakdown" class="hidden">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="ind-breakdown-grid"></div>
       </div>
     </div>
+  </div>
+</div>
 
-    <!-- Step 2: Spørgeskema -->
-    <div id="profil-step-2" class="hidden space-y-4">
-      <div class="flex items-center gap-3 mb-2">
-        <div class="flex-1 bg-white/5 rounded-full h-2">
-          <div id="q-progress" class="bg-blue-500 h-2 rounded-full transition-all" style="width:0%"></div>
-        </div>
-        <span class="text-xs text-slate-400" id="q-counter">0/8</span>
+<!-- ═══════════ SKABELON ═══════════ -->
+<div id="tab-skabelon" class="hidden space-y-5 slide">
+  <div class="glass p-4">
+    <p class="text-sm text-slate-300">🎛️ <strong>Makro-skabelon</strong> — Juster makroværdier og se øjeblikkeligt hvilke sektorer der performerer bedst. Brug til at teste fremtidsscenarier.</p>
+  </div>
+
+  <!-- Region tabs -->
+  <div class="flex gap-2 mb-1">
+    <button class="tab-btn active text-sm" onclick="setRegionTab('Danmark',this)">🇩🇰 Danmark</button>
+    <button class="tab-btn text-sm" onclick="setRegionTab('Europa',this)">🇪🇺 Europa</button>
+    <button class="tab-btn text-sm" onclick="setRegionTab('USA',this)">🇺🇸 USA</button>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <!-- Makro inputs -->
+    <div class="card p-5 space-y-4" id="makro-inputs-container">
+      <div class="flex items-center justify-between mb-2">
+        <p class="font-semibold text-sm">📥 Makroværdier</p>
+        <button onclick="resetTemplate()" class="text-xs text-slate-400 hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/5">↺ Nulstil</button>
       </div>
-      <div id="spg-container" class="glass rounded-2xl p-6 space-y-4 slide-in">
-        <p class="text-xs text-slate-500 uppercase tracking-wider font-semibold" id="spg-nr">Spørgsmål 1 / 8</p>
-        <h3 class="text-lg font-semibold" id="spg-tekst"></h3>
-        <div id="spg-svar" class="space-y-2"></div>
-      </div>
+      <div id="makro-inputs" class="space-y-4"></div>
     </div>
 
-    <!-- Step 3: Resultat -->
-    <div id="profil-step-3" class="hidden space-y-6 slide-in">
-      <!-- Profil header -->
-      <div class="glass rounded-2xl p-6 glow-green">
-        <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div class="text-4xl" id="profil-ikon">📊</div>
-          <div class="flex-1">
-            <p class="text-xs text-slate-400 uppercase tracking-wider">Din risikoprofil</p>
-            <h2 class="text-2xl font-bold" id="profil-navn"></h2>
-            <p class="text-slate-400 text-sm mt-1" id="profil-beskrivelse"></p>
-          </div>
-          <div class="text-right">
-            <div class="text-3xl font-bold text-blue-400" id="profil-score-pct"></div>
-            <div class="text-xs text-slate-500">Risikoscore</div>
+    <!-- Live resultat -->
+    <div class="space-y-4">
+      <!-- Fase -->
+      <div class="card p-4" id="sim-fase-card">
+        <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Beregnet fase</p>
+        <div class="flex items-center gap-3">
+          <span class="text-3xl" id="sim-fase-ikon">⏳</span>
+          <div>
+            <p class="font-bold text-white" id="sim-fase-titel">—</p>
+            <p class="text-xs text-slate-400" id="sim-fase-detaljer">—</p>
           </div>
         </div>
       </div>
-
-      <!-- Aktivfordeling -->
-      <div class="glass rounded-2xl p-6">
-        <h3 class="font-semibold mb-4">💼 Porteføljefordeling</h3>
-        <div id="alloc-bars" class="space-y-3"></div>
-        <div class="mt-4 pt-4 border-t border-white/5">
-          <p class="text-xs text-slate-400">Alternative investeringer: <span id="profil-alt" class="text-slate-300"></span></p>
-        </div>
-      </div>
-
-      <!-- Top sektorer -->
-      <div class="glass rounded-2xl overflow-hidden">
-        <div class="px-6 py-4 border-b border-white/5">
-          <h3 class="font-semibold">🎯 Anbefalede sektorer</h3>
-        </div>
-        <div id="profil-sektorer" class="divide-y divide-white/5"></div>
-      </div>
-
-      <button onclick="resetProfil()" class="text-sm text-slate-400 hover:text-white transition-colors">
-        ↩ Tag testen igen
-      </button>
-    </div>
-  </div>
-
-  <!-- HISTORIK TAB -->
-  <div id="tab-historik" class="hidden space-y-6">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div class="glass rounded-2xl p-5">
-        <h3 class="font-semibold mb-4">📉 PMI historik</h3>
-        <canvas id="pmi-chart" height="200"></canvas>
-      </div>
-      <div class="glass rounded-2xl p-5">
-        <h3 class="font-semibold mb-4">📈 10-årig rente</h3>
-        <canvas id="rate-chart" height="200"></canvas>
-      </div>
-      <div class="glass rounded-2xl p-5">
-        <h3 class="font-semibold mb-4">💹 CPI (Inflation %)</h3>
-        <canvas id="cpi-chart" height="200"></canvas>
-      </div>
-      <div class="glass rounded-2xl p-5">
-        <h3 class="font-semibold mb-4">😨 VIX (Markedsangst)</h3>
-        <canvas id="vix-chart" height="200"></canvas>
-      </div>
-    </div>
-
-    <!-- Fremtid vækst tabel -->
-    <div class="glass rounded-2xl overflow-hidden">
-      <div class="px-6 py-4 border-b border-white/5">
-        <h3 class="font-semibold">🔮 Makroprognoser — Q1 & Q2 2026</h3>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="border-b border-white/5 text-xs text-slate-400 uppercase">
-              <th class="px-6 py-3 text-left">Region</th>
-              <th class="px-4 py-3 text-left">Indikator</th>
-              <th class="px-4 py-3 text-right">Q1 2026</th>
-              <th class="px-4 py-3 text-right">Q2 2026</th>
-            </tr>
-          </thead>
-          <tbody id="fremtid-tabel" class="divide-y divide-white/5"></tbody>
-        </table>
+      <!-- Sektor scores live -->
+      <div class="card overflow-hidden">
+        <div class="px-4 py-3 border-b border-white/5 text-sm font-semibold">🎯 Sektorscorer</div>
+        <div id="sim-sektorer" class="divide-y divide-white/5"></div>
       </div>
     </div>
   </div>
+
+  <!-- Scenario knapper -->
+  <div class="card p-4">
+    <p class="text-xs text-slate-500 uppercase tracking-wider mb-3">Hurtige scenarier</p>
+    <div class="flex flex-wrap gap-2">
+      <button onclick="applyScenario('recession')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/15 text-red-400 border border-red-500/20 hover:bg-red-500/25 transition-colors">📉 Recession</button>
+      <button onclick="applyScenario('boom')"      class="px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/15 text-green-400 border border-green-500/20 hover:bg-green-500/25 transition-colors">🚀 Opsving</button>
+      <button onclick="applyScenario('stagflation')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-yellow-500/15 text-yellow-400 border border-yellow-500/20 hover:bg-yellow-500/25 transition-colors">🔥 Stagflation</button>
+      <button onclick="applyScenario('softlanding')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-500/15 text-blue-400 border border-blue-500/20 hover:bg-blue-500/25 transition-colors">🛬 Soft landing</button>
+      <button onclick="applyScenario('ratehike')"   class="px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-500/15 text-purple-400 border border-purple-500/20 hover:bg-purple-500/25 transition-colors">📈 Rentestigning</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SEKTORER ═══════════ -->
+<div id="tab-sektorer" class="hidden space-y-5 slide">
+  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3" id="sektor-cards"></div>
+  <div id="sektor-detalje" class="hidden card p-5 slide">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="text-3xl" id="sd-ikon"></span>
+      <div class="flex-1">
+        <h3 class="font-bold text-lg" id="sd-navn"></h3>
+        <div class="flex gap-2 mt-1 flex-wrap" id="sd-badges"></div>
+      </div>
+      <button onclick="document.getElementById('sektor-detalje').classList.add('hidden')" class="text-slate-400 hover:text-white text-lg px-2">✕</button>
+    </div>
+    <!-- Indikator scores radar -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">ETF'er</p>
+        <div id="sd-etfs" class="space-y-2"></div>
+      </div>
+      <div>
+        <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Top aktier</p>
+        <div id="sd-aktier"></div>
+      </div>
+      <div>
+        <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Indikatorscorer Q2 2026</p>
+        <div id="sd-inds" class="space-y-1.5"></div>
+      </div>
+    </div>
+    <div id="sd-hist" class="hidden mt-4 p-3 rounded-xl text-sm" style="background:rgba(255,255,255,.03)"></div>
+  </div>
+</div>
+
+<!-- ═══════════ RISIKOPROFIL ═══════════ -->
+<div id="tab-profil" class="hidden space-y-5 slide">
+  <div id="ps1" class="card p-5 space-y-4">
+    <h3 class="font-semibold">💰 Investeringsbeløb</h3>
+    <div class="flex gap-3 items-end flex-wrap">
+      <div>
+        <p class="text-xs text-slate-500 mb-1">DKK</p>
+        <input id="beloeb-inp" type="number" value="100000" min="1000"
+          class="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-lg w-44 focus:outline-none focus:border-blue-500"/>
+      </div>
+      <button onclick="startQ()" class="bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-5 py-2.5 font-semibold transition-colors">Start →</button>
+    </div>
+    <div class="flex gap-2 flex-wrap">
+      <span class="text-xs text-slate-600">Hurtig:</span>
+      <button onclick="setB(50000)"  class="text-xs px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">50.000</button>
+      <button onclick="setB(100000)" class="text-xs px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">100.000</button>
+      <button onclick="setB(250000)" class="text-xs px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">250.000</button>
+      <button onclick="setB(500000)" class="text-xs px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">500.000</button>
+    </div>
+  </div>
+
+  <div id="ps2" class="hidden space-y-4">
+    <div class="flex items-center gap-3">
+      <div class="flex-1 bg-white/5 rounded-full h-1.5">
+        <div id="q-bar" class="bg-blue-500 h-1.5 rounded-full transition-all" style="width:0%"></div>
+      </div>
+      <span class="text-xs text-slate-500" id="q-cnt">0/8</span>
+    </div>
+    <div class="card p-5 space-y-4 slide" id="q-box">
+      <p class="text-xs text-slate-500 uppercase tracking-wider font-semibold" id="q-nr">Spørgsmål 1/8</p>
+      <h3 class="font-semibold text-base" id="q-tekst"></h3>
+      <div id="q-svar" class="space-y-2"></div>
+    </div>
+  </div>
+
+  <div id="ps3" class="hidden space-y-5 slide">
+    <div class="glass p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div class="text-4xl" id="p-ikon">📊</div>
+      <div class="flex-1">
+        <p class="text-xs text-slate-500 uppercase tracking-wider">Risikoprofil</p>
+        <h2 class="text-2xl font-bold text-white" id="p-navn"></h2>
+        <p class="text-sm text-slate-400 mt-1" id="p-beskr"></p>
+      </div>
+      <div class="text-right">
+        <div class="text-3xl font-bold text-blue-400" id="p-pct"></div>
+        <div class="text-xs text-slate-500">Risikoscore</div>
+      </div>
+    </div>
+    <div class="card p-5">
+      <p class="font-semibold mb-4">💼 Porteføljefordeling</p>
+      <div id="alloc" class="space-y-3"></div>
+      <p class="text-xs text-slate-500 mt-4">Alternativer: <span id="p-alt" class="text-slate-300"></span></p>
+    </div>
+    <div class="card overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-white/5 font-semibold">🎯 Anbefalede sektorer</div>
+      <div id="p-sektorer" class="divide-y divide-white/5"></div>
+    </div>
+    <button onclick="resetP()" class="text-xs text-slate-400 hover:text-white transition-colors">↩ Tag testen igen</button>
+  </div>
+</div>
+
+<!-- ═══════════ HISTORIK ═══════════ -->
+<div id="tab-historik" class="hidden space-y-5 slide">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="card p-4"><p class="font-semibold mb-3 text-sm">📉 PMI</p><canvas id="c-pmi" height="180"></canvas></div>
+    <div class="card p-4"><p class="font-semibold mb-3 text-sm">📈 10-årig rente</p><canvas id="c-rate" height="180"></canvas></div>
+    <div class="card p-4"><p class="font-semibold mb-3 text-sm">💹 Inflation (CPI %)</p><canvas id="c-cpi" height="180"></canvas></div>
+    <div class="card p-4"><p class="font-semibold mb-3 text-sm">😨 VIX</p><canvas id="c-vix" height="180"></canvas></div>
+  </div>
+  <div class="card overflow-hidden">
+    <div class="px-5 py-3.5 border-b border-white/5 font-semibold">🔮 Makroprognoser Q1 & Q2 2026</div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead><tr class="border-b border-white/5 text-xs text-slate-500 uppercase">
+          <th class="px-5 py-2.5 text-left">Region</th>
+          <th class="px-4 py-2.5 text-left">Indikator</th>
+          <th class="px-4 py-2.5 text-right">Q1 2026</th>
+          <th class="px-4 py-2.5 text-right text-blue-400">Q2 2026</th>
+        </tr></thead>
+        <tbody id="fremtid-tabel" class="divide-y divide-white/5"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
 </main>
 
-<!-- FOOTER -->
-<footer class="border-t border-white/5 mt-12 py-6 text-center text-xs text-slate-600">
-  ⚠️ Makroinvestor er et analyseværktøj. Dette er ikke finansiel rådgivning.
-  Invester altid på baggrund af egen research. Data: <span id="footer-dato"></span>
+<footer class="text-center text-xs text-slate-700 py-6 border-t border-white/5 mt-8">
+  ⚠️ Ikke finansiel rådgivning. Data: <span id="ftr-dato">—</span>
 </footer>
 
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
-let appData = null;
-let spoergeskema = [];
-let svarListe = [];
-let aktSpg = 0;
-let charts = {};
+let D = null, hmData = null, tmpl = null, charts = {};
+let spg = [], svar = [], qi = 0, activeRegion = "Danmark";
+let simInputs = null;
+
+// ── Farvehjælpere ──────────────────────────────────────────────────────────
+const REGION_FARVER = {Danmark:"#f59e0b",Europa:"#4ade80",USA:"#60a5fa"};
+const PROFIL_IKONER = {Konservativ:"🛡️",Balanceret:"⚖️",Vækstorienteret:"🚀",Dynamisk:"⚡"};
+const ALLOC_FARVER  = {Obligationer:"#60a5fa",ETF:"#4ade80",Aktier:"#f59e0b",Alternative:"#a78bfa"};
+
+function scoreKlasse(s){
+  if(s>=4.5) return "hm-h";
+  if(s>=3.75)return "hm-mh";
+  if(s>=3.0) return "hm-m";
+  if(s>=2.25)return "hm-ml";
+  return "hm-l";
+}
+function scoreBar(s,max=5){
+  const p=s/max*100;
+  const c=s>=4?"#4ade80":s>=3?"#facc15":"#f87171";
+  return `<div class="score-bg"><div class="score-bar" style="width:${p}%;background:${c}"></div></div>`;
+}
+function rbCls(r){return r===1?"rb-1":r===2?"rb-2":r===3?"rb-3":"rb-n"}
 
 // ── Init ───────────────────────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => {
-  loadDashboard();
-  fetch("/api/spoergeskema").then(r => r.json()).then(d => { spoergeskema = d; });
+window.addEventListener("DOMContentLoaded",async ()=>{
+  const [dash, sq] = await Promise.all([
+    fetch("/api/dashboard").then(r=>r.json()),
+    fetch("/api/spoergeskema").then(r=>r.json())
+  ]);
+  D = dash; spg = sq;
+  document.getElementById("loading").classList.add("hidden");
+  showContent("dashboard");
+  renderDashboard();
+  document.getElementById("hdr-status").innerHTML=
+    `<span style="color:#4ade80">●</span> <span>${D.opdateret}</span>`;
+  document.getElementById("ftr-dato").textContent = D.opdateret;
 });
 
-async function loadDashboard() {
-  try {
-    const r = await fetch("/api/dashboard");
-    appData = await r.json();
-    document.getElementById("loading").classList.add("hidden");
-    document.getElementById("tab-dashboard").classList.remove("hidden");
-    renderDashboard();
-    document.getElementById("header-status").innerHTML =
-      `<span class="text-green-400">●</span> <span>Data: ${appData.opdateret}</span>`;
-  } catch(e) {
-    document.getElementById("loading").innerHTML =
-      `<div class="text-red-400">❌ Fejl ved indlæsning af data. Tjek at serveren kører.</div>`;
-  }
-}
-
-// ── Tabs ───────────────────────────────────────────────────────────────────
-function showTab(tab) {
-  ["dashboard","sektorer","profil","historik"].forEach(t => {
-    document.getElementById(`tab-${t}`).classList.add("hidden");
-  });
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+function showContent(tab){
   document.getElementById(`tab-${tab}`).classList.remove("hidden");
-  event.target.classList.add("active");
-
-  if (tab === "sektorer" && appData) renderSektorer();
-  if (tab === "historik" && appData) renderHistorik();
 }
 
-// ── Dashboard ─────────────────────────────────────────────────────────────
-function renderDashboard() {
-  const fase = appData.makro_fase;
+// ── Tab navigation ─────────────────────────────────────────────────────────
+async function goTab(tab, btn){
+  document.querySelectorAll('[id^="tab-"]').forEach(e=>e.classList.add("hidden"));
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+  document.getElementById(`tab-${tab}`).classList.remove("hidden");
+  document.getElementById(`tab-${tab}`).classList.add("slide");
 
-  // Fase banner
-  document.getElementById("fase-ikon").textContent = fase.ikon;
-  document.getElementById("fase-titel").textContent = `${fase.fase} — ${fase.titel}`;
-  document.getElementById("fase-beskrivelse").textContent = fase.beskrivelse;
+  if(tab==="heatmap" && !hmData){
+    hmData = await fetch("/api/heatmap").then(r=>r.json());
+    renderHeatmap();
+  }
+  if(tab==="skabelon" && !tmpl){
+    tmpl = await fetch("/api/template").then(r=>r.json());
+    simInputs = JSON.parse(JSON.stringify(tmpl.default_makro));
+    buildTemplateInputs();
+    await runSim();
+  }
+  if(tab==="sektorer" && D) renderSektorer();
+  if(tab==="historik" && D) renderHistorik();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────
+function renderDashboard(){
+  const f = D.makro_fase;
+  document.getElementById("fase-ikon").textContent  = f.ikon;
+  document.getElementById("fase-titel").textContent = `${f.fase} — ${f.titel}`;
+  document.getElementById("fase-beskr").textContent = f.beskrivelse;
   const chip = document.getElementById("fase-chip");
-  chip.textContent = fase.fase;
-  chip.className = `fase-chip fase-${fase.fase}`;
+  chip.textContent = f.fase; chip.className=`fase-chip fase-${f.fase}`;
 
-  // Fase pct badges
-  const badges = document.getElementById("fase-pct-badges");
-  badges.innerHTML = Object.entries(fase.fase_pct).map(([f,pct]) =>
-    `<span class="fase-chip fase-${f}">${f} ${pct}%</span>`
-  ).join("");
+  document.getElementById("fase-pct").innerHTML =
+    Object.entries(f.fase_pct).map(([fs,pct])=>
+      `<span class="fase-chip fase-${fs}">${fs} ${pct}%</span>`).join("");
 
-  // Makroindikatorer grid (per region)
-  const grid = document.getElementById("makro-indikatorer-grid");
-  grid.innerHTML = fase.detaljer.map(d => `
-    <div class="glass rounded-xl p-4">
+  // Indikatorer
+  document.getElementById("ind-grid").innerHTML = f.detaljer.map(d=>`
+    <div class="card p-4">
       <div class="flex items-center justify-between mb-3">
         <span class="font-semibold text-sm">${d.region}</span>
         <span class="fase-chip fase-${d.fase}">${d.fase}</span>
       </div>
-      <div class="space-y-2">
-        ${d.indikatorer.map(i => `
+      <div class="space-y-1.5">
+        ${d.indikatorer.map(i=>`
           <div class="flex items-center justify-between text-xs">
-            <span class="text-slate-400">${i.navn}</span>
-            <div class="flex items-center gap-2">
-              <span class="text-white font-mono">${i.vaerdi}</span>
-              ${i.fase ? `<span class="fase-chip fase-${i.fase}" style="font-size:0.65rem;padding:1px 8px">${i.fase}</span>` : '<span class="text-slate-600">—</span>'}
+            <span class="text-slate-400">${i.navn} <span class="text-slate-600">×${i.vaegt}</span></span>
+            <div class="flex items-center gap-1.5">
+              <span class="font-mono text-white">${i.vaerdi}</span>
+              ${i.fase?`<span class="fase-chip fase-${i.fase}" style="font-size:.6rem;padding:0 6px">${i.fase}</span>`:'<span class="text-slate-600">—</span>'}
             </div>
-          </div>
-        `).join("")}
+          </div>`).join("")}
       </div>
-    </div>
-  `).join("");
+    </div>`).join("");
 
   // Sektor tabel
-  renderSektorTabel();
+  document.getElementById("dash-sektor-tabel").innerHTML =
+    D.sektorer.map(s=>`
+      <div class="flex items-center gap-3 px-5 py-2.5 hover:bg-white/[0.025] transition-colors cursor-pointer"
+           onclick="goTabSektor('${s.sektor}')">
+        <div class="rb ${rbCls(s.rank)} flex-shrink-0">${s.rank}</div>
+        <span class="text-base flex-shrink-0">${s.ikon||'📊'}</span>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium">${s.sektor}</div>
+          ${scoreBar(s.composite)}
+        </div>
+        <div class="text-right flex-shrink-0">
+          <div class="font-bold text-sm" style="color:${s.composite>=4?'#4ade80':s.composite>=3?'#facc15':'#f87171'}">${s.composite.toFixed(2)}</div>
+          <div class="text-xs text-slate-600">DK ${s.dk?.toFixed(2)||'–'} · EU ${s.eu?.toFixed(2)||'–'} · USA ${s.usa?.toFixed(2)||'–'}</div>
+        </div>
+      </div>`).join("");
 
   // Afstemning chart
-  renderAfstemningChart();
-
-  document.getElementById("footer-dato").textContent = appData.opdateret;
-}
-
-function renderSektorTabel() {
-  const el = document.getElementById("sektor-tabel");
-  el.innerHTML = appData.sektorer.map(s => {
-    const pct = s.composite / 5 * 100;
-    const rankCls = s.rank === 1 ? "rank-1" : s.rank === 2 ? "rank-2" : s.rank === 3 ? "rank-3" : "rank-n";
-    const barCol = s.composite >= 4 ? "#4ade80" : s.composite >= 3 ? "#facc15" : "#f87171";
-    const bnpIcon = s.bnp_raw > 0 ? `<span class="text-green-400">▲${s.bnp_raw > 1 ? '▲' : ''}</span>` :
-                    s.bnp_raw < 0 ? `<span class="text-red-400">▼${s.bnp_raw < -1 ? '▼' : ''}</span>` :
-                    `<span class="text-slate-500">—</span>`;
-    return `
-      <div class="flex items-center gap-4 px-6 py-3 hover:bg-white/[0.03] transition-colors cursor-pointer"
-           onclick="showTab2('sektorer'); selectSektor('${s.sektor}')">
-        <div class="rank-badge ${rankCls}">${s.rank}</div>
-        <div class="text-lg">${s.ikon}</div>
-        <div class="flex-1 min-w-0">
-          <div class="font-medium text-sm">${s.sektor}</div>
-          <div class="score-bar-bg mt-1 w-full">
-            <div class="score-bar" style="width:${pct}%;background:${barCol}"></div>
-          </div>
-        </div>
-        <div class="text-right">
-          <div class="font-bold text-sm" style="color:${barCol}">${s.composite.toFixed(2)}</div>
-          <div class="text-xs text-slate-500">BNP ${bnpIcon}</div>
-        </div>
-      </div>
-    `;
-  }).join("");
-}
-
-function renderAfstemningChart() {
-  const data = appData.afstemning;
-  if (!data.length) return;
-  const labels = data.map(d => d.sektor.replace(" ", "\n"));
-  const scores = data.map(d => d.makroscore);
-  const afkast = data.map(d => d.q3_afkast);
-
+  const afstn = D.afstemning;
   const ctx = document.getElementById("afstemning-chart").getContext("2d");
-  if (charts.afstemning) charts.afstemning.destroy();
-  charts.afstemning = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [
-        { label: "Makroscore (1-5)", data: scores, backgroundColor: "rgba(59,130,246,0.6)", borderRadius: 4, yAxisID: "y" },
-        { label: "Q3 Afkast %",    data: afkast, type: "line", borderColor: "#4ade80", pointBackgroundColor: "#4ade80", borderWidth: 2, tension: 0.3, yAxisID: "y2" }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { labels: { color: "#94a3b8", font: { size: 11 } } },
-        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ": " + ctx.parsed.y.toFixed(2) } }
-      },
-      scales: {
-        x: { ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.04)" } },
-        y:  { position: "left",  ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.04)" }, min: 0, max: 5 },
-        y2: { position: "right", ticks: { color: "#4ade80", font: { size: 10 } }, grid: { display: false } }
+  if(charts.afstn) charts.afstn.destroy();
+  charts.afstn = new Chart(ctx,{
+    type:"bar",
+    data:{labels:afstn.map(a=>a.sektor.split(" ").join("\n")),
+      datasets:[
+        {label:"Makroscore",data:afstn.map(a=>a.makroscore),backgroundColor:"rgba(96,165,250,.5)",borderRadius:4,yAxisID:"y"},
+        {label:"Q3 Afkast %",data:afstn.map(a=>a.q3_afkast),type:"line",borderColor:"#4ade80",borderWidth:2,pointRadius:4,tension:.3,yAxisID:"y2"}
+      ]},
+    options:{responsive:true,plugins:{legend:{labels:{color:"#94a3b8",font:{size:11}}}},
+      scales:{
+        x:{ticks:{color:"#64748b",font:{size:9}},grid:{color:"rgba(255,255,255,.04)"}},
+        y:{position:"left",min:0,max:5,ticks:{color:"#64748b"},grid:{color:"rgba(255,255,255,.04)"}},
+        y2:{position:"right",ticks:{color:"#4ade80"},grid:{display:false}}
+      }}
+  });
+}
+
+// ── HEATMAP ────────────────────────────────────────────────────────────────
+function renderHeatmap(){
+  const kvs = hmData.alle_kvartaler;
+  const sek = hmData.sektorer;
+
+  let html = "<tr><th class='text-left pr-4 text-xs font-medium' style='color:var(--muted);min-width:160px'>Sektor</th>";
+  kvs.forEach(kv=>{
+    const isProj = kv.includes("2026");
+    html += `<th class="text-center text-xs pb-2" style="color:${isProj?'#60a5fa':'var(--muted)'}">
+      ${kv.replace(" ","<br/>")}</th>`;
+  });
+  html += "</tr>";
+
+  sek.forEach(sektor=>{
+    html += `<tr>
+      <td class="text-xs font-medium pr-4 py-0.5" style="color:var(--text);white-space:nowrap">
+        ${hmData.heatmap[sektor] ? (sektor.split(" ").length > 1 ? sektor : sektor) : sektor}
+      </td>`;
+    kvs.forEach(kv=>{
+      const cell = hmData.heatmap[sektor]?.[kv];
+      if(cell){
+        const cls = scoreKlasse(cell.score);
+        const isProj = cell.kilde==="prognose";
+        html += `<td class="p-0.5">
+          <div class="hm-cell ${cls}" title="${sektor}: ${kv} = ${cell.score}" ${isProj?'style="opacity:.85"':''}>
+            ${cell.score.toFixed(1)}${isProj?'*':''}
+          </div></td>`;
+      } else {
+        html += `<td class="p-0.5"><div class="hm-cell hm-na">—</div></td>`;
       }
-    }
+    });
+    html += "</tr>";
   });
-}
 
-// ── Sektorer ──────────────────────────────────────────────────────────────
-function renderSektorer() {
-  const grid = document.getElementById("sektor-cards");
-  grid.innerHTML = appData.sektorer.map(s => {
-    const pct = s.composite / 5 * 100;
-    const barCol = s.composite >= 4 ? "#4ade80" : s.composite >= 3 ? "#facc15" : "#f87171";
-    const rankCls = s.rank === 1 ? "rank-1" : s.rank === 2 ? "rank-2" : s.rank === 3 ? "rank-3" : "rank-n";
-    return `
-      <div class="sektor-card glass rounded-xl p-4" id="card-${s.sektor.replace(/ /g,'_')}" onclick="selectSektor('${s.sektor}')">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="rank-badge ${rankCls}">${s.rank}</div>
-          <span class="text-2xl">${s.ikon}</span>
-          <div class="flex-1 min-w-0">
-            <div class="font-semibold text-sm truncate">${s.sektor}</div>
-            <div class="text-xs text-slate-500">Composite score</div>
-          </div>
-          <div class="text-xl font-bold" style="color:${barCol}">${s.composite.toFixed(2)}</div>
-        </div>
-        <div class="score-bar-bg"><div class="score-bar" style="width:${pct}%;background:${barCol}"></div></div>
-        <div class="flex justify-between mt-3 text-xs text-slate-500">
-          <span>DK <span class="text-white">${s.dk.toFixed(2)}</span></span>
-          <span>EU <span class="text-white">${s.eu.toFixed(2)}</span></span>
-          <span>USA <span class="text-white">${s.usa.toFixed(2)}</span></span>
-        </div>
-      </div>
-    `;
-  }).join("");
-}
+  document.getElementById("heatmap-table").innerHTML = html;
 
-function showTab2(tab) {
-  showTab(tab);
-  // Programmatic tab switch
-  document.querySelectorAll(".tab-btn").forEach(b => {
-    if (b.textContent.toLowerCase().includes(tab)) b.classList.add("active");
-    else b.classList.remove("active");
-  });
-}
-
-async function selectSektor(navn) {
-  document.querySelectorAll(".sektor-card").forEach(c => c.classList.remove("selected"));
-  const cardId = "card-" + navn.replace(/ /g, "_");
-  const card = document.getElementById(cardId);
-  if (card) card.classList.add("selected");
-
-  const r = await fetch(`/api/sektor/${encodeURIComponent(navn)}`);
-  const d = await r.json();
-
-  document.getElementById("sd-ikon").textContent = d.ikon || "📊";
-  document.getElementById("sd-navn").textContent = d.sektor;
-
-  document.getElementById("sd-scores").innerHTML = `
-    <span class="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">Score ${d.composite.toFixed(2)}</span>
-    <span class="text-xs px-2 py-0.5 rounded-full bg-white/5 text-slate-400">Rank #${d.rank}</span>
-    <span class="text-xs px-2 py-0.5 rounded-full bg-white/5 text-slate-400">BNP: ${d.bnp_raw > 0 ? '+' : ''}${d.bnp_raw}</span>
-  `;
-
-  document.getElementById("sd-etfs").innerHTML = d.etfs.length
-    ? d.etfs.map(e => `
-        <div class="bg-white/[0.04] rounded-lg p-3 text-xs">
-          <div class="font-medium text-white">${e.navn}</div>
-          <div class="text-slate-500 mt-0.5">${e.isin} · ${e.region}</div>
-        </div>`).join("")
-    : '<p class="text-xs text-slate-500">Ingen ETF fundet</p>';
-
-  let aktierHtml = "";
-  for (const [region, liste] of Object.entries(d.aktier)) {
-    aktierHtml += `<div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-2 mb-1">${region}</div>`;
-    aktierHtml += liste.map(a => `
-      <div class="flex items-center justify-between bg-white/[0.03] rounded-lg px-3 py-2 text-xs">
-        <span class="font-mono font-bold text-white">${a.ticker}</span>
-        <span class="text-slate-400">${a.market_cap_mia} mia.</span>
-        ${a.change_pct !== null ? `<span class="${a.change_pct >= 0 ? 'change-pos' : 'change-neg'}">${a.change_pct >= 0 ? '+' : ''}${a.change_pct}%</span>` : ''}
-      </div>`).join("");
-  }
-  document.getElementById("sd-aktier").innerHTML = aktierHtml || '<p class="text-xs text-slate-500">Ingen aktier fundet</p>';
-
-  if (d.historisk) {
-    const hist = d.historisk;
-    document.getElementById("sd-historik").innerHTML =
-      `<div class="font-semibold mb-1">📊 Q3 2025 afkast: <span class="${hist.q3_afkast >= 0 ? 'text-green-400' : 'text-red-400'}">${hist.q3_afkast >= 0 ? '+' : ''}${hist.q3_afkast}%</span></div>
-       <div class="text-slate-400 text-xs">${hist.kommentar}</div>`;
-    document.getElementById("sd-historik").classList.remove("hidden");
-  } else {
-    document.getElementById("sd-historik").classList.add("hidden");
-  }
-
-  document.getElementById("sektor-detalje").classList.remove("hidden");
-  document.getElementById("sektor-detalje").scrollIntoView({ behavior: "smooth", block: "nearest" });
-}
-
-// ── Risikoprofil ──────────────────────────────────────────────────────────
-const PROFIL_IKONER = { "Konservativ": "🛡️", "Balanceret": "⚖️", "Vækstorienteret": "🚀", "Dynamisk": "⚡" };
-const ALLOC_FARVER  = { "Obligationer": "#60a5fa", "ETF": "#4ade80", "Aktier": "#f59e0b", "Alternative": "#a78bfa" };
-
-function setBeloeb(v) { document.getElementById("beloeb-input").value = v; }
-
-function startSpoergeskema() {
-  svarListe = new Array(spoergeskema.length).fill(null);
-  aktSpg = 0;
-  document.getElementById("profil-step-1").classList.add("hidden");
-  document.getElementById("profil-step-2").classList.remove("hidden");
-  visSpg();
-}
-
-function visSpg() {
-  if (aktSpg >= spoergeskema.length) { indsendProfil(); return; }
-  const q = spoergeskema[aktSpg];
-  document.getElementById("spg-nr").textContent = `Spørgsmål ${aktSpg + 1} / ${spoergeskema.length}`;
-  document.getElementById("spg-tekst").textContent = q.tekst;
-  document.getElementById("q-counter").textContent = `${aktSpg}/${spoergeskema.length}`;
-  document.getElementById("q-progress").style.width = `${aktSpg / spoergeskema.length * 100}%`;
-
-  document.getElementById("spg-svar").innerHTML = q.svar.map((s, i) => `
-    <button class="answer-btn w-full text-left rounded-xl px-4 py-3 text-sm ${svarListe[aktSpg] === s.score ? 'selected' : ''}"
-            onclick="vaelgSvar(${s.score}, ${i})">
-      <span class="font-mono text-slate-500 mr-2">${s.nr}.</span> ${s.tekst}
+  // Sektor selector
+  const sel = document.getElementById("sektor-selector");
+  sel.innerHTML = sek.map(s=>`
+    <button onclick="showIndBreakdown('${s}')"
+      class="px-3 py-1 rounded-lg text-xs border border-white/10 hover:border-blue-500 hover:text-blue-300 transition-colors">
+      ${s}
     </button>`).join("");
 }
 
-function vaelgSvar(score, idx) {
-  svarListe[aktSpg] = score;
-  document.querySelectorAll(".answer-btn").forEach((b,i) => {
-    b.classList.toggle("selected", i === idx);
+function showIndBreakdown(sektor){
+  const ma = hmData;
+  // Find makro analyse data for denne sektor
+  fetch(`/api/sektor/${encodeURIComponent(sektor)}`).then(r=>r.json()).then(d=>{
+    const inds = ["PMI","BNP","10 YR","CPI","Baltic Dry","VIX","Currency","Unemployment"];
+    document.getElementById("ind-breakdown").classList.remove("hidden");
+    document.getElementById("ind-breakdown-grid").innerHTML =
+      ["Danmark","Europa","USA"].map(region=>{
+        const q2 = d.makro_analyse?.[region]?.["Q2 2026"] || {};
+        return `
+          <div class="card p-3">
+            <p class="text-xs font-semibold text-slate-400 mb-2">${region}</p>
+            ${inds.map(ind=>{
+              const sc = q2[ind];
+              return sc != null ? `
+                <div class="flex items-center gap-2 mb-1.5 text-xs">
+                  <span class="text-slate-500 w-24 flex-shrink-0">${ind}</span>
+                  ${scoreBar(sc)}
+                  <span class="font-mono font-bold w-6 text-right flex-shrink-0" style="color:${sc>=4?'#4ade80':sc>=3?'#facc15':'#f87171'}">${sc}</span>
+                </div>` : '';
+            }).join("")}
+            <div class="border-t border-white/5 mt-2 pt-2 flex justify-between text-xs">
+              <span class="text-slate-500">Total score</span>
+              <span class="font-bold text-white">${q2.total?.toFixed(2)||'—'}</span>
+            </div>
+          </div>`;
+      }).join("");
   });
-  setTimeout(() => { aktSpg++; visSpg(); }, 300);
 }
 
-async function indsendProfil() {
-  const beloeb = parseFloat(document.getElementById("beloeb-input").value) || 0;
-  const r = await fetch("/api/profil", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ svar: svarListe.filter(s => s !== null), beloeb })
-  });
-  const d = await r.json();
+// ── SKABELON ───────────────────────────────────────────────────────────────
+const SCENARIOS = {
+  recession:    {PMI:44,BNP:-1.5,"10 YR":2.5,CPI:0.8,"Baltic Dry":900,VIX:38,Currency:1.02,Unemployment:8.5},
+  boom:         {PMI:58,BNP:3.5, "10 YR":4.5,CPI:3.5,"Baltic Dry":3200,VIX:13,Currency:1.25,Unemployment:3.2},
+  stagflation:  {PMI:47,BNP:0.2, "10 YR":5.5,CPI:6.0,"Baltic Dry":1400,VIX:28,Currency:1.05,Unemployment:6.5},
+  softlanding:  {PMI:52,BNP:2.0, "10 YR":3.5,CPI:2.0,"Baltic Dry":1900,VIX:16,Currency:1.15,Unemployment:4.5},
+  ratehike:     {PMI:50,BNP:1.5, "10 YR":6.0,CPI:4.5,"Baltic Dry":1800,VIX:22,Currency:1.08,Unemployment:5.0},
+};
 
-  document.getElementById("profil-step-2").classList.add("hidden");
-  document.getElementById("profil-step-3").classList.remove("hidden");
+function buildTemplateInputs(){
+  if(!tmpl) return;
+  const inds = tmpl.indikatorer;
+  const labels = {PMI:"PMI","BNP":"BNP vækst %","10 YR":"10-årig rente %","CPI":"Inflation (CPI) %","Baltic Dry":"Baltic Dry Index","VIX":"VIX","Currency":"EUR/USD","Unemployment":"Arbejdsløshed %"};
+  const ranges = {PMI:[30,65,0.5],"BNP":[-3,6,0.1],"10 YR":[0,8,0.05],"CPI":[0,10,0.1],"Baltic Dry":[500,5000,50],"VIX":[8,60,1],"Currency":[0.9,1.5,0.01],"Unemployment":[2,15,0.1]};
 
-  document.getElementById("profil-ikon").textContent = PROFIL_IKONER[d.profil.navn] || "📊";
-  document.getElementById("profil-navn").textContent = d.profil.navn;
-  document.getElementById("profil-beskrivelse").textContent = d.profil.beskrivelse;
-  document.getElementById("profil-score-pct").textContent = Math.round(d.score_ratio * 100) + "%";
-  document.getElementById("profil-alt").textContent = d.profil.alternativer;
-
-  // Allokering bars
-  const bars = document.getElementById("alloc-bars");
-  bars.innerHTML = Object.entries(d.fordeling).map(([k, pct]) => {
-    const beloebDKK = d.beloeb_fordeling[k] || 0;
-    const farve = ALLOC_FARVER[k] || "#94a3b8";
+  const region = activeRegion;
+  const container = document.getElementById("makro-inputs");
+  container.innerHTML = inds.map(ind=>{
+    const rv = simInputs?.[region]?.[ind];
+    const val = typeof rv === "object" ? rv.vaerdi : rv;
+    const [mn,mx,step] = ranges[ind]||[0,100,1];
+    const lbl = labels[ind]||ind;
     return `
       <div>
-        <div class="flex justify-between text-sm mb-1">
-          <span class="font-medium">${k}</span>
-          <span class="text-slate-400">${pct}% — <span class="text-white font-semibold">${beloebDKK.toLocaleString("da-DK")} DKK</span></span>
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs text-slate-400">${lbl}</span>
+          <div class="flex items-center gap-2">
+            <input type="number" id="inp-${ind.replace(/ /g,'_')}" value="${val}" min="${mn}" max="${mx}" step="${step}"
+              onchange="updateInput('${ind}',this.value)" class=""/>
+          </div>
         </div>
-        <div class="bg-white/5 rounded-full h-3 overflow-hidden">
-          <div class="alloc-bar h-3" style="width:${pct}%;background:${farve}"></div>
-        </div>
-      </div>`;
-  }).join("");
-
-  // Top sektorer
-  const sek = document.getElementById("profil-sektorer");
-  sek.innerHTML = d.top_sektorer.map(s => {
-    const etfStr = s.etfs.map(e => e.navn).join(", ") || "—";
-    const aktStr = Object.entries(s.aktier).map(([reg,liste]) =>
-      `<span class="text-slate-500">${reg}:</span> ${liste.slice(0,2).map(a=>a.ticker).join(", ")}`
-    ).join(" · ");
-    return `
-      <div class="px-6 py-4 flex items-start gap-4">
-        <div class="rank-badge ${s.rank <= 3 ? ['','rank-1','rank-2','rank-3'][s.rank] : 'rank-n'} flex-shrink-0">${s.rank}</div>
-        <div class="text-xl flex-shrink-0">${s.ikon}</div>
-        <div class="flex-1 min-w-0">
-          <div class="font-semibold text-sm">${s.sektor} <span class="text-slate-500 font-normal">${s.composite.toFixed(2)}</span></div>
-          <div class="text-xs text-slate-500 mt-0.5">ETF: ${etfStr}</div>
-          ${aktStr ? `<div class="text-xs text-slate-500 mt-0.5">${aktStr}</div>` : ""}
-        </div>
+        <input type="range" min="${mn}" max="${mx}" step="${step}" value="${val}" id="sl-${ind.replace(/ /g,'_')}"
+          oninput="syncSlider('${ind}',this.value)" class=""/>
       </div>`;
   }).join("");
 }
 
-function resetProfil() {
-  document.getElementById("profil-step-3").classList.add("hidden");
-  document.getElementById("profil-step-1").classList.remove("hidden");
+function setRegionTab(region, btn){
+  document.querySelectorAll("#tab-skabelon .tab-btn").forEach(b=>b.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+  activeRegion = region;
+  buildTemplateInputs();
 }
 
-// ── Historik ──────────────────────────────────────────────────────────────
-function renderHistorik() {
-  const h = appData.historik;
-  const FARVER = { "USA": "#60a5fa", "Europa": "#4ade80", "Danmark": "#f59e0b" };
+function syncSlider(ind, val){
+  const key = ind.replace(/ /g,"_");
+  document.getElementById(`inp-${key}`).value = val;
+  updateInput(ind, val);
+}
 
-  function buildChart(id, indikator, label, suffix = "") {
-    const datasets = [];
-    const alleKvartaler = new Set();
-    for (const [reg, data] of Object.entries(h)) {
-      const serie = data[indikator] || [];
-      serie.forEach(p => alleKvartaler.add(p.kvartal));
+let simTimer = null;
+function updateInput(ind, val){
+  if(!simInputs) return;
+  const key = ind.replace(/ /g,"_");
+  document.getElementById(`sl-${key}`).value = val;
+
+  if(!simInputs[activeRegion]) simInputs[activeRegion] = {};
+  const cur = simInputs[activeRegion][ind];
+  if(typeof cur === "object") simInputs[activeRegion][ind] = {...cur, vaerdi: parseFloat(val)};
+  else simInputs[activeRegion][ind] = parseFloat(val);
+
+  clearTimeout(simTimer);
+  simTimer = setTimeout(runSim, 200);
+}
+
+async function runSim(){
+  // Byg flat input dict
+  const flat = {};
+  for(const [region, inds] of Object.entries(simInputs)){
+    flat[region] = {};
+    for(const [ind, v] of Object.entries(inds)){
+      flat[region][ind] = typeof v==="object" ? v.vaerdi : v;
     }
-    const kvartaler = Array.from(alleKvartaler).sort();
-
-    for (const [reg, data] of Object.entries(h)) {
-      const serie = (data[indikator] || []).reduce((acc, p) => { acc[p.kvartal] = p.vaerdi; return acc; }, {});
-      const vals = kvartaler.map(k => serie[k] ?? null);
-      if (vals.some(v => v !== null)) {
-        datasets.push({
-          label: reg,
-          data: vals,
-          borderColor: FARVER[reg] || "#94a3b8",
-          backgroundColor: (FARVER[reg] || "#94a3b8") + "22",
-          tension: 0.3,
-          borderWidth: 2,
-          pointRadius: 3,
-          spanGaps: true,
-        });
-      }
-    }
-
-    const ctx = document.getElementById(id).getContext("2d");
-    if (charts[id]) charts[id].destroy();
-    charts[id] = new Chart(ctx, {
-      type: "line",
-      data: { labels: kvartaler, datasets },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { labels: { color: "#94a3b8", font: { size: 10 }, boxWidth: 12 } },
-          tooltip: { callbacks: { label: c => c.dataset.label + ": " + c.parsed.y?.toFixed(2) + suffix } }
-        },
-        scales: {
-          x: { ticks: { color: "#64748b", font: { size: 9 }, maxRotation: 45 }, grid: { color: "rgba(255,255,255,0.04)" } },
-          y: { ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.04)" } }
-        }
-      }
-    });
   }
+  const res = await fetch("/api/simuler",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({makro:flat})}).then(r=>r.json());
 
-  buildChart("pmi-chart",  "PMI",   "PMI");
-  buildChart("rate-chart", "10yr",  "10yr rente", "%");
-  buildChart("cpi-chart",  "CPI",   "CPI", "%");
-  buildChart("vix-chart",  "VIX",   "VIX");
+  // Fase
+  const fm = res.fase_meta;
+  document.getElementById("sim-fase-ikon").textContent  = fm[2]||"❓";
+  document.getElementById("sim-fase-titel").textContent = `${res.fase} — ${fm[0]||""}`;
+  const faser_str = Object.entries(res.faser||{}).map(([r,f])=>`${r}: ${f}`).join(" · ");
+  document.getElementById("sim-fase-detaljer").textContent = faser_str;
 
-  // Fremtid tabel
-  const tbody = document.getElementById("fremtid-tabel");
-  const indikatorer = ["BNP", "PMI", "10 YR rate", "CPI", "VIX", "Unemployment"];
-  tbody.innerHTML = "";
-  for (const [region, data] of Object.entries(appData.fremtid)) {
-    let first = true;
-    for (const ind of indikatorer) {
-      if (!data[ind]) continue;
-      const { q1, q2 } = data[ind];
-      tbody.innerHTML += `
-        <tr class="hover:bg-white/[0.02] transition-colors">
-          <td class="px-6 py-2.5 text-sm ${first ? 'font-semibold text-white' : 'text-transparent'}">${first ? region : ''}</td>
-          <td class="px-4 py-2.5 text-sm text-slate-400">${ind}</td>
-          <td class="px-4 py-2.5 text-sm text-right font-mono">${q1 !== null ? q1 : '—'}</td>
-          <td class="px-4 py-2.5 text-sm text-right font-mono text-blue-300">${q2 !== null ? q2 : '—'}</td>
-        </tr>`;
-      first = false;
+  // Sektorer
+  document.getElementById("sim-sektorer").innerHTML = res.sektorer.map(s=>`
+    <div class="flex items-center gap-3 px-4 py-2 hover:bg-white/[0.02] transition-colors">
+      <div class="rb ${rbCls(s.rank)} flex-shrink-0">${s.rank}</div>
+      <span class="text-sm flex-shrink-0">${s.ikon||'📊'}</span>
+      <div class="flex-1 min-w-0">
+        <div class="text-xs font-medium">${s.sektor}</div>
+        ${scoreBar(s.score)}
+      </div>
+      <span class="font-bold text-sm flex-shrink-0" style="color:${s.score>=4?'#4ade80':s.score>=3?'#facc15':'#f87171'}">${s.score.toFixed(2)}</span>
+    </div>`).join("");
+}
+
+function resetTemplate(){
+  if(!tmpl) return;
+  simInputs = JSON.parse(JSON.stringify(tmpl.default_makro));
+  buildTemplateInputs();
+  runSim();
+}
+
+function applyScenario(name){
+  if(!simInputs || !SCENARIOS[name]) return;
+  const sc = SCENARIOS[name];
+  for(const region of Object.keys(simInputs)){
+    for(const [ind, val] of Object.entries(sc)){
+      if(simInputs[region][ind] !== undefined){
+        const cur = simInputs[region][ind];
+        if(typeof cur === "object") simInputs[region][ind] = {...cur, vaerdi: val};
+        else simInputs[region][ind] = val;
+      }
+    }
+  }
+  buildTemplateInputs();
+  runSim();
+}
+
+// ── SEKTORER ───────────────────────────────────────────────────────────────
+function renderSektorer(){
+  document.getElementById("sektor-cards").innerHTML = D.sektorer.map(s=>`
+    <div class="card p-4 cursor-pointer hover:border-blue-500/40 transition-all" style="border:1px solid var(--border)"
+         onclick="openSektor('${s.sektor}')">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="rb ${rbCls(s.rank)}">${s.rank}</div>
+        <span class="text-2xl">${s.ikon||'📊'}</span>
+        <div class="flex-1 min-w-0">
+          <p class="font-semibold text-sm truncate">${s.sektor}</p>
+          <p class="text-xs text-slate-500">Composite</p>
+        </div>
+        <span class="text-xl font-bold" style="color:${s.composite>=4?'#4ade80':s.composite>=3?'#facc15':'#f87171'}">${s.composite.toFixed(2)}</span>
+      </div>
+      ${scoreBar(s.composite)}
+      <div class="flex justify-between mt-2.5 text-xs text-slate-600">
+        <span>DK <span class="text-white">${s.dk?.toFixed(2)||'–'}</span></span>
+        <span>EU <span class="text-white">${s.eu?.toFixed(2)||'–'}</span></span>
+        <span>USA <span class="text-white">${s.usa?.toFixed(2)||'–'}</span></span>
+      </div>
+    </div>`).join("");
+}
+
+async function openSektor(navn){
+  const d = await fetch(`/api/sektor/${encodeURIComponent(navn)}`).then(r=>r.json());
+  document.getElementById("sd-ikon").textContent = d.ikon||"📊";
+  document.getElementById("sd-navn").textContent = d.sektor;
+  document.getElementById("sd-badges").innerHTML =
+    `<span class="text-xs px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300">Score ${d.composite.toFixed(2)}</span>
+     <span class="text-xs px-2 py-0.5 rounded-full bg-white/5 text-slate-400">Rank #${d.rank}</span>`;
+
+  document.getElementById("sd-etfs").innerHTML = d.etfs.length
+    ? d.etfs.map(e=>`<div class="card p-2.5 text-xs"><div class="font-medium">${e.navn}</div><div class="text-slate-500 mt-0.5">${e.isin} · ${e.region}</div></div>`).join("")
+    : '<p class="text-xs text-slate-500">Ingen ETF</p>';
+
+  let aktHtml="";
+  for(const [r,l] of Object.entries(d.aktier||{})){
+    aktHtml+=`<p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-2 mb-1">${r}</p>`;
+    aktHtml+=l.map(a=>`<div class="flex justify-between text-xs bg-white/[0.03] rounded-lg px-2.5 py-1.5 mb-1">
+      <span class="font-mono font-bold">${a.ticker}</span>
+      <span class="text-slate-400">${a.market_cap_mia} mia</span>
+      ${a.change_pct!=null?`<span style="color:${a.change_pct>=0?'#4ade80':'#f87171'}">${a.change_pct>=0?'+':''}${a.change_pct}%</span>`:''}
+    </div>`).join("");
+  }
+  document.getElementById("sd-aktier").innerHTML = aktHtml||'<p class="text-xs text-slate-500">Ingen aktier</p>';
+
+  // Indikatorer Q2 2026
+  const inds_dk = d.makro_analyse?.Danmark?.["Q2 2026"]||{};
+  const inds_eu = d.makro_analyse?.Europa?.["Q2 2026"]||{};
+  const inds_usa = d.makro_analyse?.USA?.["Q2 2026"]||{};
+  const INDS = ["PMI","BNP","10 YR","CPI","Baltic Dry","VIX","Currency","Unemployment"];
+  document.getElementById("sd-inds").innerHTML = INDS.map(ind=>{
+    const vals = [inds_dk[ind],inds_eu[ind],inds_usa[ind]].filter(v=>v!=null);
+    const avg = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+    return avg!=null ? `
+      <div class="flex items-center gap-2 text-xs">
+        <span class="text-slate-500 w-20 flex-shrink-0">${ind}</span>
+        <div class="flex-1">${scoreBar(avg)}</div>
+        <span class="font-mono font-bold w-5 text-right flex-shrink-0" style="color:${avg>=4?'#4ade80':avg>=3?'#facc15':'#f87171'}">${avg.toFixed(1)}</span>
+      </div>` : '';
+  }).join("");
+
+  if(d.historisk){
+    document.getElementById("sd-hist").innerHTML=`<span class="font-semibold">Q3 2025 afkast: <span style="color:${d.historisk.q3_afkast>=0?'#4ade80':'#f87171'}">${d.historisk.q3_afkast>=0?'+':''}${d.historisk.q3_afkast}%</span></span><br/><span class="text-slate-400 text-xs">${d.historisk.kommentar}</span>`;
+    document.getElementById("sd-hist").classList.remove("hidden");
+  } else document.getElementById("sd-hist").classList.add("hidden");
+
+  document.getElementById("sektor-detalje").classList.remove("hidden");
+  document.getElementById("sektor-detalje").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+function goTabSektor(sektor){
+  goTab("sektorer",document.querySelector('[onclick="goTab(\'sektorer\',this)"]'));
+  setTimeout(()=>openSektor(sektor),100);
+}
+
+// ── RISIKOPROFIL ───────────────────────────────────────────────────────────
+function setB(v){document.getElementById("beloeb-inp").value=v}
+function startQ(){
+  svar=new Array(spg.length).fill(null); qi=0;
+  document.getElementById("ps1").classList.add("hidden");
+  document.getElementById("ps2").classList.remove("hidden");
+  visQ();
+}
+function visQ(){
+  if(qi>=spg.length){indsend();return}
+  const q=spg[qi];
+  document.getElementById("q-nr").textContent=`Spørgsmål ${qi+1} / ${spg.length}`;
+  document.getElementById("q-tekst").textContent=q.tekst;
+  document.getElementById("q-cnt").textContent=`${qi}/${spg.length}`;
+  document.getElementById("q-bar").style.width=`${qi/spg.length*100}%`;
+  document.getElementById("q-svar").innerHTML=q.svar.map((s,i)=>`
+    <button class="ans-btn ${svar[qi]===s.score?'sel':''}" onclick="vaelg(${s.score},${i})">
+      <span class="text-slate-500 mr-1.5">${s.nr}.</span>${s.tekst}
+    </button>`).join("");
+}
+function vaelg(score,idx){
+  svar[qi]=score;
+  document.querySelectorAll(".ans-btn").forEach((b,i)=>b.classList.toggle("sel",i===idx));
+  setTimeout(()=>{qi++;visQ();},280);
+}
+async function indsend(){
+  const beloeb=parseFloat(document.getElementById("beloeb-inp").value)||0;
+  const res=await fetch("/api/profil",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({svar:svar.filter(s=>s!=null),beloeb})}).then(r=>r.json());
+  document.getElementById("ps2").classList.add("hidden");
+  document.getElementById("ps3").classList.remove("hidden");
+
+  document.getElementById("p-ikon").textContent=PROFIL_IKONER[res.profil.navn]||"📊";
+  document.getElementById("p-navn").textContent=res.profil.navn;
+  document.getElementById("p-beskr").textContent=res.profil.beskrivelse;
+  document.getElementById("p-pct").textContent=Math.round(res.score_ratio*100)+"%";
+  document.getElementById("p-alt").textContent=res.profil.alternativer;
+
+  document.getElementById("alloc").innerHTML=Object.entries(res.fordeling).map(([k,pct])=>{
+    const dkk=res.beloeb_fordeling[k]||0;
+    const c=ALLOC_FARVER[k]||"#94a3b8";
+    return `<div>
+      <div class="flex justify-between text-sm mb-1">
+        <span class="font-medium">${k}</span>
+        <span class="text-slate-400">${pct}% — <span class="text-white font-semibold">${dkk.toLocaleString("da-DK")} DKK</span></span>
+      </div>
+      <div class="bg-white/5 rounded-full h-2 overflow-hidden">
+        <div class="alloc-fill" style="width:${pct}%;background:${c}"></div>
+      </div></div>`;
+  }).join("");
+
+  document.getElementById("p-sektorer").innerHTML=res.top_sektorer.map(s=>{
+    const etfStr=s.etfs.map(e=>e.navn).join(", ")||"—";
+    const aktStr=Object.entries(s.aktier).map(([r,l])=>`<span class="text-slate-500">${r}:</span> ${l.slice(0,2).map(a=>a.ticker).join(", ")}`).join(" · ");
+    return `<div class="flex items-start gap-3 px-5 py-3.5">
+      <div class="rb ${rbCls(s.rank)}">${s.rank}</div>
+      <span class="text-lg">${s.ikon||'📊'}</span>
+      <div class="flex-1 min-w-0">
+        <p class="font-semibold text-sm">${s.sektor} <span class="text-slate-500 font-normal">${s.composite.toFixed(2)}</span></p>
+        <p class="text-xs text-slate-500 mt-0.5">ETF: ${etfStr}</p>
+        ${aktStr?`<p class="text-xs text-slate-500 mt-0.5">${aktStr}</p>`:""}
+      </div></div>`;
+  }).join("");
+}
+function resetP(){document.getElementById("ps3").classList.add("hidden");document.getElementById("ps1").classList.remove("hidden")}
+
+// ── HISTORIK ───────────────────────────────────────────────────────────────
+function renderHistorik(){
+  const h=D.historik;
+  const FARVER={USA:"#60a5fa",Europa:"#4ade80",Danmark:"#f59e0b"};
+
+  function mkChart(id,ind,suffix=""){
+    const kvSet=new Set();
+    for(const [,data] of Object.entries(h)) (data[ind]||[]).forEach(p=>kvSet.add(p.kvartal));
+    const kvs=Array.from(kvSet).sort();
+    const datasets=Object.entries(h).map(([r,data])=>{
+      const m=(data[ind]||[]).reduce((a,p)=>{a[p.kvartal]=p.vaerdi;return a},{});
+      return {label:r,data:kvs.map(k=>m[k]??null),borderColor:FARVER[r]||"#94a3b8",backgroundColor:(FARVER[r]||"#94a3b8")+"22",tension:.3,borderWidth:2,pointRadius:3,spanGaps:true};
+    }).filter(d=>d.data.some(v=>v!=null));
+    const ctx=document.getElementById(id).getContext("2d");
+    if(charts[id]) charts[id].destroy();
+    charts[id]=new Chart(ctx,{type:"line",data:{labels:kvs,datasets},
+      options:{responsive:true,plugins:{legend:{labels:{color:"#94a3b8",font:{size:10},boxWidth:12}}},
+        scales:{x:{ticks:{color:"#64748b",font:{size:9},maxRotation:45},grid:{color:"rgba(255,255,255,.04)"}},
+                y:{ticks:{color:"#64748b",font:{size:10}},grid:{color:"rgba(255,255,255,.04)"},
+                   title:{display:!!suffix,text:suffix,color:"#64748b",font:{size:9}}}}}});
+  }
+  mkChart("c-pmi","PMI");
+  mkChart("c-rate","10yr","%");
+  mkChart("c-cpi","CPI","%");
+  mkChart("c-vix","VIX");
+
+  const tbody=document.getElementById("fremtid-tabel");
+  const INDS=["BNP","PMI","10 YR rate","CPI","VIX","Unemployment","Currency (EUR/USD)","Baltic Dry Index"];
+  tbody.innerHTML="";
+  for(const [region,data] of Object.entries(D.fremtid)){
+    let first=true;
+    for(const ind of INDS){
+      if(!data[ind]) continue;
+      const {q1,q2}=data[ind];
+      tbody.innerHTML+=`<tr class="hover:bg-white/[0.02] transition-colors">
+        <td class="px-5 py-2 text-sm ${first?'font-semibold text-white':'text-transparent'}">${first?region:''}</td>
+        <td class="px-4 py-2 text-xs text-slate-400">${ind}</td>
+        <td class="px-4 py-2 text-xs text-right font-mono">${q1!=null?q1:'—'}</td>
+        <td class="px-4 py-2 text-xs text-right font-mono text-blue-300">${q2!=null?q2:'—'}</td>
+      </tr>`;
+      first=false;
     }
   }
 }
