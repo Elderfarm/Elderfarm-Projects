@@ -209,6 +209,7 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
           <div style="font-size:.65rem;font-weight:700;color:#475569;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;align-self:flex-start">Konjunktur Kompas</div>
           <div id="cycle-compass"></div>
           <div id="compass-legend" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:16px;width:100%"></div>
+          <div id="pillar-momentum" style="margin-top:14px;width:100%;border-top:1px solid rgba(255,255,255,.05);padding-top:12px"></div>
         </div>
 
         <!-- Indikator Momentum -->
@@ -689,47 +690,94 @@ function renderCycleCompass(f){
           <div style="width:${pct}%;height:100%;background:${pColors[ph]};border-radius:2px"></div>
         </div>
       </div>`).join("");
+
+  // Pillar momentum (kun hvis D.pillars er tilgængeligt)
+  const pillarEl = document.getElementById("pillar-momentum");
+  if(!pillarEl) return;
+  const pillars = D.pillars||{};
+  const pillarNames = ["Growth","Labor","Inflation","Financial"];
+  const pillarIcons = {Growth:"📈",Labor:"👷",Inflation:"🔥",Financial:"💰"};
+  // Max pillar score = 3 (Mid=3 is maximum)
+  const pillarBar = (v) => {
+    const pct = Math.round(v/3*100);
+    const col = v>=2.2?"#10B981":v>=1.5?"#60a5fa":v>=0.8?"#F59E0B":"#EF4444";
+    return `<div style="flex:1;background:#1e293b;height:5px;border-radius:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${col};border-radius:3px"></div></div>`;
+  };
+  const momArrow = (m) => {
+    if(!m) return "";
+    const mval = typeof m==="number"?m:0;
+    if(mval>0.05) return `<span style="color:#10B981;font-size:.7rem">↑</span>`;
+    if(mval<-0.05) return `<span style="color:#EF4444;font-size:.7rem">↓</span>`;
+    return `<span style="color:#64748b;font-size:.7rem">→</span>`;
+  };
+
+  // Aggregate across regions
+  const allRegions = Object.keys(pillars);
+  if(!allRegions.length){ pillarEl.innerHTML=""; return; }
+  const hasMomentum = allRegions.some(r=>pillars[r]?._momentum && Object.keys(pillars[r]._momentum).length>0);
+  pillarEl.innerHTML = `<div style="font-size:.6rem;font-weight:700;color:#475569;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Pillar Scores${hasMomentum?" + Momentum":""}</div>`
+    + pillarNames.map(p=>{
+      const scores = allRegions.map(r=>pillars[r]?.[p]).filter(v=>v!=null);
+      const avg = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
+      const moms = allRegions.map(r=>pillars[r]?._momentum?.[p]).filter(v=>v!=null);
+      const avgMom = moms.length ? moms.reduce((a,b)=>a+b,0)/moms.length : null;
+      if(avg==null) return "";
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+        <span style="font-size:.7rem;width:14px;text-align:center">${pillarIcons[p]||""}</span>
+        <span style="font-size:.7rem;color:#94a3b8;width:65px">${p}</span>
+        ${pillarBar(avg)}
+        <span style="font-family:monospace;font-size:.7rem;color:#E2E8F0;width:28px;text-align:right">${avg.toFixed(1)}</span>
+        ${hasMomentum?momArrow(avgMom):""}
+      </div>`;
+    }).join("");
 }
 
 function renderMomentum(){
-  // D.fremtid = {region: {indicator: {q1: val, q2: val}}}
-  if(!D.fremtid||typeof D.fremtid!=="object") return;
+  // Brug seneste_makro (vaerdi + prev_vaerdi) fra template-data
+  // Hentes ved tab-load; falder tilbage på D.fremtid-baseret comparison
+  const allInds = ["PMI","Yield Curve","Retail Sales","NFP","Core CPI","BNP","Wage Growth","Energy","10 YR","VIX","Unemployment"];
 
-  // Map Excel indicator names → display names used in INDIKATORER
-  const nameMap = {"PMI":"PMI","BNP":"BNP","CPI":"Core CPI","10 YR rate":"10 YR","VIX":"VIX","Unemployment":"Unemployment"};
-  const allInds = ["PMI","BNP","Core CPI","10 YR","VIX","Unemployment"];
-
-  function momentumHtml(region){
-    const rdata = D.fremtid[region]||{};
-    // Build lookup by display name
-    const vals = {};
-    Object.entries(rdata).forEach(([k,v])=>{
-      const name = nameMap[k]||k;
-      vals[name] = v;
-    });
-
+  function momentumHtml(region, smakro){
     return allInds.map(ind=>{
-      const entry = vals[ind];
-      const v1 = entry?.q1??null, v2 = entry?.q2??null;
-      const cur = v2??v1??null;
+      const entry = smakro?.[region]?.[ind];
+      const cur = entry?.vaerdi??null;
+      const prev = entry?.prev_vaerdi??null;
       let arrow="→", arrowColor="#64748b";
-      if(v1!=null&&v2!=null){
-        const diff=v2-v1;
-        if(diff>0.05){arrow="↑";arrowColor="#10B981";}
-        else if(diff<-0.05){arrow="↓";arrowColor="#EF4444";}
+      if(cur!=null&&prev!=null){
+        const diff=cur-prev;
+        // Threshold depends on indicator magnitude
+        const thr = Math.abs(cur)>10?0.5:0.05;
+        if(diff>thr){arrow="↑";arrowColor="#10B981";}
+        else if(diff<-thr){arrow="↓";arrowColor="#EF4444";}
       }
+      const kilde = entry?.kilde||"";
+      const kildeTag = kilde==="live"
+        ? `<span style="font-size:.55rem;color:#10B981;font-weight:700;margin-left:4px">LIVE</span>`
+        : kilde==="excel"
+        ? `<span style="font-size:.55rem;color:#818cf8;margin-left:4px">Q1</span>`
+        : "";
       return `
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid #0f172a">
-          <span style="font-size:.75rem;color:#94a3b8;flex:1;white-space:nowrap">${ind}</span>
-          <span style="font-size:1.05rem;font-weight:700;color:${arrowColor};width:16px;text-align:center">${arrow}</span>
-          <span style="font-family:monospace;font-size:.78rem;color:#E2E8F0;width:52px;text-align:right">${cur!=null?cur.toFixed(2):'—'}</span>
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 16px;border-bottom:1px solid #0f172a">
+          <span style="font-size:.72rem;color:#94a3b8;flex:1;white-space:nowrap">${ind}${kildeTag}</span>
+          <span style="font-size:.95rem;font-weight:700;color:${arrowColor};width:14px;text-align:center">${arrow}</span>
+          <span style="font-family:monospace;font-size:.75rem;color:#E2E8F0;width:52px;text-align:right">${cur!=null?cur.toFixed(2):'—'}</span>
         </div>`;
     }).join("");
   }
 
-  document.getElementById("momentum-eu").innerHTML = momentumHtml("Europa");
-  const mUsaEl = document.getElementById("momentum-usa");
-  if(mUsaEl) mUsaEl.innerHTML = momentumHtml("USA");
+  // Prefer template seneste_makro if loaded, else try to load it
+  if(tmpl && tmpl.seneste_makro){
+    document.getElementById("momentum-eu").innerHTML = momentumHtml("Europa", tmpl.seneste_makro);
+    const mUsaEl = document.getElementById("momentum-usa");
+    if(mUsaEl) mUsaEl.innerHTML = momentumHtml("USA", tmpl.seneste_makro);
+    return;
+  }
+  // Fallback: load template data just for momentum (async)
+  fetch("/api/template").then(r=>r.json()).then(t=>{
+    document.getElementById("momentum-eu").innerHTML = momentumHtml("Europa", t.seneste_makro);
+    const mUsaEl = document.getElementById("momentum-usa");
+    if(mUsaEl) mUsaEl.innerHTML = momentumHtml("USA", t.seneste_makro);
+  });
 }
 
 // ── HEATMAP ────────────────────────────────────────────────────────────────

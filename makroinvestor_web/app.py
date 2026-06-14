@@ -29,6 +29,7 @@ def api_dashboard():
         "fremtid":       d["fremtid"],
         "opdateret":     d["opdateret"],
         "data_kvartal":  d["data_kvartal"],
+        "pillars":       d.get("pillars", {}),
     })
 
 
@@ -56,6 +57,7 @@ def api_template():
         "indikator_vaegter":d["indikator_vaegter"],
         "indikator_type":   INDIKATOR_TYPE,
         "fase_meta":        FASE_META,
+        "pillars":          d.get("pillars", {}),
     })
 
 
@@ -73,7 +75,16 @@ def api_simuler():
             else: v = val
             try: inputs[region][ind] = float(v)
             except: pass
-    return jsonify(simuler_sektorer(inputs))
+    body_prev = body.get("prev_makro")
+    prev_inputs = None
+    if body_prev:
+        prev_inputs = {}
+        for region, inds in body_prev.items():
+            prev_inputs[region] = {}
+            for ind, val in inds.items():
+                try: prev_inputs[region][ind] = float(val)
+                except: pass
+    return jsonify(simuler_sektorer(inputs, prev_inputs))
 
 
 @app.route("/api/spoergeskema")

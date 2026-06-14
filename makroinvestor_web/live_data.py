@@ -225,11 +225,13 @@ def flet_med_default(live, default):
         all_inds = set(default_rg.keys()) | set(live_rg.keys())
         for ind in all_inds:
             if ind in live_rg and live_rg[ind] is not None:
-                result[region][ind] = {"vaerdi": live_rg[ind], "kilde": "live"}
+                # Bevar prev_vaerdi fra excel-data (live_rg har kun nuværende)
+                prev = default_rg.get(ind, {}).get("prev_vaerdi") if isinstance(default_rg.get(ind), dict) else None
+                result[region][ind] = {"vaerdi": live_rg[ind], "kilde": "live", "prev_vaerdi": prev}
             elif ind in default_rg:
                 v = default_rg[ind]
                 if isinstance(v, dict):
-                    result[region][ind] = v  # bevar eksisterende kilde-felt
+                    result[region][ind] = v  # bevar eksisterende kilde-felt + prev_vaerdi
                 else:
-                    result[region][ind] = {"vaerdi": v, "kilde": "estimat"}
+                    result[region][ind] = {"vaerdi": v, "kilde": "estimat", "prev_vaerdi": None}
     return result

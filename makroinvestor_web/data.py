@@ -733,7 +733,37 @@ def hent_afstemning(wb):
 
 _FASE_SCORE = {"Early": 2, "Mid": 3, "Late": 1, "Recession": 0}
 
-def klassificer_makro(region_inputs, region="USA"):
+# Pillar-definitioner — bruges også i momentum-beregning
+_GROWTH_INDS = [("PMI",4),("BNP",2),("Retail Sales",2)]
+_LABOR_INDS  = [("NFP",3),("Wage Growth",2),("Unemployment",2)]
+_INFL_INDS   = [("Core CPI",3),("Energy",1)]
+_FIN_INDS    = [("Yield Curve",3),("10 YR",1),("VIX",1)]
+
+def _fase_fra_inputs(v, region):
+    """Beregn per-indikator faser fra et input-dict. Intern hjælper."""
+    return {
+        "PMI":          fase_pmi(v.get("PMI")),
+        "Yield Curve":  fase_yield_curve(v.get("Yield Curve")),
+        "Retail Sales": fase_retail_sales(v.get("Retail Sales")),
+        "NFP":          fase_nfp(v.get("NFP"), region),
+        "Core CPI":     fase_core_cpi(v.get("Core CPI")),
+        "BNP":          fase_bnp(v.get("BNP")),
+        "Wage Growth":  fase_wage_growth(v.get("Wage Growth")),
+        "Energy":       fase_energy(v.get("Energy")),
+        "10 YR":        fase_rente(v.get("10 YR"), region),
+        "VIX":          fase_vix(v.get("VIX")),
+        "Unemployment": fase_unemployment(v.get("Unemployment")),
+    }
+
+def _pillar(faser, inds_weights):
+    """Vægtet pillar-score (0-3) fra et faser-dict."""
+    s, w = 0, 0
+    for ind, wt in inds_weights:
+        f = faser.get(ind)
+        if f: s += _FASE_SCORE[f] * wt; w += wt
+    return s / w if w else 1.5
+
+def klassificer_makro(region_inputs, region="USA", prev_inputs=None):
     """
     Klassificer makroværdier til faser per indikator + vægtet global fase.
 
@@ -763,19 +793,30 @@ def klassificer_makro(region_inputs, region="USA"):
     faser["Unemployment"] = fase_unemployment(v.get("Unemployment"))
 
     # ── Pillar-aggregering ──────────────────────────────────────────────────
-    def pillar_score(inds_weights):
-        """Vægtet gennemsnit af _FASE_SCORE for en pillar. Returnerer 0-3."""
-        s, w = 0, 0
-        for ind, wt in inds_weights:
-            f = faser.get(ind)
-            if f:
-                s += _FASE_SCORE[f] * wt; w += wt
-        return s / w if w else 1.5
+    growth_p = _pillar(faser, _GROWTH_INDS)
+    labor_p  = _pillar(faser, _LABOR_INDS)
+    infl_p   = _pillar(faser, _INFL_INDS)
+    fin_p    = _pillar(faser, _FIN_INDS)
 
-    growth_p = pillar_score([("PMI",4),("BNP",2),("Retail Sales",2)])
-    labor_p  = pillar_score([("NFP",3),("Wage Growth",2),("Unemployment",2)])
-    infl_p   = pillar_score([("Core CPI",3),("Energy",1)])
-    fin_p    = pillar_score([("Yield Curve",3),("10 YR",1),("VIX",1)])
+    # ── Momentum-justering (hvis forrige periode er tilgængelig) ─────────────
+    # Princip: 70% niveau + 30% retning/acceleration.
+    # En PMI der stiger fra 48→52 = Early i niveau, men momentum er positiv
+    # → pillar-score justeres op, rykker fasebeslutningen mod det bedre.
+    # Cap på ±0.5 per pillar for at undgå single-period outliers dominerer.
+    momentum_adj = {}
+    if prev_inputs:
+        pf = _fase_fra_inputs(prev_inputs, region)
+        pg = _pillar(pf, _GROWTH_INDS)
+        pl = _pillar(pf, _LABOR_INDS)
+        pi = _pillar(pf, _INFL_INDS)
+        pn = _pillar(pf, _FIN_INDS)
+        MCLIP = 0.5
+        def m(cur, prv): return max(-MCLIP, min(MCLIP, (cur - prv) * 0.4))
+        mg = m(growth_p, pg); ml = m(labor_p, pl)
+        mi = m(infl_p, pi);   mf = m(fin_p, pn)
+        growth_p += mg; labor_p += ml; infl_p += mi; fin_p += mf
+        momentum_adj = {"Growth": round(mg,2), "Labor": round(ml,2),
+                        "Inflation": round(mi,2), "Financial": round(mf,2)}
 
     # ── Pillar-baseret fasebeslutning (prioriteret rækkefølge) ──────────────
     # Recession: klart growth-kollaps
@@ -810,7 +851,8 @@ def klassificer_makro(region_inputs, region="USA"):
     faser["_point"]    = point
     faser["_pct"]      = {f: round(p/total*100) for f,p in point.items()} if total else {}
     faser["_pillars"]  = {"Growth": round(growth_p,2), "Labor": round(labor_p,2),
-                          "Inflation": round(infl_p,2), "Financial": round(fin_p,2)}
+                          "Inflation": round(infl_p,2), "Financial": round(fin_p,2),
+                          "_momentum": momentum_adj}
     return faser
 
 
@@ -1007,15 +1049,17 @@ def _score_sektor_region(sektor, region, f):
     return round(max(1.0, min(5.0, base)), 2)
 
 
-def simuler_sektorer(makro_inputs):
+def simuler_sektorer(makro_inputs, prev_inputs=None):
     """
     Simuler sektorscorer fra bruger-definerede makroværdier.
     makro_inputs: {region: {indikator: vaerdi}}
+    prev_inputs:  {region: {indikator: vaerdi}} — forrige periode (til momentum)
     """
     # Beregn fase per region
     faser = {}
     for region, inputs in makro_inputs.items():
-        f = klassificer_makro(inputs, region)
+        prev = (prev_inputs or {}).get(region)
+        f = klassificer_makro(inputs, region, prev_inputs=prev)
         faser[region] = f
 
     # Score per sektor
@@ -1044,8 +1088,11 @@ def simuler_sektorer(makro_inputs):
             global_pt[fase] += pt
     global_fase = max(global_pt, key=global_pt.get)
 
+    pillars = {r: f.get("_pillars", {}) for r, f in faser.items()}
     return {"sektorer": resultater, "fase": global_fase,
-            "fase_meta": FASE_META.get(global_fase,{}), "faser": {r: f["_global"] for r,f in faser.items()}}
+            "fase_meta": FASE_META.get(global_fase,{}),
+            "faser": {r: f["_global"] for r,f in faser.items()},
+            "pillars": pillars}
 
 
 def sektor_ind_scores(seneste_makro, sektor):
@@ -1142,19 +1189,26 @@ def byg_seneste_makro(fremtid):
             kilde = "estimat"
             raw = None
 
+            prev_raw = None
             if excel_key and excel_key in data:
                 raw = data[excel_key].get("q2") or data[excel_key].get("q1")
+                prev_raw = data[excel_key].get("q1")  # forrige periode til momentum
                 if raw is not None:
                     if ind_key in _PROCENT_INDS and abs(raw) < 1:
                         raw = round(raw * 100, 2)
                     else:
                         raw = round(float(raw), 4)
                     kilde = "excel"
+                if prev_raw is not None:
+                    if ind_key in _PROCENT_INDS and abs(prev_raw) < 1:
+                        prev_raw = round(prev_raw * 100, 2)
+                    else:
+                        prev_raw = round(float(prev_raw), 4)
 
             if raw is None:
                 raw = ind_meta.get("vaerdi", 0)
 
-            result[region][ind_key] = {**ind_meta, "vaerdi": raw, "kilde": kilde}
+            result[region][ind_key] = {**ind_meta, "vaerdi": raw, "prev_vaerdi": prev_raw, "kilde": kilde}
 
     return result
 
@@ -1190,7 +1244,13 @@ def hent_alle_data():
     # Brug samme algoritme som "Mine forventninger" så tallene stemmer overens
     sim_inputs = {r: {k: v["vaerdi"] for k, v in inds.items()}
                   for r, inds in seneste_makro.items()}
-    sim_result = simuler_sektorer(sim_inputs)
+    # Byg prev_inputs til momentum-beregning (q1 data fra Excel)
+    prev_inputs = {}
+    for r, inds in seneste_makro.items():
+        prev_r = {k: v["prev_vaerdi"] for k, v in inds.items() if v.get("prev_vaerdi") is not None}
+        if prev_r:
+            prev_inputs[r] = prev_r
+    sim_result = simuler_sektorer(sim_inputs, prev_inputs if prev_inputs else None)
     sektorer = sim_result["sektorer"]
 
     for s in sektorer:
@@ -1213,6 +1273,7 @@ def hent_alle_data():
     return {
         "makro_fase":      makro_fase,
         "sektorer":        sektorer,
+        "pillars":         sim_result.get("pillars", {}),
         "heatmap":         heatmap,
         "makro_analyse":   makro_analyse,
         "etf_liste":       etf_liste,
