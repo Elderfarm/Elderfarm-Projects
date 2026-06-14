@@ -14,7 +14,7 @@ EXCEL_PATH = os.environ.get("MAKRO_EXCEL", _DEFAULT_EXCEL)
 
 KVARTALER_HIST = ["Q1 2024","Q2 2024","Q3 2024","Q4 2024",
                   "Q1 2025","Q2 2025","Q3 2025","Q4 2025"]
-KVARTALER_PROJ = ["Q1 2026","Q2 2026"]
+KVARTALER_PROJ = ["Q1 2026","Q2 2026","Q3 2026"]
 ALLE_KVARTALER = KVARTALER_HIST + KVARTALER_PROJ
 
 # Optimeret indikatorliste — Baltic Dry og Currency fjernet (Asien-bias, ikke konjunkturel)
