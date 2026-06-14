@@ -99,33 +99,61 @@ FASE_META = {
     "Recession": ("Recession",      "Negativ vækst. Obligationer, guld og defensive sektorer.",        "⚠️", "#f87171"),
 }
 
-# Standard makro-inputs (Q2 2026 estimater) — kun Europa og USA
+# Aktuelle makrodata — opdateret juni 2026 med live kilde-referencer
+# Kilder: ISM PMI maj 2026, BLS jobs-rapport maj 2026, BLS CPI maj 2026,
+#         BEA GDP Q1 2026 (anden estimat), US Treasury juni 2026,
+#         Eurostat HICP maj 2026, Eurostat BNP Q1 2026, ECB/Destatis maj 2026
 DEFAULT_MAKRO = {
     "Europa": {
-        "PMI":          {"vaerdi": 52.3, "enhed": "",   "label": "PMI Eurozone Composite"},
-        "Yield Curve":  {"vaerdi": 0.40, "enhed": "%",  "label": "Yield Curve (10Y-2Y)"},
-        "Retail Sales": {"vaerdi": 0.2,  "enhed": "%",  "label": "Retail Sales (MoM %)"},
-        "NFP":          {"vaerdi": 80.0, "enhed": "k",  "label": "Beskæftigelsesvækst (t/md)"},
-        "Core CPI":     {"vaerdi": 2.1,  "enhed": "%",  "label": "Kerninflation (ex. energi/fødevarer)"},
-        "BNP":          {"vaerdi": 1.3,  "enhed": "%",  "label": "BNP vækst (YoY %)"},
-        "Wage Growth":  {"vaerdi": 3.0,  "enhed": "%",  "label": "Lønvækst (YoY %)"},
-        "Energy":       {"vaerdi": 3.0,  "enhed": "%",  "label": "Energipriser olie (YoY %)"},
-        "10 YR":        {"vaerdi": 2.95, "enhed": "%",  "label": "10-årig statsrente"},
-        "VIX":          {"vaerdi": 17.0, "enhed": "",   "label": "VIX (volatilitetsindeks)"},
-        "Unemployment": {"vaerdi": 6.2,  "enhed": "%",  "label": "Arbejdsløshed (%)"},
+        # Eurozone Composite PMI maj 2026: 47.5 (S&P Global/HCOB)
+        # Manufacturing 51.6, men Services kollapset til 46.4 grundet Mellemøsten-energichok
+        "PMI":          {"vaerdi": 47.5, "enhed": "",   "label": "PMI Eurozone Composite (maj 2026)"},
+        # Germany 10Y Bund: 3.00% · 2Y: ~2.67% → spread +0.33%
+        "Yield Curve":  {"vaerdi": 0.33, "enhed": "%",  "label": "Yield Curve 10Y-2Y (juni 2026)"},
+        # EU Retail Sales svag — services PMI 46.4 indikerer forbrugertilbageholdelse
+        # Estimat: ca. +2.5% YoY (eurozone retail Q1/tidlig Q2)
+        "Retail Sales": {"vaerdi": 2.5,  "enhed": "%",  "label": "Retail Sales YoY % (estimat)"},
+        # Eurozone månedlig beskæftigelse ca. 60-80k netto (stabil men aftagende)
+        "NFP":          {"vaerdi": 65.0, "enhed": "k",  "label": "Beskæftigelsesvækst netto (t/md)"},
+        # Eurostat core HICP (ex energi, mad, alkohol, tobak) maj 2026: 2.5% YoY
+        "Core CPI":     {"vaerdi": 2.5,  "enhed": "%",  "label": "Kerninflation HICP (maj 2026)"},
+        # Eurozone BNP YoY Q1 2026: +0.8% (markant afmatning fra 1.3% i Q4 2025)
+        "BNP":          {"vaerdi": 0.8,  "enhed": "%",  "label": "BNP vækst YoY Q1 2026"},
+        # ECB forhandlet lønvækst fortsat ca. 3.5% i tidlig 2026 (ECB løntracker)
+        "Wage Growth":  {"vaerdi": 3.5,  "enhed": "%",  "label": "Lønvækst YoY % (ECB løntracker)"},
+        # WTI/Brent energi YoY: Brent ~$95 vs ~$68 år siden → +40% YoY (Mellemøsten-krise)
+        "Energy":       {"vaerdi": 40.0, "enhed": "%",  "label": "Energipriser olie YoY % (Brent juni 2026)"},
+        # Germany 10Y Bund: 3.00% (juni 12, 2026)
+        "10 YR":        {"vaerdi": 3.00, "enhed": "%",  "label": "10-årig Bund rente (juni 2026)"},
+        # VIX globalt signal: 17.7 (juni 12, 2026) — aftagende fra 30+ i marts
+        "VIX":          {"vaerdi": 17.7, "enhed": "",   "label": "VIX (juni 12, 2026)"},
+        # Eurozone arbejdsløshed april 2026: 6.3% (Eurostat)
+        "Unemployment": {"vaerdi": 6.3,  "enhed": "%",  "label": "Arbejdsløshed (april 2026)"},
     },
     "USA": {
-        "PMI":          {"vaerdi": 52.5, "enhed": "",   "label": "PMI Composite"},
-        "Yield Curve":  {"vaerdi": 0.20, "enhed": "%",  "label": "Yield Curve (10Y-2Y)"},
-        "Retail Sales": {"vaerdi": 0.3,  "enhed": "%",  "label": "Retail Sales (MoM %)"},
-        "NFP":          {"vaerdi": 185,  "enhed": "k",  "label": "Non-Farm Payrolls (t/md)"},
-        "Core CPI":     {"vaerdi": 2.8,  "enhed": "%",  "label": "Kerninflation (ex. energi/fødevarer)"},
-        "BNP":          {"vaerdi": 1.8,  "enhed": "%",  "label": "BNP vækst (YoY %)"},
-        "Wage Growth":  {"vaerdi": 4.1,  "enhed": "%",  "label": "Lønvækst / Avg. Hourly Earnings"},
-        "Energy":       {"vaerdi": 3.0,  "enhed": "%",  "label": "Energipriser olie (YoY %)"},
-        "10 YR":        {"vaerdi": 4.25, "enhed": "%",  "label": "10-årig Treasury rente"},
-        "VIX":          {"vaerdi": 17.0, "enhed": "",   "label": "VIX (volatilitetsindeks)"},
-        "Unemployment": {"vaerdi": 4.4,  "enhed": "%",  "label": "Arbejdsløshed (%)"},
+        # ISM Manufacturing PMI maj 2026: 54.0 (5. ekspansionsmåned i træk)
+        # Services PMI maj 2026: 54.5 — bruger composite ~54.2
+        "PMI":          {"vaerdi": 54.0, "enhed": "",   "label": "ISM Manufacturing PMI (maj 2026)"},
+        # 10Y Treasury: 4.49% · 2Y: 4.09% → spread +0.40% (normal kurve)
+        "Yield Curve":  {"vaerdi": 0.40, "enhed": "%",  "label": "Yield Curve 10Y-2Y (juni 2026)"},
+        # US Retail Sales core YoY maj 2026: +7.0% (8. vækstmåned i træk)
+        "Retail Sales": {"vaerdi": 7.0,  "enhed": "%",  "label": "Retail Sales YoY % (maj 2026)"},
+        # BLS NFP maj 2026: +172k (over forventning på 85k)
+        "NFP":          {"vaerdi": 172,  "enhed": "k",  "label": "Non-Farm Payrolls (maj 2026)"},
+        # BLS Core CPI (ex food+energy) maj 2026: +2.9% YoY
+        "Core CPI":     {"vaerdi": 2.9,  "enhed": "%",  "label": "Core CPI YoY (maj 2026)"},
+        # BEA Real GDP YoY Q1 2026: +2.6% (Q/Q annualiseret: 1.6%)
+        "BNP":          {"vaerdi": 2.6,  "enhed": "%",  "label": "Real GDP YoY Q1 2026"},
+        # BLS Avg. Hourly Earnings maj 2026: +3.4% YoY (aftagende fra 3.6%)
+        "Wage Growth":  {"vaerdi": 3.4,  "enhed": "%",  "label": "Avg. Hourly Earnings YoY (maj 2026)"},
+        # WTI crude YoY: +19.1% som af juni 14, 2026
+        "Energy":       {"vaerdi": 19.1, "enhed": "%",  "label": "WTI råolie YoY % (juni 2026)"},
+        # 10Y US Treasury: 4.49% (juni 12, 2026)
+        "10 YR":        {"vaerdi": 4.49, "enhed": "%",  "label": "10Y Treasury (juni 12, 2026)"},
+        # VIX: 17.7 (juni 12, 2026)
+        "VIX":          {"vaerdi": 17.7, "enhed": "",   "label": "VIX (juni 12, 2026)"},
+        # BLS Unemployment maj 2026: 4.3% (stabilt)
+        "Unemployment": {"vaerdi": 4.3,  "enhed": "%",  "label": "Unemployment rate (maj 2026)"},
     },
 }
 
@@ -167,14 +195,15 @@ def fase_yield_curve(v):
 
 def fase_retail_sales(v):
     """
-    Retail Sales MoM % — coincident forbrugsmål.
-    Gentagne negative måneder = recession. Stabil >0.3% = solid forbrug.
+    Retail Sales YoY % — coincident forbrugsmål.
+    Negativ = recession-signal. 0-2% = svag/late. 2-5% = moderate/early. >5% = mid-cycle styrke.
+    Thresholds: nominelle YoY-tal (inkl. inflation), så 5%+ er normalt i moderate inflationsmiljøer.
     """
     if v is None: return None
-    if v < -0.2:  return "Recession" # Klart negativt
-    if v < 0.1:   return "Late"      # Stagnation/svagt
-    if v < 0.35:  return "Early"     # Moderat vækst
-    return "Mid"                      # Solid forbrugsvækst
+    if v < 0.0:  return "Recession"  # Negativt = recession/kontraktion
+    if v < 2.0:  return "Late"       # Svag vækst — forbrugere presset
+    if v < 5.0:  return "Early"      # Moderat vækst
+    return "Mid"                      # Solid forbrugsvækst (>5% YoY nominelt)
 
 def fase_nfp(v, region="USA"):
     """
@@ -208,13 +237,14 @@ def fase_core_cpi(v):
 def fase_bnp(v):
     """
     BNP vækst YoY % — lagging bekræftelse.
-    US potentiel vækst ~2%, Eurozone ~1.5%. Over potentiel = Late-signal.
+    US potentiel vækst ~2%, Eurozone ~1.5%. Klart over potentiel = Late-signal.
+    Tærskel hævet til 3.0% da 2-3% YoY er normalt i mid-cycle, ikke overophedning.
     """
     if v is None: return None
     if v < 0:     return "Recession"
     if v < 0.8:   return "Early"      # Svag men positiv vækst — tidlig recovery
-    if v < 2.2:   return "Mid"        # Omkring/over potentiel (sænket fra 2.5)
-    return "Late"                      # Over potentiel = overophedning
+    if v < 3.0:   return "Mid"        # Normal til stærk vækst (0.8-3.0%)
+    return "Late"                      # >3% YoY = potentiel overophedning
 
 def fase_wage_growth(v):
     """
@@ -822,15 +852,16 @@ def klassificer_makro(region_inputs, region="USA", prev_inputs=None):
     # Recession: klart growth-kollaps
     if growth_p < 0.8 or (growth_p < 1.3 and labor_p < 0.8):
         global_fase = "Recession"
+    # Late (stagflation/energichok): høj inflation + svag vækst — fanger supply-chok
+    # Eksempel: Europa 2022 (energikrise), 2026 (Mellemøsten-krise).
+    # infl_p > 2.3 = klart over neutrale niveauer på 0-3 skalaen.
+    elif infl_p > 2.3 and growth_p < 1.8:
+        global_fase = "Late"
     # Late (inflation-drevet): overhedning + finansiel stramning + aftagende vækst
     elif infl_p <= 1.5 and fin_p < 1.8 and growth_p < 2.0:
         global_fase = "Late"
-    # Late (stagflation): høj inflation + svag vækst
-    elif infl_p <= 1.2 and growth_p < 1.8:
-        global_fase = "Late"
     # Late (finansiel stramning): stramme finansielle forhold + ikke-accelererende vækst.
     # Fanger 2018/2019-type cykler: inverteret/flat yield curve + Fed-hikes
-    # uden nødvendigvis høj inflation. Vækst < 2.3 er guard mod falske signaler.
     elif fin_p < 1.8 and growth_p < 2.3:
         global_fase = "Late"
     # Mid: stærk vækst + solidt arbejdsmarked
@@ -861,39 +892,17 @@ def _pct(raw):
     if raw is None: return None
     return round(raw * 100, 2) if abs(raw) < 1 else round(raw, 2)
 
-def beregn_makrofase(fremtid):
+def beregn_makrofase(seneste_makro):
     """
-    Beregn global makrofase fra Excel Fremtid vækst-data.
-    Nye indikatorer (Yield Curve, NFP, Retail Sales, Wage Growth, Energy)
-    hentes fra DEFAULT_MAKRO som bedst-mulige estimat, da de ikke er i Excel.
+    Beregn global makrofase fra seneste makrodata (DEFAULT_MAKRO / live / Excel).
+    seneste_makro: {region: {indikator: {vaerdi, enhed, label, kilde}}}
     """
     global_point = {"Early":0,"Mid":0,"Late":0,"Recession":0}
     detaljer = []
 
     for region in ("Europa", "USA"):
-        data = fremtid.get(region, {})
-        dflt = DEFAULT_MAKRO.get(region, {})
-
-        def ex(excel_key, fallback_ind):
-            """Hent fra Excel, fallback til DEFAULT_MAKRO."""
-            raw = data.get(excel_key, {}).get("q2")
-            if raw is not None:
-                return _pct(raw) if excel_key not in ("PMI","10 YR rate","VIX","Baltic Dry Index") else raw
-            return dflt.get(fallback_ind, {}).get("vaerdi")
-
-        inputs = {
-            "PMI":          ex("PMI",         "PMI"),
-            "Yield Curve":  dflt.get("Yield Curve",  {}).get("vaerdi"),  # ikke i Excel
-            "Retail Sales": dflt.get("Retail Sales",{}).get("vaerdi"),  # ikke i Excel
-            "NFP":          dflt.get("NFP",         {}).get("vaerdi"),  # ikke i Excel
-            "Core CPI":     ex("CPI",         "Core CPI"),   # brug CPI som proxy
-            "BNP":          ex("BNP",         "BNP"),
-            "Wage Growth":  dflt.get("Wage Growth",{}).get("vaerdi"),  # ikke i Excel
-            "Energy":       dflt.get("Energy",      {}).get("vaerdi"),  # ikke i Excel
-            "10 YR":        ex("10 YR rate",  "10 YR"),
-            "VIX":          ex("VIX",         "VIX"),
-            "Unemployment": ex("Unemployment","Unemployment"),
-        }
+        reg_data = seneste_makro.get(region, {})
+        inputs = {ind: reg_data.get(ind, {}).get("vaerdi") for ind in INDIKATORER}
 
         faser = klassificer_makro(inputs, region)
         for f, pts in faser["_point"].items():
@@ -902,7 +911,9 @@ def beregn_makrofase(fremtid):
         ind_liste = []
         for ind in INDIKATORER:
             val = inputs.get(ind)
-            enhed = DEFAULT_MAKRO.get(region,{}).get(ind,{}).get("enhed","")
+            meta = reg_data.get(ind, {})
+            enhed = meta.get("enhed", "")
+            kilde = meta.get("kilde", "estimat")
             if isinstance(val, float): vis = f"{val:.2f}"
             elif val is not None: vis = str(val)
             else: vis = "N/A"
@@ -912,6 +923,7 @@ def beregn_makrofase(fremtid):
                 "fase": faser.get(ind),
                 "vaegt": INDIKATOR_VAEGTER.get(ind, 1),
                 "type": INDIKATOR_TYPE.get(ind, ""),
+                "kilde": kilde,
             })
 
         detaljer.append({
@@ -1173,42 +1185,33 @@ _PROCENT_INDS = {"BNP", "Core CPI", "Unemployment", "Yield Curve", "Retail Sales
 def byg_seneste_makro(fremtid):
     """
     Byg seneste makro-snapshot til at præ-udfylde sliders.
-    Excel-data bruges for indikatorer der findes i Fremtid vækst-arket;
-    DEFAULT_MAKRO bruges for nye indikatorer (Yield Curve, NFP, Retail Sales,
-    Wage Growth, Energy) der ikke er i Excel-filen endnu.
-    Hvert felt markeres med 'kilde': 'excel' eller 'estimat'.
+    Prioritet: DEFAULT_MAKRO (manuelt opdateret med aktuelle tal) > FRED/ECB live (via flet_med_default).
+    Excel Fremtid-arket bruges KUN til prev_vaerdi (Q1-historik til momentumberegning).
+    DEFAULT_MAKRO er altid den primære kilde, da det opdateres med ægte makrodata.
     """
     result = {}
     for region in ("Europa", "USA"):
-        data = fremtid.get(region, {})
+        excel_data = fremtid.get(region, {})
         dflt = DEFAULT_MAKRO.get(region, {})
         result[region] = {}
 
         for ind_key, ind_meta in dflt.items():
             excel_key = next((k for k, v in _FREMTID_NAVNE.items() if v == ind_key), None)
-            kilde = "estimat"
-            raw = None
 
+            # Primær kilde: DEFAULT_MAKRO (opdateret med ægte juni 2026-data)
+            raw = ind_meta.get("vaerdi", 0)
+
+            # Excel Q1-data bruges KUN til momentum (prev_vaerdi), ikke som primær kilde
             prev_raw = None
-            if excel_key and excel_key in data:
-                raw = data[excel_key].get("q2") or data[excel_key].get("q1")
-                prev_raw = data[excel_key].get("q1")  # forrige periode til momentum
-                if raw is not None:
-                    if ind_key in _PROCENT_INDS and abs(raw) < 1:
-                        raw = round(raw * 100, 2)
-                    else:
-                        raw = round(float(raw), 4)
-                    kilde = "excel"
+            if excel_key and excel_key in excel_data:
+                prev_raw = excel_data[excel_key].get("q1")
                 if prev_raw is not None:
                     if ind_key in _PROCENT_INDS and abs(prev_raw) < 1:
                         prev_raw = round(prev_raw * 100, 2)
                     else:
                         prev_raw = round(float(prev_raw), 4)
 
-            if raw is None:
-                raw = ind_meta.get("vaerdi", 0)
-
-            result[region][ind_key] = {**ind_meta, "vaerdi": raw, "prev_vaerdi": prev_raw, "kilde": kilde}
+            result[region][ind_key] = {**ind_meta, "vaerdi": raw, "prev_vaerdi": prev_raw, "kilde": "estimat"}
 
     return result
 
@@ -1239,7 +1242,7 @@ def hent_alle_data():
         import logging; logging.getLogger(__name__).warning(f"live_data fejl: {_e}")
         seneste_makro = seneste_makro_excel
 
-    makro_fase     = beregn_makrofase(fremtid)
+    makro_fase     = beregn_makrofase(seneste_makro)
 
     # Brug samme algoritme som "Mine forventninger" så tallene stemmer overens
     sim_inputs = {r: {k: v["vaerdi"] for k, v in inds.items()}

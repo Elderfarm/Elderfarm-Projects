@@ -861,19 +861,20 @@ function showIndBreakdown(sektor){
 
 // ── SKABELON ───────────────────────────────────────────────────────────────
 // Baltic Dry og Currency fjernet. Nye: Yield Curve, NFP, Retail Sales, Wage Growth, Energy
+// Retail Sales = YoY % (nominelt)
 const SCENARIOS = {
-  recession:   {PMI:44,"Yield Curve":-0.8,"Retail Sales":-0.3,NFP:-50,"Core CPI":1.2,BNP:-1.5,"Wage Growth":1.8,Energy:-30,"10 YR":2.5,VIX:42,Unemployment:8.5},
-  boom:        {PMI:57,"Yield Curve":1.8, "Retail Sales":0.7, NFP:320,"Core CPI":3.2,BNP:3.5, "Wage Growth":4.8,Energy:35, "10 YR":4.5,VIX:13,Unemployment:3.2},
-  stagflation: {PMI:47,"Yield Curve":0.1, "Retail Sales":0.1, NFP:40, "Core CPI":5.5,BNP:0.3, "Wage Growth":5.5,Energy:55, "10 YR":5.5,VIX:28,Unemployment:6.5},
-  softlanding: {PMI:52,"Yield Curve":0.6, "Retail Sales":0.3, NFP:160,"Core CPI":2.1,BNP:2.0, "Wage Growth":3.8,Energy:5,  "10 YR":3.5,VIX:16,Unemployment:4.5},
-  ratehike:    {PMI:50,"Yield Curve":-0.2,"Retail Sales":0.15,NFP:90, "Core CPI":4.2,BNP:1.5, "Wage Growth":4.8,Energy:25, "10 YR":6.0,VIX:22,Unemployment:5.0},
+  recession:   {PMI:44,"Yield Curve":-0.8,"Retail Sales":-3.0, NFP:-50, "Core CPI":1.2,BNP:-1.5,"Wage Growth":1.8,Energy:-30,"10 YR":2.5,VIX:42,Unemployment:8.5},
+  boom:        {PMI:57,"Yield Curve":1.8, "Retail Sales":9.0,  NFP:320, "Core CPI":3.2,BNP:3.5, "Wage Growth":4.8,Energy:35, "10 YR":4.5,VIX:13,Unemployment:3.2},
+  stagflation: {PMI:47,"Yield Curve":0.1, "Retail Sales":1.5,  NFP:40,  "Core CPI":5.5,BNP:0.3, "Wage Growth":5.5,Energy:55, "10 YR":5.5,VIX:28,Unemployment:6.5},
+  softlanding: {PMI:52,"Yield Curve":0.6, "Retail Sales":4.0,  NFP:160, "Core CPI":2.1,BNP:2.0, "Wage Growth":3.8,Energy:5,  "10 YR":3.5,VIX:16,Unemployment:4.5},
+  ratehike:    {PMI:50,"Yield Curve":-0.2,"Retail Sales":2.0,  NFP:90,  "Core CPI":4.2,BNP:1.5, "Wage Growth":4.8,Energy:25, "10 YR":6.0,VIX:22,Unemployment:5.0},
 };
 
 // Fasekriterier til visuelt hint i slideren
 const IND_FASER = {
   PMI:           [{l:30,lbl:"Recession"},{l:47,lbl:"Late"},{l:50,lbl:"Early"},{l:54,lbl:"Mid"}],
-  "Yield Curve": [{l:-2,lbl:"Recession"},{l:-0.3,lbl:"Late"},{l:0.3,lbl:"Mid"},{l:1.5,lbl:"Early"}],
-  "Retail Sales":[{l:-1,lbl:"Recession"},{l:0,lbl:"Late"},{l:0.15,lbl:"Early"},{l:0.4,lbl:"Mid"}],
+  "Yield Curve": [{l:-2,lbl:"Recession"},{l:-0.5,lbl:"Late"},{l:0.2,lbl:"Mid"},{l:1.2,lbl:"Early"}],
+  "Retail Sales":[{l:-5,lbl:"Recession"},{l:0,lbl:"Late"},{l:2,lbl:"Early"},{l:5,lbl:"Mid"}],
   NFP:           [{l:-100,lbl:"Recession"},{l:30,lbl:"Late"},{l:100,lbl:"Early"},{l:220,lbl:"Mid"}],
   "Core CPI":    [{l:0,lbl:"Recession"},{l:1.5,lbl:"Early"},{l:2.5,lbl:"Mid"},{l:3.5,lbl:"Late"}],
   BNP:           [{l:-4,lbl:"Recession"},{l:0,lbl:"Early"},{l:1,lbl:"Mid"},{l:2.5,lbl:"Late"}],
@@ -891,7 +892,7 @@ function buildTemplateInputs(){
   const ranges = {
     PMI:           [30,  65,   0.5],
     "Yield Curve": [-2,   3,   0.05],
-    "Retail Sales":[-1,   2,   0.05],
+    "Retail Sales":[-10,  20,  0.5],
     NFP:           [-100,500,  5],
     "Core CPI":    [0,   8,    0.1],
     BNP:           [-4,  6,    0.1],
