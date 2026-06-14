@@ -673,24 +673,25 @@ function renderCycleCompass(f){
 }
 
 function renderMomentum(){
-  if(!D.fremtid||!D.fremtid.length) return;
-  const inds = ["PMI","BNP","Core CPI","Unemployment","VIX","10 YR"];
-  const phColors = {Early:"#10B981",Mid:"#3B82F6",Late:"#F59E0B",Recession:"#EF4444"};
+  // D.fremtid = {region: {indicator: {q1: val, q2: val}}}
+  if(!D.fremtid||typeof D.fremtid!=="object") return;
 
-  // Build lookup: {region: {ind: [{kvartal, vaerdi}]}}
-  const lookup = {};
-  D.fremtid.forEach(row=>{
-    const rg = row.region, ind = row.indikator;
-    if(!lookup[rg]) lookup[rg]={}; if(!lookup[rg][ind]) lookup[rg][ind]=[];
-    lookup[rg][ind].push({kvartal:row.kvartal, vaerdi:row.vaerdi});
-  });
+  // Map Excel indicator names → display names used in INDIKATORER
+  const nameMap = {"PMI":"PMI","BNP":"BNP","CPI":"Core CPI","10 YR rate":"10 YR","VIX":"VIX","Unemployment":"Unemployment"};
+  const allInds = ["PMI","BNP","Core CPI","10 YR","VIX","Unemployment"];
 
   function momentumHtml(region){
-    return inds.map(ind=>{
-      const serie = (lookup[region]&&lookup[region][ind])||[];
-      serie.sort((a,b)=>a.kvartal<b.kvartal?-1:1);
-      const last2 = serie.slice(-2);
-      const v1 = last2[0]?.vaerdi, v2 = last2[1]?.vaerdi;
+    const rdata = D.fremtid[region]||{};
+    // Build lookup by display name
+    const vals = {};
+    Object.entries(rdata).forEach(([k,v])=>{
+      const name = nameMap[k]||k;
+      vals[name] = v;
+    });
+
+    return allInds.map(ind=>{
+      const entry = vals[ind];
+      const v1 = entry?.q1??null, v2 = entry?.q2??null;
       const cur = v2??v1??null;
       let arrow="→", arrowColor="#64748b";
       if(v1!=null&&v2!=null){
@@ -699,9 +700,9 @@ function renderMomentum(){
         else if(diff<-0.05){arrow="↓";arrowColor="#EF4444";}
       }
       return `
-        <div style="display:flex;align-items:center;gap:8px;padding:7px 16px;border-bottom:1px solid #0f172a">
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid #0f172a">
           <span style="font-size:.75rem;color:#94a3b8;flex:1;white-space:nowrap">${ind}</span>
-          <span style="font-size:1rem;font-weight:700;color:${arrowColor}">${arrow}</span>
+          <span style="font-size:1.05rem;font-weight:700;color:${arrowColor};width:16px;text-align:center">${arrow}</span>
           <span style="font-family:monospace;font-size:.78rem;color:#E2E8F0;width:52px;text-align:right">${cur!=null?cur.toFixed(2):'—'}</span>
         </div>`;
     }).join("");
