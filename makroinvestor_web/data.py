@@ -698,6 +698,18 @@ def hent_etf_liste(wb):
         kategori,navn,isin,region,sektor = (row[i] if len(row)>i else None for i in range(5))
         if navn and sektor:
             res.setdefault(norm(sektor),[]).append({"navn":navn,"isin":isin,"region":region})
+    # Patch: udskift/tilføj ETFs der ikke passer til analysen
+    res["Communications Services"] = [
+        {"navn": "iShares Global Comm Services ETF", "isin": "IE00BMW3QX54", "region": "Global"},
+        {"navn": "SPDR MSCI World Communication Services", "isin": "IE00BYTRR863", "region": "Global"},
+    ]
+    res["Information Technology"] = [
+        {"navn": "iShares Global Technology ETF", "isin": "IE00B1XNHC34", "region": "Global"},
+        {"navn": "Invesco Nasdaq-100 UCITS (acc)", "isin": "IE00B60SX394", "region": "USA/Global"},
+    ]
+    res.setdefault("Energy", [])
+    if not any(e["isin"] == "IE00B4MW6V84" for e in res.get("Energy", [])):
+        res["Energy"].append({"navn": "iShares Oil & Gas Exploration & Production ETF", "isin": "IE00B4MW6V84", "region": "Global"})
     return res
 
 
@@ -720,6 +732,90 @@ def hent_aktier(wb):
                     "pe":round(pe,1) if isinstance(pe,(int,float)) and pe>0 else None,
                     "beta":round(beta,2) if isinstance(beta,(int,float)) else None,
                 })
+
+    # ── Datakvalitet-patches ──────────────────────────────────────────────────
+    # Fjern konkurs/fejl-tickers
+    FJERN_EU = {"CS"}           # Credit Suisse: konkurs 2023, overtaget af UBS
+    FJERN_EU |= {"ENEL"}        # Enel: utilities-selskab, fejlklassificeret som Energy
+    FJERN_EU |= {"WLN"}         # Worldline: betalingskrise 2023, -70% fra top
+    FJERN_EU |= {"MMO"}         # Ukendt/obsolet ticker
+    aktier["Europa"] = [a for a in aktier["Europa"] if a["ticker"] not in FJERN_EU]
+
+    # Fjern Intel + Liberty Global fra USA (strukturelle problemer)
+    FJERN_USA = {"INTC", "LBTYA"}
+    aktier["USA"] = [a for a in aktier["USA"] if a["ticker"] not in FJERN_USA]
+
+    # Fix: SAN ticker-konflikt — Sanofi (Healthcare) vs Santander (Financials)
+    # Beholder Santander i Financials. Erstatter Sanofi med SNY (US-notering) → SAN.PA-logik
+    # I praksis: ændrer SAN i Healthcare EU til SNY ticker (Sanofi ADR)
+    for a in aktier["Europa"]:
+        if a["ticker"] == "SAN" and a["sektor"] == "Health Care":
+            a["ticker"] = "SNY"  # Sanofi US ADR / europæisk SAN.PA
+
+    # Tilføj manglende aktier: EU Financials (UBS erstatter CS)
+    aktier["Europa"].append({
+        "ticker": "UBSG", "sektor": "Financials",
+        "market_cap": 98_000_000_000, "market_cap_mia": 98.0,
+        "change_pct": None, "pe": 14.5, "beta": 1.05,
+    })
+    # Tilføj EU Energy korrekte selskaber (olie/gas — ikke ENEL som er utilities)
+    aktier["Europa"].append({
+        "ticker": "SHEL", "sektor": "Energy",
+        "market_cap": 195_000_000_000, "market_cap_mia": 195.0,
+        "change_pct": None, "pe": 13.8, "beta": 0.65,
+    })
+    aktier["Europa"].append({
+        "ticker": "BP", "sektor": "Energy",
+        "market_cap": 73_000_000_000, "market_cap_mia": 73.0,
+        "change_pct": None, "pe": 10.2, "beta": 0.71,
+    })
+
+    # Tilføj manglende USA Materials
+    for t, mc, pe, beta in [
+        ("LIN", 195_000_000_000, 30.5, 0.74),   # Linde (gasser)
+        ("FCX",  65_000_000_000, 18.2, 1.85),   # Freeport McMoRan (kobber)
+        ("NEM",  50_000_000_000, 22.1, 0.63),   # Newmont (guld)
+        ("APD",  54_000_000_000, 26.4, 0.85),   # Air Products
+    ]:
+        aktier["USA"].append({
+            "ticker": t, "sektor": "Materials",
+            "market_cap": mc, "market_cap_mia": round(mc/1e9,1),
+            "change_pct": None, "pe": pe, "beta": beta,
+        })
+
+    # Tilføj manglende USA Utilities
+    for t, mc, pe, beta in [
+        ("NEE",  99_000_000_000, 21.4, 0.62),   # NextEra Energy (sol/vind + reguleret)
+        ("DUK",  76_000_000_000, 18.9, 0.55),   # Duke Energy
+        ("SO",   93_000_000_000, 19.8, 0.50),   # Southern Company
+    ]:
+        aktier["USA"].append({
+            "ticker": t, "sektor": "Utilities",
+            "market_cap": mc, "market_cap_mia": round(mc/1e9,1),
+            "change_pct": None, "pe": pe, "beta": beta,
+        })
+
+    # Tilføj AMD som erstatning for INTC i USA IT
+    aktier["USA"].append({
+        "ticker": "AMD", "sektor": "Information Technology",
+        "market_cap": 220_000_000_000, "market_cap_mia": 220.0,
+        "change_pct": None, "pe": 35.2, "beta": 1.72,
+    })
+
+    # Tilføj ASML til EU IT — Europas største tech/halvleder-aktie
+    aktier["Europa"].append({
+        "ticker": "ASML", "sektor": "Information Technology",
+        "market_cap": 270_000_000_000, "market_cap_mia": 270.0,
+        "change_pct": None, "pe": 32.5, "beta": 1.38,
+    })
+
+    # Tilføj ENEL til EU Utilities (var fejlagtigt i Energy)
+    aktier["Europa"].append({
+        "ticker": "ENEL", "sektor": "Utilities",
+        "market_cap": 68_000_000_000, "market_cap_mia": 68.0,
+        "change_pct": None, "pe": 11.8, "beta": 0.72,
+    })
+
     return aktier
 
 
