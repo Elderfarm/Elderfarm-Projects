@@ -957,8 +957,8 @@ def byg_seneste_makro(fremtid):
 
 
 def hent_alle_data():
-    wb            = indlaes_wb()
-    dk, eu, usa   = hent_ranglister(wb)
+    wb             = indlaes_wb()
+    dk, eu, usa    = hent_ranglister(wb)
     makro_analyse  = hent_makro_analyse(wb)
     historisk_bnp  = hent_historisk_bnp(wb)
     fremtid        = hent_fremtid_vaekst(wb)
@@ -969,36 +969,49 @@ def hent_alle_data():
     profiler       = hent_profiler(wb)
     afstemning     = hent_afstemning(wb)
 
-    makro_fase     = beregn_makrofase(fremtid)
-    sektorer       = beregn_sektorscorer(dk, eu, usa, makro_fase["fase"])
-    heatmap        = byg_heatmap(historisk_bnp, dk, eu, usa)
     seneste_makro  = byg_seneste_makro(fremtid)
+    makro_fase     = beregn_makrofase(fremtid)
 
-    # Seneste kvartal: det nyeste kvartal med historiske data
+    # Brug samme algoritme som "Mine forventninger" så tallene stemmer overens
+    sim_inputs = {r: {k: v["vaerdi"] for k, v in inds.items()}
+                  for r, inds in seneste_makro.items()}
+    sim_result = simuler_sektorer(sim_inputs)
+    sektorer = sim_result["sektorer"]
+
+    # Tilføj EU/USA rangliste-scores som sekundær reference
+    for s in sektorer:
+        navn = s["sektor"]
+        s["eu"]  = round(eu.get(navn,  {}).get("Q2 2026", 0) or 0, 2)
+        s["usa"] = round(usa.get(navn, {}).get("Q2 2026", 0) or 0, 2)
+        s["composite"] = s["score"]
+
+    heatmap = byg_heatmap(historisk_bnp, dk, eu, usa)
+
+    # Seneste kvartal med data
     seneste_kvartal = ALLE_KVARTALER[-1]
     for kv in reversed(ALLE_KVARTALER):
-        if any(kv in heatmap.get(s, {}) for s in SEKTOR_RÆKKEFØLGE):
+        if any(kv in heatmap.get(s["sektor"], {}) for s in sektorer):
             seneste_kvartal = kv
             break
 
     return {
-        "makro_fase":     makro_fase,
-        "sektorer":       sektorer,
-        "heatmap":        heatmap,
-        "makro_analyse":  makro_analyse,
-        "etf_liste":      etf_liste,
-        "aktier":         aktier,
-        "spoergeskema":   spoergeskema,
-        "profiler":       profiler,
-        "afstemning":     afstemning,
-        "historik":       historik,
-        "fremtid":        fremtid,
-        "alle_kvartaler": ALLE_KVARTALER,
-        "indikatorer":    INDIKATORER,
+        "makro_fase":      makro_fase,
+        "sektorer":        sektorer,
+        "heatmap":         heatmap,
+        "makro_analyse":   makro_analyse,
+        "etf_liste":       etf_liste,
+        "aktier":          aktier,
+        "spoergeskema":    spoergeskema,
+        "profiler":        profiler,
+        "afstemning":      afstemning,
+        "historik":        historik,
+        "fremtid":         fremtid,
+        "alle_kvartaler":  ALLE_KVARTALER,
+        "indikatorer":     INDIKATORER,
         "indikator_vaegter": INDIKATOR_VAEGTER,
-        "default_makro":  DEFAULT_MAKRO,
-        "seneste_makro":  seneste_makro,
-        "seneste_kvartal":seneste_kvartal,
-        "opdateret":      datetime.now().strftime("%d.%m.%Y %H:%M"),
-        "data_kvartal":   seneste_kvartal,
+        "default_makro":   DEFAULT_MAKRO,
+        "seneste_makro":   seneste_makro,
+        "seneste_kvartal": seneste_kvartal,
+        "opdateret":       datetime.now().strftime("%d.%m.%Y %H:%M"),
+        "data_kvartal":    seneste_kvartal,
     }
