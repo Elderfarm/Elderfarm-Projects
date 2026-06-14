@@ -7,10 +7,8 @@ import os
 import openpyxl
 from datetime import datetime
 
-EXCEL_PATH = os.environ.get(
-    "MAKRO_EXCEL",
-    "/root/.claude/uploads/4353b6a9-163f-529f-a054-f6c3b69a4fdb/4eb3c991-Makroinvestoren_Final.xlsx"
-)
+_DEFAULT_EXCEL = os.path.join(os.path.dirname(__file__), "data.xlsx")
+EXCEL_PATH = os.environ.get("MAKRO_EXCEL", _DEFAULT_EXCEL)
 
 # ── Sektornormalisering ───────────────────────────────────────────────────────
 
