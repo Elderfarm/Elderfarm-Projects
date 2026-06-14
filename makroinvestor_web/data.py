@@ -781,13 +781,18 @@ def klassificer_makro(region_inputs, region="USA"):
     # Recession: klart growth-kollaps
     if growth_p < 0.8 or (growth_p < 1.3 and labor_p < 0.8):
         global_fase = "Recession"
-    # Late: inflationsoverhedning (infl i Late-zone ≤1.5) + finansiel stramning + decelererende vækst
+    # Late (inflation-drevet): overhedning + finansiel stramning + aftagende vækst
     elif infl_p <= 1.5 and fin_p < 1.8 and growth_p < 2.0:
         global_fase = "Late"
-    # Late: stagflation — høj inflation selvom finansielle forhold ikke ekstreme
+    # Late (stagflation): høj inflation + svag vækst
     elif infl_p <= 1.2 and growth_p < 1.8:
         global_fase = "Late"
-    # Mid: stærk vækst + solidt arbejdsmarked (begge over neutral)
+    # Late (finansiel stramning): stramme finansielle forhold + ikke-accelererende vækst.
+    # Fanger 2018/2019-type cykler: inverteret/flat yield curve + Fed-hikes
+    # uden nødvendigvis høj inflation. Vækst < 2.3 er guard mod falske signaler.
+    elif fin_p < 1.8 and growth_p < 2.3:
+        global_fase = "Late"
+    # Mid: stærk vækst + solidt arbejdsmarked
     elif growth_p >= 2.2 and labor_p >= 2.0:
         global_fase = "Mid"
     # Early: recovery — alt andet
