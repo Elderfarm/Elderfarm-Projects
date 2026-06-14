@@ -201,13 +201,34 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
         </div>
       </div>
 
-      <!-- Afstemning chart full width -->
-      <div class="card" style="overflow:hidden">
-        <div style="padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.055)">
-          <div style="font-weight:600;font-size:.88rem;margin-bottom:2px">✅ Validering: makroscore vs. faktisk afkast (Q3 2025)</div>
-          <div style="font-size:.72rem;color:#475569">Korrelation bekræfter modellens forudsigelseskraft</div>
+      <!-- Konjunktur Kompas + Indikator Momentum -->
+      <div style="display:grid;grid-template-columns:300px 1fr;gap:16px">
+
+        <!-- Cycle Compass -->
+        <div class="card" style="padding:20px;display:flex;flex-direction:column;align-items:center">
+          <div style="font-size:.65rem;font-weight:700;color:#475569;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;align-self:flex-start">Konjunktur Kompas</div>
+          <div id="cycle-compass"></div>
+          <div id="compass-legend" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:16px;width:100%"></div>
         </div>
-        <div style="padding:20px"><canvas id="afstemning-chart" height="180"></canvas></div>
+
+        <!-- Indikator Momentum -->
+        <div class="card" style="overflow:hidden">
+          <div style="padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.055);display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:.65rem;font-weight:700;color:#475569;letter-spacing:.1em;text-transform:uppercase">Indikator Momentum</span>
+            <span style="font-size:.65rem;color:#334155">Q1 → Q2 2026 &nbsp;↑ bullish &nbsp;↓ bearish</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr">
+            <div>
+              <div style="padding:8px 16px;font-size:.65rem;font-weight:700;color:#4ade80;border-bottom:1px solid rgba(255,255,255,.04);letter-spacing:.05em">🇪🇺 EUROPA</div>
+              <div id="momentum-eu" style="overflow-y:auto;max-height:260px"></div>
+            </div>
+            <div style="border-left:1px solid rgba(255,255,255,.05)">
+              <div style="padding:8px 16px;font-size:.65rem;font-weight:700;color:#60a5fa;border-bottom:1px solid rgba(255,255,255,.04);letter-spacing:.05em">🇺🇸 USA</div>
+              <div id="momentum-usa" style="overflow-y:auto;max-height:260px"></div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -579,24 +600,116 @@ function renderDashboard(){
   document.getElementById('side-fase-navn').textContent = f.fase+' — '+f.titel;
   document.getElementById('side-fase-navn').style.color = phaseColors[f.fase]||'#E2E8F0';
 
-  // Afstemning chart
-  const afstn = D.afstemning;
-  const ctx = document.getElementById("afstemning-chart").getContext("2d");
-  if(charts.afstn) charts.afstn.destroy();
-  charts.afstn = new Chart(ctx,{
-    type:"bar",
-    data:{labels:afstn.map(a=>a.sektor.split(" ").join("\n")),
-      datasets:[
-        {label:"Makroscore",data:afstn.map(a=>a.makroscore),backgroundColor:"rgba(99,102,241,.4)",borderRadius:4,yAxisID:"y"},
-        {label:"Q3 Afkast %",data:afstn.map(a=>a.q3_afkast),type:"line",borderColor:"#10B981",borderWidth:2,pointRadius:4,tension:.3,yAxisID:"y2"}
-      ]},
-    options:{responsive:true,plugins:{legend:{labels:{color:"#94a3b8",font:{size:11}}}},
-      scales:{
-        x:{ticks:{color:"#475569",font:{size:9}},grid:{color:"rgba(255,255,255,.03)"}},
-        y:{position:"left",min:0,max:5,ticks:{color:"#475569"},grid:{color:"rgba(255,255,255,.03)"}},
-        y2:{position:"right",ticks:{color:"#10B981"},grid:{display:false}}
-      }}
+  renderCycleCompass(f);
+  renderMomentum();
+}
+
+function renderCycleCompass(f){
+  const phases = ["Recession","Early","Mid","Late"];
+  const pColors = {Early:"#10B981",Mid:"#3B82F6",Late:"#F59E0B",Recession:"#EF4444"};
+  // Map phase to needle angle (degrees, 0=left, 180=right on a top-half semicircle)
+  // Order left→right: Recession(0-45), Early(45-90), Mid(90-135), Late(135-180)
+  const phaseAngle = {Recession:22,Early:67,Mid:112,Late:157};
+  const fp = f.fase_pct||{};
+  // Weighted needle position
+  const weights = {Recession:fp.Recession||0, Early:fp.Early||0, Mid:fp.Mid||0, Late:fp.Late||0};
+  const total = Object.values(weights).reduce((a,b)=>a+b,0)||1;
+  const needle = (weights.Recession*22+weights.Early*67+weights.Mid*112+weights.Late*157)/total;
+  const rad = (a)=>(a*Math.PI/180);
+
+  // SVG semicircle gauge
+  const cx=140,cy=130,R=100,r=60;
+  function arc(a1,a2,outer,inner){
+    const x1=cx+outer*Math.cos(rad(180-a1)),y1=cy-outer*Math.sin(rad(180-a1));
+    const x2=cx+outer*Math.cos(rad(180-a2)),y2=cy-outer*Math.sin(rad(180-a2));
+    const x3=cx+inner*Math.cos(rad(180-a2)),y3=cy-inner*Math.sin(rad(180-a2));
+    const x4=cx+inner*Math.cos(rad(180-a1)),y4=cy-inner*Math.sin(rad(180-a1));
+    return `M${x1},${y1} A${outer},${outer} 0 0,1 ${x2},${y2} L${x3},${y3} A${inner},${inner} 0 0,0 ${x4},${y4} Z`;
+  }
+  const segments = [
+    {a1:0,a2:45,phase:"Recession"},
+    {a1:45,a2:90,phase:"Early"},
+    {a1:90,a2:135,phase:"Mid"},
+    {a1:135,a2:180,phase:"Late"}
+  ];
+  const segPaths = segments.map(s=>`
+    <path d="${arc(s.a1,s.a2,R,r)}" fill="${pColors[s.phase]}" opacity="${f.fase===s.phase?'0.9':'0.22'}"/>
+    <path d="${arc(s.a1,s.a2,R,r)}" fill="none" stroke="#0a0f1a" stroke-width="2"/>`).join("");
+
+  // Needle
+  const nx=cx+(R-8)*Math.cos(rad(180-needle)),ny=cy-(R-8)*Math.sin(rad(180-needle));
+  const nb1x=cx+5*Math.cos(rad(180-needle+90)),nb1y=cy-5*Math.sin(rad(180-needle+90));
+  const nb2x=cx+5*Math.cos(rad(180-needle-90)),nb2y=cy-5*Math.sin(rad(180-needle-90));
+
+  // Phase labels
+  const labels = segments.map(s=>{
+    const mid=(s.a1+s.a2)/2;
+    const lx=cx+(R+16)*Math.cos(rad(180-mid)),ly=cy-(R+16)*Math.sin(rad(180-mid));
+    return `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle" fill="${pColors[s.phase]}" font-size="9" font-weight="700" font-family="monospace">${s.phase.toUpperCase()}</text>`;
+  }).join("");
+
+  const pct = fp[f.fase]||0;
+  document.getElementById("cycle-compass").innerHTML = `
+    <svg width="280" height="145" viewBox="0 0 280 145">
+      ${segPaths}
+      <circle cx="${cx}" cy="${cy}" r="4" fill="#E2E8F0"/>
+      <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="${pColors[f.fase]||'#6366F1'}" stroke-width="3" stroke-linecap="round"/>
+      ${labels}
+      <text x="${cx}" y="${cy-18}" text-anchor="middle" fill="#E2E8F0" font-size="13" font-weight="700" font-family="monospace">${f.fase}</text>
+      <text x="${cx}" y="${cy-4}" text-anchor="middle" fill="#64748b" font-size="9" font-family="monospace">${pct}%</text>
+    </svg>`;
+
+  // Legend below compass
+  document.getElementById("compass-legend").innerHTML =
+    Object.entries(fp).map(([ph,pct])=>`
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+        <div style="width:10px;height:10px;border-radius:2px;background:${pColors[ph]};flex-shrink:0"></div>
+        <span style="font-size:.72rem;color:#94a3b8;flex:1">${ph}</span>
+        <span style="font-size:.72rem;font-weight:700;color:${pColors[ph]};font-family:monospace">${pct}%</span>
+        <div style="flex:1;background:#1e293b;height:4px;border-radius:2px;overflow:hidden">
+          <div style="width:${pct}%;height:100%;background:${pColors[ph]};border-radius:2px"></div>
+        </div>
+      </div>`).join("");
+}
+
+function renderMomentum(){
+  if(!D.fremtid||!D.fremtid.length) return;
+  const inds = ["PMI","BNP","Core CPI","Unemployment","VIX","10 YR"];
+  const phColors = {Early:"#10B981",Mid:"#3B82F6",Late:"#F59E0B",Recession:"#EF4444"};
+
+  // Build lookup: {region: {ind: [{kvartal, vaerdi}]}}
+  const lookup = {};
+  D.fremtid.forEach(row=>{
+    const rg = row.region, ind = row.indikator;
+    if(!lookup[rg]) lookup[rg]={}; if(!lookup[rg][ind]) lookup[rg][ind]=[];
+    lookup[rg][ind].push({kvartal:row.kvartal, vaerdi:row.vaerdi});
   });
+
+  function momentumHtml(region){
+    return inds.map(ind=>{
+      const serie = (lookup[region]&&lookup[region][ind])||[];
+      serie.sort((a,b)=>a.kvartal<b.kvartal?-1:1);
+      const last2 = serie.slice(-2);
+      const v1 = last2[0]?.vaerdi, v2 = last2[1]?.vaerdi;
+      const cur = v2??v1??null;
+      let arrow="→", arrowColor="#64748b";
+      if(v1!=null&&v2!=null){
+        const diff=v2-v1;
+        if(diff>0.05){arrow="↑";arrowColor="#10B981";}
+        else if(diff<-0.05){arrow="↓";arrowColor="#EF4444";}
+      }
+      return `
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 16px;border-bottom:1px solid #0f172a">
+          <span style="font-size:.75rem;color:#94a3b8;flex:1;white-space:nowrap">${ind}</span>
+          <span style="font-size:1rem;font-weight:700;color:${arrowColor}">${arrow}</span>
+          <span style="font-family:monospace;font-size:.78rem;color:#E2E8F0;width:52px;text-align:right">${cur!=null?cur.toFixed(2):'—'}</span>
+        </div>`;
+    }).join("");
+  }
+
+  document.getElementById("momentum-eu").innerHTML = momentumHtml("Europa");
+  const mUsaEl = document.getElementById("momentum-usa");
+  if(mUsaEl) mUsaEl.innerHTML = momentumHtml("USA");
 }
 
 // ── HEATMAP ────────────────────────────────────────────────────────────────
