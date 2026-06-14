@@ -366,7 +366,7 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
             <div id="sd-inds"></div>
           </div>
         </div>
-        <div id="sd-hist" style="display:none;margin:0 20px 20px;padding:12px;border-radius:8px;font-size:.82rem;background:rgba(255,255,255,.03)"></div>
+        <div id="sd-hist" style="display:none"></div>
       </div>
     </div>
 
@@ -1015,10 +1015,7 @@ async function openSektor(navn){
       </div>` : '';
   }).join("");
 
-  if(d.historisk){
-    document.getElementById("sd-hist").innerHTML=`<span style="font-weight:600">Q3 2025 afkast: <span style="color:${d.historisk.q3_afkast>=0?'#10B981':'#EF4444'}">${d.historisk.q3_afkast>=0?'+':''}${d.historisk.q3_afkast}%</span></span><br/><span style="color:#64748b;font-size:.75rem">${d.historisk.kommentar}</span>`;
-    document.getElementById("sd-hist").style.display="block";
-  } else document.getElementById("sd-hist").style.display="none";
+  document.getElementById("sd-hist").style.display="none";
 
   document.getElementById("sektor-detalje").style.display="block";
   document.getElementById("sektor-detalje").scrollIntoView({behavior:"smooth",block:"nearest"});
