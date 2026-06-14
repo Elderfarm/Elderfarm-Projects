@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Makroinvestor — Sektoranalyse 2026</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --accent: #3b82f6;
+      --accent2: #8b5cf6;
+    }
+    body { background: #0f1117; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; }
+    .glass { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(12px); }
+    .glow-blue  { box-shadow: 0 0 20px rgba(59,130,246,0.15); }
+    .glow-green { box-shadow: 0 0 20px rgba(34,197,94,0.15); }
+    .score-bar-bg { background: rgba(255,255,255,0.06); border-radius: 999px; height: 8px; }
+    .score-bar    { border-radius: 999px; height: 8px; transition: width 0.6s ease; }
+    .tab-btn { transition: all 0.2s; }
+    .tab-btn.active { background: #3b82f6; color: white; }
+    .tab-btn:not(.active) { color: #94a3b8; }
+    .tab-btn:not(.active):hover { color: #e2e8f0; background: rgba(255,255,255,0.06); }
+    .fase-chip { border-radius: 999px; padding: 2px 12px; font-size: 0.75rem; font-weight: 600; }
+    .fase-Early     { background: rgba(34,197,94,0.15);  color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+    .fase-Mid       { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+    .fase-Late      { background: rgba(234,179,8,0.15);  color: #facc15; border: 1px solid rgba(234,179,8,0.3); }
+    .fase-Recession { background: rgba(239,68,68,0.15);  color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+    .rank-badge { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; }
+    .rank-1 { background: linear-gradient(135deg,#f59e0b,#d97706); color: #000; }
+    .rank-2 { background: linear-gradient(135deg,#94a3b8,#64748b); color: #000; }
+    .rank-3 { background: linear-gradient(135deg,#b45309,#92400e); color: #fff; }
+    .rank-n { background: rgba(255,255,255,0.1); color: #94a3b8; }
+    .sektor-card { cursor: pointer; transition: all 0.2s; border: 1px solid rgba(255,255,255,0.06); }
+    .sektor-card:hover { border-color: rgba(59,130,246,0.4); background: rgba(59,130,246,0.05); }
+    .sektor-card.selected { border-color: #3b82f6; background: rgba(59,130,246,0.08); }
+    .answer-btn { transition: all 0.15s; border: 1px solid rgba(255,255,255,0.1); }
+    .answer-btn:hover   { border-color: #3b82f6; background: rgba(59,130,246,0.1); }
+    .answer-btn.selected{ border-color: #3b82f6; background: rgba(59,130,246,0.2); color: #60a5fa; }
+    .progress-ring { transform: rotate(-90deg); }
+    .alloc-bar { border-radius: 4px; height: 32px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); min-width: 4px; }
+    .tooltip-box { position: absolute; background: #1e2433; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 8px 12px; font-size: 0.75rem; pointer-events: none; z-index: 50; white-space: nowrap; }
+    .spinner { border: 3px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; width: 32px; height: 32px; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .slide-in { animation: slideIn 0.4s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    .change-pos { color: #4ade80; }
+    .change-neg { color: #f87171; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+<!-- HEADER -->
+<header class="sticky top-0 z-40 border-b border-white/5" style="background:rgba(15,17,23,0.92);backdrop-filter:blur(16px)">
+  <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">📈</span>
+      <div>
+        <span class="font-bold text-white text-base">Makroinvestor</span>
+        <span class="text-xs text-slate-500 ml-2">Sektoranalyse</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 text-xs text-slate-500" id="header-status">
+      <div class="spinner" style="width:14px;height:14px;border-width:2px"></div>
+      <span>Indlæser data…</span>
+    </div>
+  </div>
+</header>
+
+<!-- NAV TABS -->
+<div class="border-b border-white/5 sticky top-14 z-30" style="background:rgba(15,17,23,0.92);backdrop-filter:blur(16px)">
+  <div class="max-w-7xl mx-auto px-4 flex gap-1 py-2">
+    <button class="tab-btn active rounded-lg px-4 py-1.5 text-sm font-medium" onclick="showTab('dashboard')">📊 Dashboard</button>
+    <button class="tab-btn rounded-lg px-4 py-1.5 text-sm font-medium" onclick="showTab('sektorer')">🏆 Sektorer</button>
+    <button class="tab-btn rounded-lg px-4 py-1.5 text-sm font-medium" onclick="showTab('profil')">👤 Risikoprofil</button>
+    <button class="tab-btn rounded-lg px-4 py-1.5 text-sm font-medium" onclick="showTab('historik')">📅 Historik</button>
+  </div>
+</div>
+
+<main class="max-w-7xl mx-auto px-4 py-6 space-y-6" id="main-content">
+
+  <!-- LOADING STATE -->
+  <div id="loading" class="flex items-center justify-center h-64">
+    <div class="text-center space-y-4">
+      <div class="spinner mx-auto"></div>
+      <p class="text-slate-400">Analyserer makroøkonomiske data…</p>
+    </div>
+  </div>
+
+  <!-- DASHBOARD TAB -->
+  <div id="tab-dashboard" class="hidden space-y-6">
+
+    <!-- Makrofase banner -->
+    <div id="fase-banner" class="glass rounded-2xl p-6 glow-blue slide-in">
+      <div class="flex flex-col md:flex-row md:items-center gap-4">
+        <div class="text-5xl" id="fase-ikon">⏳</div>
+        <div class="flex-1">
+          <div class="flex items-center gap-3 mb-1">
+            <h2 class="text-xl font-bold" id="fase-titel">—</h2>
+            <span class="fase-chip" id="fase-chip">—</span>
+          </div>
+          <p class="text-slate-400 text-sm" id="fase-beskrivelse">—</p>
+        </div>
+        <div class="flex gap-2 flex-wrap" id="fase-pct-badges"></div>
+      </div>
+    </div>
+
+    <!-- Makroindikatorer grid -->
+    <div>
+      <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Makroindikatorer — Q2 2026</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="makro-indikatorer-grid"></div>
+    </div>
+
+    <!-- Top sektorer mini-tabel -->
+    <div class="glass rounded-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+        <h3 class="font-semibold">🏆 Sektorrankering</h3>
+        <span class="text-xs text-slate-500">Composite score (makro 70% + BNP-fase 30%)</span>
+      </div>
+      <div id="sektor-tabel" class="divide-y divide-white/5"></div>
+    </div>
+
+    <!-- Afstemning til virkelighed -->
+    <div class="glass rounded-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-white/5">
+        <h3 class="font-semibold">✅ Afstemning: Makroscore vs. faktisk afkast (Q3 2025)</h3>
+        <p class="text-xs text-slate-500 mt-1">Validering af modellens forudsigelseskraft</p>
+      </div>
+      <div class="p-6">
+        <canvas id="afstemning-chart" height="220"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SEKTORER TAB -->
+  <div id="tab-sektorer" class="hidden space-y-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" id="sektor-cards"></div>
+
+    <!-- Sektor detalje -->
+    <div id="sektor-detalje" class="hidden glass rounded-2xl p-6 slide-in">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="text-3xl" id="sd-ikon"></span>
+        <div>
+          <h3 class="text-lg font-bold" id="sd-navn"></h3>
+          <div class="flex gap-2 mt-1" id="sd-scores"></div>
+        </div>
+        <button onclick="document.getElementById('sektor-detalje').classList.add('hidden')" class="ml-auto text-slate-400 hover:text-white">✕</button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">ETF'er</h4>
+          <div id="sd-etfs" class="space-y-2"></div>
+        </div>
+        <div>
+          <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Top aktier</h4>
+          <div id="sd-aktier" class="space-y-2"></div>
+        </div>
+      </div>
+      <div id="sd-historik" class="mt-4 p-4 rounded-xl bg-white/[0.03] text-sm text-slate-300 hidden"></div>
+    </div>
+  </div>
+
+  <!-- PROFIL TAB -->
+  <div id="tab-profil" class="hidden space-y-6">
+    <!-- Step 1: Beløb -->
+    <div id="profil-step-1" class="glass rounded-2xl p-6 space-y-4">
+      <h3 class="font-semibold text-lg">💰 Investeringsbeløb</h3>
+      <div class="flex gap-3 items-end">
+        <div class="flex-1">
+          <label class="text-xs text-slate-400 mb-1 block">Beløb i DKK</label>
+          <input id="beloeb-input" type="number" placeholder="100000" min="1000"
+            class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-lg focus:outline-none focus:border-blue-500"
+            value="100000"/>
+        </div>
+        <button onclick="startSpoergeskema()" class="bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-6 py-3 font-semibold transition-colors">
+          Start →
+        </button>
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        <span class="text-xs text-slate-500">Hurtig vælg:</span>
+        <button onclick="setBeloeb(50000)"  class="text-xs px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">50.000</button>
+        <button onclick="setBeloeb(100000)" class="text-xs px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">100.000</button>
+        <button onclick="setBeloeb(250000)" class="text-xs px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">250.000</button>
+        <button onclick="setBeloeb(500000)" class="text-xs px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">500.000</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Spørgeskema -->
+    <div id="profil-step-2" class="hidden space-y-4">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="flex-1 bg-white/5 rounded-full h-2">
+          <div id="q-progress" class="bg-blue-500 h-2 rounded-full transition-all" style="width:0%"></div>
+        </div>
+        <span class="text-xs text-slate-400" id="q-counter">0/8</span>
+      </div>
+      <div id="spg-container" class="glass rounded-2xl p-6 space-y-4 slide-in">
+        <p class="text-xs text-slate-500 uppercase tracking-wider font-semibold" id="spg-nr">Spørgsmål 1 / 8</p>
+        <h3 class="text-lg font-semibold" id="spg-tekst"></h3>
+        <div id="spg-svar" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <!-- Step 3: Resultat -->
+    <div id="profil-step-3" class="hidden space-y-6 slide-in">
+      <!-- Profil header -->
+      <div class="glass rounded-2xl p-6 glow-green">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div class="text-4xl" id="profil-ikon">📊</div>
+          <div class="flex-1">
+            <p class="text-xs text-slate-400 uppercase tracking-wider">Din risikoprofil</p>
+            <h2 class="text-2xl font-bold" id="profil-navn"></h2>
+            <p class="text-slate-400 text-sm mt-1" id="profil-beskrivelse"></p>
+          </div>
+          <div class="text-right">
+            <div class="text-3xl font-bold text-blue-400" id="profil-score-pct"></div>
+            <div class="text-xs text-slate-500">Risikoscore</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Aktivfordeling -->
+      <div class="glass rounded-2xl p-6">
+        <h3 class="font-semibold mb-4">💼 Porteføljefordeling</h3>
+        <div id="alloc-bars" class="space-y-3"></div>
+        <div class="mt-4 pt-4 border-t border-white/5">
+          <p class="text-xs text-slate-400">Alternative investeringer: <span id="profil-alt" class="text-slate-300"></span></p>
+        </div>
+      </div>
+
+      <!-- Top sektorer -->
+      <div class="glass rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-white/5">
+          <h3 class="font-semibold">🎯 Anbefalede sektorer</h3>
+        </div>
+        <div id="profil-sektorer" class="divide-y divide-white/5"></div>
+      </div>
+
+      <button onclick="resetProfil()" class="text-sm text-slate-400 hover:text-white transition-colors">
+        ↩ Tag testen igen
+      </button>
+    </div>
+  </div>
+
+  <!-- HISTORIK TAB -->
+  <div id="tab-historik" class="hidden space-y-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="glass rounded-2xl p-5">
+        <h3 class="font-semibold mb-4">📉 PMI historik</h3>
+        <canvas id="pmi-chart" height="200"></canvas>
+      </div>
+      <div class="glass rounded-2xl p-5">
+        <h3 class="font-semibold mb-4">📈 10-årig rente</h3>
+        <canvas id="rate-chart" height="200"></canvas>
+      </div>
+      <div class="glass rounded-2xl p-5">
+        <h3 class="font-semibold mb-4">💹 CPI (Inflation %)</h3>
+        <canvas id="cpi-chart" height="200"></canvas>
+      </div>
+      <div class="glass rounded-2xl p-5">
+        <h3 class="font-semibold mb-4">😨 VIX (Markedsangst)</h3>
+        <canvas id="vix-chart" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- Fremtid vækst tabel -->
+    <div class="glass rounded-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-white/5">
+        <h3 class="font-semibold">🔮 Makroprognoser — Q1 & Q2 2026</h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-white/5 text-xs text-slate-400 uppercase">
+              <th class="px-6 py-3 text-left">Region</th>
+              <th class="px-4 py-3 text-left">Indikator</th>
+              <th class="px-4 py-3 text-right">Q1 2026</th>
+              <th class="px-4 py-3 text-right">Q2 2026</th>
+            </tr>
+          </thead>
+          <tbody id="fremtid-tabel" class="divide-y divide-white/5"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="border-t border-white/5 mt-12 py-6 text-center text-xs text-slate-600">
+  ⚠️ Makroinvestor er et analyseværktøj. Dette er ikke finansiel rådgivning.
+  Invester altid på baggrund af egen research. Data: <span id="footer-dato"></span>
+</footer>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let appData = null;
+let spoergeskema = [];
+let svarListe = [];
+let aktSpg = 0;
+let charts = {};
+
+// ── Init ───────────────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  loadDashboard();
+  fetch("/api/spoergeskema").then(r => r.json()).then(d => { spoergeskema = d; });
+});
+
+async function loadDashboard() {
+  try {
+    const r = await fetch("/api/dashboard");
+    appData = await r.json();
+    document.getElementById("loading").classList.add("hidden");
+    document.getElementById("tab-dashboard").classList.remove("hidden");
+    renderDashboard();
+    document.getElementById("header-status").innerHTML =
+      `<span class="text-green-400">●</span> <span>Data: ${appData.opdateret}</span>`;
+  } catch(e) {
+    document.getElementById("loading").innerHTML =
+      `<div class="text-red-400">❌ Fejl ved indlæsning af data. Tjek at serveren kører.</div>`;
+  }
+}
+
+// ── Tabs ───────────────────────────────────────────────────────────────────
+function showTab(tab) {
+  ["dashboard","sektorer","profil","historik"].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.add("hidden");
+  });
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById(`tab-${tab}`).classList.remove("hidden");
+  event.target.classList.add("active");
+
+  if (tab === "sektorer" && appData) renderSektorer();
+  if (tab === "historik" && appData) renderHistorik();
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const fase = appData.makro_fase;
+
+  // Fase banner
+  document.getElementById("fase-ikon").textContent = fase.ikon;
+  document.getElementById("fase-titel").textContent = `${fase.fase} — ${fase.titel}`;
+  document.getElementById("fase-beskrivelse").textContent = fase.beskrivelse;
+  const chip = document.getElementById("fase-chip");
+  chip.textContent = fase.fase;
+  chip.className = `fase-chip fase-${fase.fase}`;
+
+  // Fase pct badges
+  const badges = document.getElementById("fase-pct-badges");
+  badges.innerHTML = Object.entries(fase.fase_pct).map(([f,pct]) =>
+    `<span class="fase-chip fase-${f}">${f} ${pct}%</span>`
+  ).join("");
+
+  // Makroindikatorer grid (per region)
+  const grid = document.getElementById("makro-indikatorer-grid");
+  grid.innerHTML = fase.detaljer.map(d => `
+    <div class="glass rounded-xl p-4">
+      <div class="flex items-center justify-between mb-3">
+        <span class="font-semibold text-sm">${d.region}</span>
+        <span class="fase-chip fase-${d.fase}">${d.fase}</span>
+      </div>
+      <div class="space-y-2">
+        ${d.indikatorer.map(i => `
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-400">${i.navn}</span>
+            <div class="flex items-center gap-2">
+              <span class="text-white font-mono">${i.vaerdi}</span>
+              ${i.fase ? `<span class="fase-chip fase-${i.fase}" style="font-size:0.65rem;padding:1px 8px">${i.fase}</span>` : '<span class="text-slate-600">—</span>'}
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `).join("");
+
+  // Sektor tabel
+  renderSektorTabel();
+
+  // Afstemning chart
+  renderAfstemningChart();
+
+  document.getElementById("footer-dato").textContent = appData.opdateret;
+}
+
+function renderSektorTabel() {
+  const el = document.getElementById("sektor-tabel");
+  el.innerHTML = appData.sektorer.map(s => {
+    const pct = s.composite / 5 * 100;
+    const rankCls = s.rank === 1 ? "rank-1" : s.rank === 2 ? "rank-2" : s.rank === 3 ? "rank-3" : "rank-n";
+    const barCol = s.composite >= 4 ? "#4ade80" : s.composite >= 3 ? "#facc15" : "#f87171";
+    const bnpIcon = s.bnp_raw > 0 ? `<span class="text-green-400">▲${s.bnp_raw > 1 ? '▲' : ''}</span>` :
+                    s.bnp_raw < 0 ? `<span class="text-red-400">▼${s.bnp_raw < -1 ? '▼' : ''}</span>` :
+                    `<span class="text-slate-500">—</span>`;
+    return `
+      <div class="flex items-center gap-4 px-6 py-3 hover:bg-white/[0.03] transition-colors cursor-pointer"
+           onclick="showTab2('sektorer'); selectSektor('${s.sektor}')">
+        <div class="rank-badge ${rankCls}">${s.rank}</div>
+        <div class="text-lg">${s.ikon}</div>
+        <div class="flex-1 min-w-0">
+          <div class="font-medium text-sm">${s.sektor}</div>
+          <div class="score-bar-bg mt-1 w-full">
+            <div class="score-bar" style="width:${pct}%;background:${barCol}"></div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="font-bold text-sm" style="color:${barCol}">${s.composite.toFixed(2)}</div>
+          <div class="text-xs text-slate-500">BNP ${bnpIcon}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderAfstemningChart() {
+  const data = appData.afstemning;
+  if (!data.length) return;
+  const labels = data.map(d => d.sektor.replace(" ", "\n"));
+  const scores = data.map(d => d.makroscore);
+  const afkast = data.map(d => d.q3_afkast);
+
+  const ctx = document.getElementById("afstemning-chart").getContext("2d");
+  if (charts.afstemning) charts.afstemning.destroy();
+  charts.afstemning = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        { label: "Makroscore (1-5)", data: scores, backgroundColor: "rgba(59,130,246,0.6)", borderRadius: 4, yAxisID: "y" },
+        { label: "Q3 Afkast %",    data: afkast, type: "line", borderColor: "#4ade80", pointBackgroundColor: "#4ade80", borderWidth: 2, tension: 0.3, yAxisID: "y2" }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels: { color: "#94a3b8", font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ": " + ctx.parsed.y.toFixed(2) } }
+      },
+      scales: {
+        x: { ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.04)" } },
+        y:  { position: "left",  ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.04)" }, min: 0, max: 5 },
+        y2: { position: "right", ticks: { color: "#4ade80", font: { size: 10 } }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+// ── Sektorer ──────────────────────────────────────────────────────────────
+function renderSektorer() {
+  const grid = document.getElementById("sektor-cards");
+  grid.innerHTML = appData.sektorer.map(s => {
+    const pct = s.composite / 5 * 100;
+    const barCol = s.composite >= 4 ? "#4ade80" : s.composite >= 3 ? "#facc15" : "#f87171";
+    const rankCls = s.rank === 1 ? "rank-1" : s.rank === 2 ? "rank-2" : s.rank === 3 ? "rank-3" : "rank-n";
+    return `
+      <div class="sektor-card glass rounded-xl p-4" id="card-${s.sektor.replace(/ /g,'_')}" onclick="selectSektor('${s.sektor}')">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="rank-badge ${rankCls}">${s.rank}</div>
+          <span class="text-2xl">${s.ikon}</span>
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold text-sm truncate">${s.sektor}</div>
+            <div class="text-xs text-slate-500">Composite score</div>
+          </div>
+          <div class="text-xl font-bold" style="color:${barCol}">${s.composite.toFixed(2)}</div>
+        </div>
+        <div class="score-bar-bg"><div class="score-bar" style="width:${pct}%;background:${barCol}"></div></div>
+        <div class="flex justify-between mt-3 text-xs text-slate-500">
+          <span>DK <span class="text-white">${s.dk.toFixed(2)}</span></span>
+          <span>EU <span class="text-white">${s.eu.toFixed(2)}</span></span>
+          <span>USA <span class="text-white">${s.usa.toFixed(2)}</span></span>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function showTab2(tab) {
+  showTab(tab);
+  // Programmatic tab switch
+  document.querySelectorAll(".tab-btn").forEach(b => {
+    if (b.textContent.toLowerCase().includes(tab)) b.classList.add("active");
+    else b.classList.remove("active");
+  });
+}
+
+async function selectSektor(navn) {
+  document.querySelectorAll(".sektor-card").forEach(c => c.classList.remove("selected"));
+  const cardId = "card-" + navn.replace(/ /g, "_");
+  const card = document.getElementById(cardId);
+  if (card) card.classList.add("selected");
+
+  const r = await fetch(`/api/sektor/${encodeURIComponent(navn)}`);
+  const d = await r.json();
+
+  document.getElementById("sd-ikon").textContent = d.ikon || "📊";
+  document.getElementById("sd-navn").textContent = d.sektor;
+
+  document.getElementById("sd-scores").innerHTML = `
+    <span class="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">Score ${d.composite.toFixed(2)}</span>
+    <span class="text-xs px-2 py-0.5 rounded-full bg-white/5 text-slate-400">Rank #${d.rank}</span>
+    <span class="text-xs px-2 py-0.5 rounded-full bg-white/5 text-slate-400">BNP: ${d.bnp_raw > 0 ? '+' : ''}${d.bnp_raw}</span>
+  `;
+
+  document.getElementById("sd-etfs").innerHTML = d.etfs.length
+    ? d.etfs.map(e => `
+        <div class="bg-white/[0.04] rounded-lg p-3 text-xs">
+          <div class="font-medium text-white">${e.navn}</div>
+          <div class="text-slate-500 mt-0.5">${e.isin} · ${e.region}</div>
+        </div>`).join("")
+    : '<p class="text-xs text-slate-500">Ingen ETF fundet</p>';
+
+  let aktierHtml = "";
+  for (const [region, liste] of Object.entries(d.aktier)) {
+    aktierHtml += `<div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-2 mb-1">${region}</div>`;
+    aktierHtml += liste.map(a => `
+      <div class="flex items-center justify-between bg-white/[0.03] rounded-lg px-3 py-2 text-xs">
+        <span class="font-mono font-bold text-white">${a.ticker}</span>
+        <span class="text-slate-400">${a.market_cap_mia} mia.</span>
+        ${a.change_pct !== null ? `<span class="${a.change_pct >= 0 ? 'change-pos' : 'change-neg'}">${a.change_pct >= 0 ? '+' : ''}${a.change_pct}%</span>` : ''}
+      </div>`).join("");
+  }
+  document.getElementById("sd-aktier").innerHTML = aktierHtml || '<p class="text-xs text-slate-500">Ingen aktier fundet</p>';
+
+  if (d.historisk) {
+    const hist = d.historisk;
+    document.getElementById("sd-historik").innerHTML =
+      `<div class="font-semibold mb-1">📊 Q3 2025 afkast: <span class="${hist.q3_afkast >= 0 ? 'text-green-400' : 'text-red-400'}">${hist.q3_afkast >= 0 ? '+' : ''}${hist.q3_afkast}%</span></div>
+       <div class="text-slate-400 text-xs">${hist.kommentar}</div>`;
+    document.getElementById("sd-historik").classList.remove("hidden");
+  } else {
+    document.getElementById("sd-historik").classList.add("hidden");
+  }
+
+  document.getElementById("sektor-detalje").classList.remove("hidden");
+  document.getElementById("sektor-detalje").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+// ── Risikoprofil ──────────────────────────────────────────────────────────
+const PROFIL_IKONER = { "Konservativ": "🛡️", "Balanceret": "⚖️", "Vækstorienteret": "🚀", "Dynamisk": "⚡" };
+const ALLOC_FARVER  = { "Obligationer": "#60a5fa", "ETF": "#4ade80", "Aktier": "#f59e0b", "Alternative": "#a78bfa" };
+
+function setBeloeb(v) { document.getElementById("beloeb-input").value = v; }
+
+function startSpoergeskema() {
+  svarListe = new Array(spoergeskema.length).fill(null);
+  aktSpg = 0;
+  document.getElementById("profil-step-1").classList.add("hidden");
+  document.getElementById("profil-step-2").classList.remove("hidden");
+  visSpg();
+}
+
+function visSpg() {
+  if (aktSpg >= spoergeskema.length) { indsendProfil(); return; }
+  const q = spoergeskema[aktSpg];
+  document.getElementById("spg-nr").textContent = `Spørgsmål ${aktSpg + 1} / ${spoergeskema.length}`;
+  document.getElementById("spg-tekst").textContent = q.tekst;
+  document.getElementById("q-counter").textContent = `${aktSpg}/${spoergeskema.length}`;
+  document.getElementById("q-progress").style.width = `${aktSpg / spoergeskema.length * 100}%`;
+
+  document.getElementById("spg-svar").innerHTML = q.svar.map((s, i) => `
+    <button class="answer-btn w-full text-left rounded-xl px-4 py-3 text-sm ${svarListe[aktSpg] === s.score ? 'selected' : ''}"
+            onclick="vaelgSvar(${s.score}, ${i})">
+      <span class="font-mono text-slate-500 mr-2">${s.nr}.</span> ${s.tekst}
+    </button>`).join("");
+}
+
+function vaelgSvar(score, idx) {
+  svarListe[aktSpg] = score;
+  document.querySelectorAll(".answer-btn").forEach((b,i) => {
+    b.classList.toggle("selected", i === idx);
+  });
+  setTimeout(() => { aktSpg++; visSpg(); }, 300);
+}
+
+async function indsendProfil() {
+  const beloeb = parseFloat(document.getElementById("beloeb-input").value) || 0;
+  const r = await fetch("/api/profil", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ svar: svarListe.filter(s => s !== null), beloeb })
+  });
+  const d = await r.json();
+
+  document.getElementById("profil-step-2").classList.add("hidden");
+  document.getElementById("profil-step-3").classList.remove("hidden");
+
+  document.getElementById("profil-ikon").textContent = PROFIL_IKONER[d.profil.navn] || "📊";
+  document.getElementById("profil-navn").textContent = d.profil.navn;
+  document.getElementById("profil-beskrivelse").textContent = d.profil.beskrivelse;
+  document.getElementById("profil-score-pct").textContent = Math.round(d.score_ratio * 100) + "%";
+  document.getElementById("profil-alt").textContent = d.profil.alternativer;
+
+  // Allokering bars
+  const bars = document.getElementById("alloc-bars");
+  bars.innerHTML = Object.entries(d.fordeling).map(([k, pct]) => {
+    const beloebDKK = d.beloeb_fordeling[k] || 0;
+    const farve = ALLOC_FARVER[k] || "#94a3b8";
+    return `
+      <div>
+        <div class="flex justify-between text-sm mb-1">
+          <span class="font-medium">${k}</span>
+          <span class="text-slate-400">${pct}% — <span class="text-white font-semibold">${beloebDKK.toLocaleString("da-DK")} DKK</span></span>
+        </div>
+        <div class="bg-white/5 rounded-full h-3 overflow-hidden">
+          <div class="alloc-bar h-3" style="width:${pct}%;background:${farve}"></div>
+        </div>
+      </div>`;
+  }).join("");
+
+  // Top sektorer
+  const sek = document.getElementById("profil-sektorer");
+  sek.innerHTML = d.top_sektorer.map(s => {
+    const etfStr = s.etfs.map(e => e.navn).join(", ") || "—";
+    const aktStr = Object.entries(s.aktier).map(([reg,liste]) =>
+      `<span class="text-slate-500">${reg}:</span> ${liste.slice(0,2).map(a=>a.ticker).join(", ")}`
+    ).join(" · ");
+    return `
+      <div class="px-6 py-4 flex items-start gap-4">
+        <div class="rank-badge ${s.rank <= 3 ? ['','rank-1','rank-2','rank-3'][s.rank] : 'rank-n'} flex-shrink-0">${s.rank}</div>
+        <div class="text-xl flex-shrink-0">${s.ikon}</div>
+        <div class="flex-1 min-w-0">
+          <div class="font-semibold text-sm">${s.sektor} <span class="text-slate-500 font-normal">${s.composite.toFixed(2)}</span></div>
+          <div class="text-xs text-slate-500 mt-0.5">ETF: ${etfStr}</div>
+          ${aktStr ? `<div class="text-xs text-slate-500 mt-0.5">${aktStr}</div>` : ""}
+        </div>
+      </div>`;
+  }).join("");
+}
+
+function resetProfil() {
+  document.getElementById("profil-step-3").classList.add("hidden");
+  document.getElementById("profil-step-1").classList.remove("hidden");
+}
+
+// ── Historik ──────────────────────────────────────────────────────────────
+function renderHistorik() {
+  const h = appData.historik;
+  const FARVER = { "USA": "#60a5fa", "Europa": "#4ade80", "Danmark": "#f59e0b" };
+
+  function buildChart(id, indikator, label, suffix = "") {
+    const datasets = [];
+    const alleKvartaler = new Set();
+    for (const [reg, data] of Object.entries(h)) {
+      const serie = data[indikator] || [];
+      serie.forEach(p => alleKvartaler.add(p.kvartal));
+    }
+    const kvartaler = Array.from(alleKvartaler).sort();
+
+    for (const [reg, data] of Object.entries(h)) {
+      const serie = (data[indikator] || []).reduce((acc, p) => { acc[p.kvartal] = p.vaerdi; return acc; }, {});
+      const vals = kvartaler.map(k => serie[k] ?? null);
+      if (vals.some(v => v !== null)) {
+        datasets.push({
+          label: reg,
+          data: vals,
+          borderColor: FARVER[reg] || "#94a3b8",
+          backgroundColor: (FARVER[reg] || "#94a3b8") + "22",
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 3,
+          spanGaps: true,
+        });
+      }
+    }
+
+    const ctx = document.getElementById(id).getContext("2d");
+    if (charts[id]) charts[id].destroy();
+    charts[id] = new Chart(ctx, {
+      type: "line",
+      data: { labels: kvartaler, datasets },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: "#94a3b8", font: { size: 10 }, boxWidth: 12 } },
+          tooltip: { callbacks: { label: c => c.dataset.label + ": " + c.parsed.y?.toFixed(2) + suffix } }
+        },
+        scales: {
+          x: { ticks: { color: "#64748b", font: { size: 9 }, maxRotation: 45 }, grid: { color: "rgba(255,255,255,0.04)" } },
+          y: { ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.04)" } }
+        }
+      }
+    });
+  }
+
+  buildChart("pmi-chart",  "PMI",   "PMI");
+  buildChart("rate-chart", "10yr",  "10yr rente", "%");
+  buildChart("cpi-chart",  "CPI",   "CPI", "%");
+  buildChart("vix-chart",  "VIX",   "VIX");
+
+  // Fremtid tabel
+  const tbody = document.getElementById("fremtid-tabel");
+  const indikatorer = ["BNP", "PMI", "10 YR rate", "CPI", "VIX", "Unemployment"];
+  tbody.innerHTML = "";
+  for (const [region, data] of Object.entries(appData.fremtid)) {
+    let first = true;
+    for (const ind of indikatorer) {
+      if (!data[ind]) continue;
+      const { q1, q2 } = data[ind];
+      tbody.innerHTML += `
+        <tr class="hover:bg-white/[0.02] transition-colors">
+          <td class="px-6 py-2.5 text-sm ${first ? 'font-semibold text-white' : 'text-transparent'}">${first ? region : ''}</td>
+          <td class="px-4 py-2.5 text-sm text-slate-400">${ind}</td>
+          <td class="px-4 py-2.5 text-sm text-right font-mono">${q1 !== null ? q1 : '—'}</td>
+          <td class="px-4 py-2.5 text-sm text-right font-mono text-blue-300">${q2 !== null ? q2 : '—'}</td>
+        </tr>`;
+      first = false;
+    }
+  }
+}
+</script>
+</body>
+</html>
