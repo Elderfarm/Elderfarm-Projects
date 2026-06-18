@@ -25,23 +25,52 @@ INDIKATORER = [
     "Core CPI", "BNP", "Wage Growth",
     "Energy", "10 YR", "VIX", "Unemployment",
 ]
-INDIKATOR_VAEGTER = {
-    # Pillar: Growth (35%) — ledende + lagging vækstmål
-    "PMI":          4,   # Stærkeste enkelt-indikator, 2-3 mdr. lead
-    "BNP":          2,   # Lagging bekræftelse
-    "Retail Sales": 2,   # Coincident forbrugsdrevet vækst
-    # Pillar: Labor (25%) — driver forbrug og inflationspres
-    "NFP":          3,   # Stærkeste labor-signal (markedsbevægende)
-    "Wage Growth":  2,   # Inflationspres + købekraft
-    "Unemployment": 2,   # Lagging men vigtig regime-bekræftelse
-    # Pillar: Inflation (20%) — driver pengepolitik
-    "Core CPI":     3,   # Mest relevant for Fed/ECB
-    "Energy":       1,   # Støj-indikator — rammer via ENERGI_AFHAENGIGHED
-    # Pillar: Financial Conditions (20%)
-    "Yield Curve":  3,   # 12-18 mdr. recession-predictor
-    "10 YR":        1,   # Niveau-kontekst, delvis redundant med YC
-    "VIX":          1,   # Markedssentiment, reaktiv ikke predictiv
+# Region-specifik vægtning — USA og Europa har strukturelt forskellige
+# transmissionsmekanismer (se INDIKATOR_VAEGTER_REGION), så samme indikator
+# skal ikke nødvendigvis tælle lige meget i de to regioner.
+INDIKATOR_VAEGTER_REGION = {
+    "USA": {
+        # Growth — forbrugsdrevet økonomi (~68% af BNP), PMI/Retail er kernen
+        "PMI":          4,   # Stærkeste enkelt-indikator, 2-3 mdr. lead
+        "BNP":          2,   # Lagging bekræftelse
+        "Retail Sales": 3,   # Direkte mål for forbrug — dominerende vækstdriver i USA
+        # Labor — fleksibelt arbejdsmarked, NFP er markedsbevægende/leading
+        "NFP":          4,   # Stærkeste labor-signal i USA
+        "Wage Growth":  2,   # Inflationspres + købekraft
+        "Unemployment": 1,   # Overskygges af NFP som leading signal
+        # Inflation — demand-drevet, tæt Fed-link
+        "Core CPI":     4,   # Direkte pengepolitik-trigger (demand-pull)
+        "Energy":       1,   # USA strukturelt mindre energiafhængig (skifer)
+        # Financial Conditions — dyb/likvid markedsbaseret transmission
+        "Yield Curve":  4,   # Bedste recession-predictor, hurtig Fed-transmission
+        "10 YR":        1,   # Niveau-kontekst, delvis redundant med YC
+        "VIX":          1,   # Markedssentiment, reaktiv ikke predictiv
+    },
+    "Europa": {
+        # Growth — mindre forbrugsdrevet (~54% af BNP), PMI stadig stærkest leading
+        "PMI":          4,   # Leading lige stærkt som i USA
+        "BNP":          2,   # Lagging bekræftelse
+        "Retail Sales": 1,   # Mindre dominerende vækstdriver end i USA
+        # Labor — rigidt/institutionelt, lønvækst og NFP-ækvivalent er lagging
+        "NFP":          2,   # Mere lagging og mindre volatil pga. arbejdsmarkedsrigiditet
+        "Wage Growth":  1,   # Forsinket af overenskomster, lav prædiktiv værdi
+        "Unemployment": 2,   # Bedste lagging regime-bekræftelse i et trægt arbejdsmarked
+        # Inflation — cost-push (energi/import), Core CPI er et mindre "rent" signal
+        "Core CPI":     2,   # Forurenes af supply-side chok, mindre rent demand-signal
+        "Energy":       4,   # Kritisk driver — Europa er importafhængig (vækst+inflation)
+        # Financial Conditions — fragmenteret/bankbaseret transmission
+        "Yield Curve":  2,   # Mindre pålidelig predictor pga. fragmenteret transmission
+        "10 YR":        2,   # Statsrente-niveau vigtigere pga. periferi-spreads/gældsrisiko
+        "VIX":          1,   # Globalt risikosentiment, samme rolle som i USA
+    },
 }
+
+def vaegt(ind, region="USA"):
+    """Region-specifik indikatorvægt med USA som fallback."""
+    return INDIKATOR_VAEGTER_REGION.get(region, INDIKATOR_VAEGTER_REGION["USA"]).get(ind, 1)
+
+# Bagudkompatibel flad vægtning (USA-basis) — bruges hvor region ikke er kendt.
+INDIKATOR_VAEGTER = INDIKATOR_VAEGTER_REGION["USA"]
 # Kategorisering: ledende vs. lagging (til UI-visning)
 INDIKATOR_TYPE = {
     "PMI": "ledende", "Yield Curve": "ledende",
@@ -879,11 +908,20 @@ def hent_afstemning(wb):
 
 _FASE_SCORE = {"Early": 2, "Mid": 3, "Late": 1, "Recession": 0}
 
-# Pillar-definitioner — bruges også i momentum-beregning
-_GROWTH_INDS = [("PMI",4),("BNP",2),("Retail Sales",2)]
-_LABOR_INDS  = [("NFP",3),("Wage Growth",2),("Unemployment",2)]
-_INFL_INDS   = [("Core CPI",3),("Energy",1)]
-_FIN_INDS    = [("Yield Curve",3),("10 YR",1),("VIX",1)]
+# Pillar-definitioner — bruges også i momentum-beregning.
+# Indikator-grupperingen pr. pillar er ens for begge regioner; det er VÆGTEN
+# (fra INDIKATOR_VAEGTER_REGION) der gør pillarene region-specifikke.
+_PILLAR_GROUPS = {
+    "Growth":    ["PMI", "BNP", "Retail Sales"],
+    "Labor":     ["NFP", "Wage Growth", "Unemployment"],
+    "Inflation": ["Core CPI", "Energy"],
+    "Financial": ["Yield Curve", "10 YR", "VIX"],
+}
+
+def _pillar_inds(region):
+    """Region-specifikke (indikator, vægt)-lister pr. pillar."""
+    return {p: [(ind, vaegt(ind, region)) for ind in inds]
+            for p, inds in _PILLAR_GROUPS.items()}
 
 def _fase_fra_inputs(v, region):
     """Beregn per-indikator faser fra et input-dict. Intern hjælper."""
@@ -938,11 +976,12 @@ def klassificer_makro(region_inputs, region="USA", prev_inputs=None):
     faser["VIX"]          = fase_vix(v.get("VIX"))
     faser["Unemployment"] = fase_unemployment(v.get("Unemployment"))
 
-    # ── Pillar-aggregering ──────────────────────────────────────────────────
-    growth_p = _pillar(faser, _GROWTH_INDS)
-    labor_p  = _pillar(faser, _LABOR_INDS)
-    infl_p   = _pillar(faser, _INFL_INDS)
-    fin_p    = _pillar(faser, _FIN_INDS)
+    # ── Pillar-aggregering (region-specifik vægtning) ───────────────────────
+    pillar_inds = _pillar_inds(region)
+    growth_p = _pillar(faser, pillar_inds["Growth"])
+    labor_p  = _pillar(faser, pillar_inds["Labor"])
+    infl_p   = _pillar(faser, pillar_inds["Inflation"])
+    fin_p    = _pillar(faser, pillar_inds["Financial"])
 
     # ── Momentum-justering (hvis forrige periode er tilgængelig) ─────────────
     # Princip: 70% niveau + 30% retning/acceleration.
@@ -952,10 +991,10 @@ def klassificer_makro(region_inputs, region="USA", prev_inputs=None):
     momentum_adj = {}
     if prev_inputs:
         pf = _fase_fra_inputs(prev_inputs, region)
-        pg = _pillar(pf, _GROWTH_INDS)
-        pl = _pillar(pf, _LABOR_INDS)
-        pi = _pillar(pf, _INFL_INDS)
-        pn = _pillar(pf, _FIN_INDS)
+        pg = _pillar(pf, pillar_inds["Growth"])
+        pl = _pillar(pf, pillar_inds["Labor"])
+        pi = _pillar(pf, pillar_inds["Inflation"])
+        pn = _pillar(pf, pillar_inds["Financial"])
         MCLIP = 0.5
         def m(cur, prv): return max(-MCLIP, min(MCLIP, (cur - prv) * 0.4))
         mg = m(growth_p, pg); ml = m(labor_p, pl)
@@ -991,7 +1030,7 @@ def klassificer_makro(region_inputs, region="USA", prev_inputs=None):
     point = {"Early":0,"Mid":0,"Late":0,"Recession":0}
     for ind, fase in faser.items():
         if fase and not ind.startswith("_"):
-            point[fase] += INDIKATOR_VAEGTER.get(ind, 1)
+            point[fase] += vaegt(ind, region)
     total = sum(point.values())
 
     faser["_global"]   = global_fase
@@ -1037,7 +1076,7 @@ def beregn_makrofase(seneste_makro):
             ind_liste.append({
                 "navn": ind, "vaerdi": vis,
                 "fase": faser.get(ind),
-                "vaegt": INDIKATOR_VAEGTER.get(ind, 1),
+                "vaegt": vaegt(ind, region),
                 "type": INDIKATOR_TYPE.get(ind, ""),
                 "kilde": kilde,
             })
@@ -1081,9 +1120,9 @@ def score_sektor_fra_inputs(makro_inputs):
                 fase = faser.get(ind)
                 if fase and sektor in SEKTOR_SENSITIVITET.get(ind, {}):
                     s = SEKTOR_SENSITIVITET[ind][sektor][fase]
-                    vaegt = INDIKATOR_VAEGTER[ind]
-                    vaegtet_sum += s * vaegt
-                    vaegt_sum += vaegt
+                    w = vaegt(ind, region)
+                    vaegtet_sum += s * w
+                    vaegt_sum += w
                     ind_detail.setdefault(ind, {})[region] = {"fase": fase, "score": s}
             if vaegt_sum > 0:
                 region_scores.append(vaegtet_sum / vaegt_sum)
@@ -1160,7 +1199,7 @@ def _score_sektor_region(sektor, region, f):
         ind_fase = f.get(ind)
         if ind_fase and sektor in SEKTOR_SENSITIVITET.get(ind, {}):
             s = SEKTOR_SENSITIVITET[ind][sektor][ind_fase]
-            w = INDIKATOR_VAEGTER[ind]
+            w = vaegt(ind, region)
             vs += s * w; vv += w
     if vv == 0: return None
     base = vs / vv
@@ -1248,7 +1287,7 @@ def sektor_ind_scores(seneste_makro, sektor):
             fase = f.get(ind)
             if fase and sektor in SEKTOR_SENSITIVITET.get(ind, {}):
                 sc = SEKTOR_SENSITIVITET[ind][sektor][fase]
-                w = INDIKATOR_VAEGTER[ind]
+                w = vaegt(ind, region)
                 rows.append({"ind": ind, "fase": fase, "score": sc, "vaegt": w})
         result[region] = rows
 
@@ -1415,7 +1454,7 @@ def hent_alle_data():
         "fremtid":         fremtid,
         "alle_kvartaler":  ALLE_KVARTALER,
         "indikatorer":     INDIKATORER,
-        "indikator_vaegter": INDIKATOR_VAEGTER,
+        "indikator_vaegter": INDIKATOR_VAEGTER_REGION,
         "default_makro":   DEFAULT_MAKRO,
         "seneste_makro":   seneste_makro,
         "seneste_kvartal": seneste_kvartal,

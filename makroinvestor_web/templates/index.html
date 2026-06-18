@@ -859,7 +859,7 @@ function buildTemplateInputs(){
     const lbl = (simInputs?.[region]?.[ind]?.label) || ind;
     const typKey = typeMap[ind];
     const typLbl = typKey ? `<span class="tag ${typeClasses[typKey]||'tag-lag'}" style="margin-left:5px">${typKey}</span>` : "";
-    const vaegt = (tmpl.indikator_vaegter||{})[ind] || 1;
+    const vaegt = (tmpl.indikator_vaegter?.[region]||{})[ind] || 1;
     const rv_meta = simInputs?.[region]?.[ind];
     const kilde = rv_meta?.kilde;
     const kildeLbl = kilde==="live"
