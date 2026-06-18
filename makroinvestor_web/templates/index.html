@@ -179,7 +179,14 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
             <span id="fase-beskr" style="font-size:.78rem;color:#64748b">—</span>
           </div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap" id="fase-pct"></div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="display:flex;gap:6px;background:rgba(255,255,255,.03);border-radius:8px;padding:3px" id="dash-region-tabs">
+            <button class="region-btn active" onclick="setDashRegion('Samlet',this)">🌐 Samlet</button>
+            <button class="region-btn" onclick="setDashRegion('Europa',this)">🇪🇺 Europa</button>
+            <button class="region-btn" onclick="setDashRegion('USA',this)">🇺🇸 USA</button>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap" id="fase-pct"></div>
+        </div>
       </div>
 
       <!-- 2-col grid: indicators + sector ranking -->
@@ -218,7 +225,7 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
             <span style="font-size:.65rem;font-weight:700;color:#475569;letter-spacing:.1em;text-transform:uppercase">Indikator Momentum</span>
             <span style="font-size:.65rem;color:#334155">Q1 → Q3 2026 &nbsp;↑ bullish &nbsp;↓ bearish</span>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr">
+          <div id="momentum-grid" style="display:grid;grid-template-columns:1fr 1fr">
             <div>
               <div style="padding:8px 16px;font-size:.65rem;font-weight:700;color:#4ade80;border-bottom:1px solid rgba(255,255,255,.04);letter-spacing:.05em">🇪🇺 EUROPA</div>
               <div id="momentum-eu" style="overflow-y:auto;max-height:260px"></div>
@@ -471,7 +478,7 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
 let D = null, hmData = null, tmpl = null, charts = {};
-let spg = [], svar = [], qi = 0, activeRegion = "Europa";
+let spg = [], svar = [], qi = 0, activeRegion = "Europa", dashRegion = "Samlet";
 let simInputs = null;
 
 // ── Farvehjælpere ──────────────────────────────────────────────────────────
@@ -561,10 +568,29 @@ async function goTab(tab, btn){
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────
+function setDashRegion(region, btn){
+  dashRegion = region;
+  document.querySelectorAll("#dash-region-tabs .region-btn").forEach(b=>b.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+  renderDashboard();
+}
+
+function getAktivFase(){
+  // "Samlet" = globalt komposit-billede. Ellers den rene region-specifikke fase.
+  const g = D.makro_fase;
+  if(dashRegion === "Samlet") return g;
+  const d = g.detaljer.find(x=>x.region===dashRegion);
+  if(!d) return g;
+  return {
+    fase: d.fase, titel: d.titel, beskrivelse: d.beskrivelse, ikon: d.ikon, farve: d.farve,
+    fase_pct: d.pct, detaljer: [d],
+  };
+}
+
 function renderDashboard(){
-  const f = D.makro_fase;
+  const f = getAktivFase();
   document.getElementById("fase-ikon").textContent  = f.ikon;
-  document.getElementById("fase-titel").textContent = `${f.fase} — ${f.titel}`;
+  document.getElementById("fase-titel").textContent = `${f.fase} — ${f.titel}${dashRegion!=="Samlet"?" ("+dashRegion+")":""}`;
   document.getElementById("fase-beskr").textContent = f.beskrivelse;
   const chip = document.getElementById("fase-chip");
   chip.textContent = f.fase; chip.className=`fase-chip fase-${f.fase}`;
@@ -578,7 +604,7 @@ function renderDashboard(){
     Object.entries(f.fase_pct).map(([fs,pct])=>
       `<span class="fase-chip fase-${fs}">${fs} ${pct}%</span>`).join("");
 
-  // Indikatorer
+  // Indikatorer — vis kun valgt region, eller begge ved "Samlet"
   document.getElementById("ind-grid").innerHTML = f.detaljer.map(d=>`
     <div class="card" style="padding:14px 16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -597,27 +623,36 @@ function renderDashboard(){
       </div>
     </div>`).join("");
 
-  // Sektor tabel
+  // Sektor tabel — rangér efter den valgte regions egen score, ikke kun komposit
+  const scoreKey = dashRegion==="Europa" ? "eu" : dashRegion==="USA" ? "usa" : "composite";
+  const sektorListe = [...D.sektorer]
+    .filter(s=>s[scoreKey]!=null)
+    .sort((a,b)=>b[scoreKey]-a[scoreKey])
+    .map((s,i)=>({...s, _rank: i+1}));
+
   document.getElementById("dash-sektor-tabel").innerHTML =
-    D.sektorer.map(s=>`
+    sektorListe.map(s=>{
+      const score = s[scoreKey];
+      return `
       <div class="sect-row" onclick="goTabSektor('${s.sektor}')">
-        <div class="rb ${rbCls(s.rank)}">${s.rank}</div>
+        <div class="rb ${rbCls(s._rank)}">${s._rank}</div>
         <span style="font-size:18px">${s.ikon||'📊'}</span>
         <div style="flex:1;min-width:0">
           <div style="font-size:.82rem;font-weight:500;margin-bottom:4px">${s.sektor}</div>
-          ${scoreBar(s.composite)}
+          ${scoreBar(score)}
         </div>
         <div style="text-align:right;flex-shrink:0">
-          <div style="font-weight:700;font-size:.88rem;color:${s.composite>=4?'#10B981':s.composite>=3?'#F59E0B':'#EF4444'}">${s.composite.toFixed(2)}</div>
-          <div style="font-size:.65rem;color:#334155">EU ${s.eu?.toFixed(2)||'–'} · USA ${s.usa?.toFixed(2)||'–'}</div>
+          <div style="font-weight:700;font-size:.88rem;color:${score>=4?'#10B981':score>=3?'#F59E0B':'#EF4444'}">${score.toFixed(2)}</div>
+          <div style="font-size:.65rem;color:#334155">${dashRegion==="Samlet"?`EU ${s.eu?.toFixed(2)||'–'} · USA ${s.usa?.toFixed(2)||'–'}`:`Komposit ${s.composite.toFixed(2)}`}</div>
         </div>
-      </div>`).join("");
+      </div>`;
+    }).join("");
 
   // Sidebar phase update
   const el = document.getElementById('side-fase');
   el.style.background = (phaseColors[f.fase]||'#6366F1')+'18';
   el.style.borderLeft = '2px solid '+(phaseColors[f.fase]||'#6366F1');
-  document.getElementById('side-fase-navn').textContent = f.fase+' — '+f.titel;
+  document.getElementById('side-fase-navn').textContent = f.fase+' — '+f.titel+(dashRegion!=="Samlet"?' ('+dashRegion+')':'');
   document.getElementById('side-fase-navn').style.color = phaseColors[f.fase]||'#E2E8F0';
 
   renderCycleCompass(f);
@@ -711,11 +746,12 @@ function renderCycleCompass(f){
     return `<span style="color:#64748b;font-size:.7rem">→</span>`;
   };
 
-  // Aggregate across regions
-  const allRegions = Object.keys(pillars);
+  // Vis kun den valgte regions egne pillar-scores ("Samlet" = gennemsnit over regioner, klart mærket)
+  const allRegions = dashRegion === "Samlet" ? Object.keys(pillars) : [dashRegion].filter(r=>pillars[r]);
   if(!allRegions.length){ pillarEl.innerHTML=""; return; }
   const hasMomentum = allRegions.some(r=>pillars[r]?._momentum && Object.keys(pillars[r]._momentum).length>0);
-  pillarEl.innerHTML = `<div style="font-size:.6rem;font-weight:700;color:#475569;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Pillar Scores${hasMomentum?" + Momentum":""}</div>`
+  const erGennemsnit = dashRegion === "Samlet" && allRegions.length > 1;
+  pillarEl.innerHTML = `<div style="font-size:.6rem;font-weight:700;color:#475569;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Pillar Scores${hasMomentum?" + Momentum":""}${erGennemsnit?" (gns. EU+USA)":` (${dashRegion})`}</div>`
     + pillarNames.map(p=>{
       const scores = allRegions.map(r=>pillars[r]?.[p]).filter(v=>v!=null);
       const avg = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
@@ -763,6 +799,17 @@ function renderMomentum(){
           <span style="font-family:monospace;font-size:.75rem;color:#E2E8F0;width:52px;text-align:right">${cur!=null?cur.toFixed(2):'—'}</span>
         </div>`;
     }).join("");
+  }
+
+  // Skjul/vis kolonner ud fra valgt dashboard-region (Samlet = begge synlige)
+  const euCol = document.getElementById("momentum-eu")?.parentElement;
+  const usaCol = document.getElementById("momentum-usa")?.parentElement;
+  if(euCol) euCol.style.display = (dashRegion==="Samlet"||dashRegion==="Europa") ? "" : "none";
+  if(usaCol) usaCol.style.display = (dashRegion==="Samlet"||dashRegion==="USA") ? "" : "none";
+  const mGrid = document.getElementById("momentum-grid");
+  if(mGrid){
+    mGrid.style.gridTemplateColumns = dashRegion==="Samlet" ? "1fr 1fr" : "1fr";
+    if(usaCol) usaCol.style.borderLeft = dashRegion==="Samlet" ? "1px solid rgba(255,255,255,.05)" : "none";
   }
 
   // Prefer template seneste_makro if loaded, else try to load it

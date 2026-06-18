@@ -1040,8 +1040,10 @@ def beregn_makrofase(seneste_makro):
                 "kilde": kilde,
             })
 
+        r_titel, r_beskr, r_ikon, r_farve = FASE_META.get(faser["_global"], ("?","","❓","#fff"))
         detaljer.append({
             "region": region, "fase": faser["_global"],
+            "titel": r_titel, "beskrivelse": r_beskr, "ikon": r_ikon, "farve": r_farve,
             "indikatorer": ind_liste,
             "point": faser["_point"], "pct": faser["_pct"],
         })
