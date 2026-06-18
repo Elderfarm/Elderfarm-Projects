@@ -4,7 +4,6 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Makroinvestor 2026</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#070A10;color:#E2E8F0;font-family:'Inter',system-ui,sans-serif;min-height:100vh}
@@ -127,12 +126,6 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
     <div style="font-size:.6rem;font-weight:700;color:#334155;letter-spacing:.1em;padding:12px 10px 8px;text-transform:uppercase">Investering</div>
     <button onclick="goTab('sektorer',this)" data-tab="sektorer" class="nav-item">
       <span style="font-size:14px;width:18px;text-align:center">🏆</span>Sektorer
-    </button>
-    <button onclick="goTab('profil',this)" data-tab="profil" class="nav-item">
-      <span style="font-size:14px;width:18px;text-align:center">👤</span>Risikoprofil
-    </button>
-    <button onclick="goTab('historik',this)" data-tab="historik" class="nav-item">
-      <span style="font-size:14px;width:18px;text-align:center">📅</span>Historik data
     </button>
   </nav>
 
@@ -380,94 +373,6 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
       </div>
     </div>
 
-    <!-- ═══════════ RISIKOPROFIL ═══════════ -->
-    <div id="tab-profil" style="display:none" class="slide">
-
-      <div id="ps1" class="card" style="padding:24px;max-width:480px">
-        <div style="font-weight:600;font-size:.95rem;margin-bottom:16px">💰 Investeringsbeløb</div>
-        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px">
-          <div>
-            <div style="font-size:.7rem;color:#475569;margin-bottom:4px">DKK</div>
-            <input id="beloeb-inp" type="number" value="100000" min="1000"
-              style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;color:#fff;font-size:1.1rem;width:180px;outline:none"/>
-          </div>
-          <button onclick="startQ()" style="background:#6366F1;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-weight:600;font-size:.9rem;cursor:pointer;transition:background .15s">Start →</button>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span style="font-size:.72rem;color:#334155">Hurtig:</span>
-          <button onclick="setB(50000)" style="font-size:.72rem;padding:4px 10px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#94A3B8;cursor:pointer;transition:all .15s">50.000</button>
-          <button onclick="setB(100000)" style="font-size:.72rem;padding:4px 10px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#94A3B8;cursor:pointer;transition:all .15s">100.000</button>
-          <button onclick="setB(250000)" style="font-size:.72rem;padding:4px 10px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#94A3B8;cursor:pointer;transition:all .15s">250.000</button>
-          <button onclick="setB(500000)" style="font-size:.72rem;padding:4px 10px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#94A3B8;cursor:pointer;transition:all .15s">500.000</button>
-        </div>
-      </div>
-
-      <div id="ps2" style="display:none;margin-top:16px">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;max-width:560px">
-          <div style="flex:1;background:rgba(255,255,255,.05);border-radius:999px;height:4px">
-            <div id="q-bar" style="background:#6366F1;height:4px;border-radius:999px;transition:width .4s ease;width:0%"></div>
-          </div>
-          <span style="font-size:.72rem;color:#475569;white-space:nowrap" id="q-cnt">0/8</span>
-        </div>
-        <div class="card slide" style="padding:24px;max-width:560px" id="q-box">
-          <div style="font-size:.65rem;font-weight:700;color:#334155;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px" id="q-nr">Spørgsmål 1/8</div>
-          <div style="font-weight:600;font-size:1rem;margin-bottom:16px;color:#E2E8F0" id="q-tekst"></div>
-          <div id="q-svar"></div>
-        </div>
-      </div>
-
-      <div id="ps3" style="display:none" class="slide">
-        <div style="background:#0C1018;border:1px solid rgba(255,255,255,.055);border-radius:12px;padding:20px 24px;display:flex;align-items:center;gap:20px;margin-bottom:16px;flex-wrap:wrap">
-          <div style="font-size:40px" id="p-ikon">📊</div>
-          <div style="flex:1">
-            <div style="font-size:.65rem;color:#475569;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Risikoprofil</div>
-            <div style="font-size:1.5rem;font-weight:700;color:#E2E8F0" id="p-navn"></div>
-            <div style="font-size:.82rem;color:#94A3B8;margin-top:4px" id="p-beskr"></div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:2rem;font-weight:700;color:#6366F1" id="p-pct"></div>
-            <div style="font-size:.7rem;color:#475569">Risikoscore</div>
-          </div>
-        </div>
-        <div class="card" style="padding:20px;margin-bottom:16px">
-          <div style="font-weight:600;margin-bottom:16px">💼 Porteføljefordeling</div>
-          <div id="alloc"></div>
-          <div style="font-size:.72rem;color:#475569;margin-top:16px">Alternativer: <span id="p-alt" style="color:#94A3B8"></span></div>
-        </div>
-        <div class="card" style="overflow:hidden;margin-bottom:16px">
-          <div style="padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.055);font-weight:600">🎯 Anbefalede sektorer</div>
-          <div id="p-sektorer"></div>
-        </div>
-        <button onclick="resetP()" style="font-size:.75rem;color:#475569;background:transparent;border:none;cursor:pointer;transition:color .15s">↩ Tag testen igen</button>
-      </div>
-    </div>
-
-    <!-- ═══════════ HISTORIK ═══════════ -->
-    <div id="tab-historik" style="display:none" class="slide">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
-        <div class="card" style="padding:16px"><div style="font-weight:600;font-size:.82rem;margin-bottom:12px">📉 PMI</div><canvas id="c-pmi" height="180"></canvas></div>
-        <div class="card" style="padding:16px"><div style="font-weight:600;font-size:.82rem;margin-bottom:12px">📈 10-årig rente</div><canvas id="c-rate" height="180"></canvas></div>
-        <div class="card" style="padding:16px"><div style="font-weight:600;font-size:.82rem;margin-bottom:12px">💹 Inflation (CPI %)</div><canvas id="c-cpi" height="180"></canvas></div>
-        <div class="card" style="padding:16px"><div style="font-weight:600;font-size:.82rem;margin-bottom:12px">😨 VIX</div><canvas id="c-vix" height="180"></canvas></div>
-      </div>
-      <div class="card" style="overflow:hidden">
-        <div style="padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.055);font-weight:600">🔮 Makroprognoser Q1 &amp; Q3 2026</div>
-        <div style="overflow-x:auto">
-          <table style="width:100%;border-collapse:collapse;font-size:.82rem">
-            <thead>
-              <tr style="border-bottom:1px solid rgba(255,255,255,.055)">
-                <th style="padding:10px 18px;text-align:left;font-size:.65rem;font-weight:700;color:#334155;letter-spacing:.08em;text-transform:uppercase">Region</th>
-                <th style="padding:10px 14px;text-align:left;font-size:.65rem;font-weight:700;color:#334155;letter-spacing:.08em;text-transform:uppercase">Indikator</th>
-                <th style="padding:10px 14px;text-align:right;font-size:.65rem;font-weight:700;color:#334155;letter-spacing:.08em;text-transform:uppercase">Q1 2026</th>
-                <th style="padding:10px 14px;text-align:right;font-size:.65rem;font-weight:700;color:#60A5FA;letter-spacing:.08em;text-transform:uppercase">Q3 2026</th>
-              </tr>
-            </thead>
-            <tbody id="fremtid-tabel"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
   </main>
 
   <footer style="text-align:center;font-size:.72rem;color:#1E293B;padding:24px;border-top:1px solid rgba(255,255,255,.03);margin-top:20px">
@@ -477,14 +382,12 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
 
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
-let D = null, hmData = null, tmpl = null, charts = {};
-let spg = [], svar = [], qi = 0, activeRegion = "Europa", dashRegion = "Samlet";
+let D = null, hmData = null, tmpl = null;
+let activeRegion = "Europa", dashRegion = "Samlet";
 let simInputs = null;
 
 // ── Farvehjælpere ──────────────────────────────────────────────────────────
 const REGION_FARVER = {Europa:"#10B981",USA:"#3B82F6"};
-const PROFIL_IKONER = {Konservativ:"🛡️",Balanceret:"⚖️",Vækstorienteret:"🚀",Dynamisk:"⚡"};
-const ALLOC_FARVER  = {Obligationer:"#3B82F6",ETF:"#10B981",Aktier:"#F59E0B",Alternative:"#8B5CF6"};
 
 function scoreKlasse(s){
   if(s>=4.5) return "hm-h";
@@ -502,11 +405,8 @@ function rbCls(r){return r===1?"rb-1":r===2?"rb-2":r===3?"rb-3":"rb-n"}
 
 // ── Init ───────────────────────────────────────────────────────────────────
 window.addEventListener("DOMContentLoaded",async ()=>{
-  const [dash, sq] = await Promise.all([
-    fetch("/api/dashboard").then(r=>r.json()),
-    fetch("/api/spoergeskema").then(r=>r.json())
-  ]);
-  D = dash; spg = sq;
+  const dash = await fetch("/api/dashboard").then(r=>r.json());
+  D = dash;
   document.getElementById("loading").style.display="none";
   showContent("dashboard");
   renderDashboard();
@@ -549,7 +449,7 @@ async function goTab(tab, btn){
   // Breadcrumb
   document.getElementById('hdr-breadcrumb').textContent =
     {dashboard:'Dashboard',heatmap:'Multi-kvartal analyse',skabelon:'Mine forventninger',
-     sektorer:'Sektorer',profil:'Risikoprofil',historik:'Historik data'}[tab]||tab;
+     sektorer:'Sektorer'}[tab]||tab;
 
   if(tab==="heatmap" && !hmData){
     hmData = await fetch("/api/heatmap").then(r=>r.json());
@@ -564,7 +464,6 @@ async function goTab(tab, btn){
     await runSim();
   }
   if(tab==="sektorer" && D) renderSektorer();
-  if(tab==="historik" && D) renderHistorik();
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────
@@ -1153,116 +1052,6 @@ async function openSektor(navn){
 function goTabSektor(sektor){
   goTab("sektorer",document.querySelector('[data-tab="sektorer"]'));
   setTimeout(()=>openSektor(sektor),100);
-}
-
-// ── RISIKOPROFIL ───────────────────────────────────────────────────────────
-function setB(v){document.getElementById("beloeb-inp").value=v}
-function startQ(){
-  svar=new Array(spg.length).fill(null); qi=0;
-  document.getElementById("ps1").style.display="none";
-  document.getElementById("ps2").style.display="block";
-  visQ();
-}
-function visQ(){
-  if(qi>=spg.length){indsend();return}
-  const q=spg[qi];
-  document.getElementById("q-nr").textContent=`Spørgsmål ${qi+1} / ${spg.length}`;
-  document.getElementById("q-tekst").textContent=q.tekst;
-  document.getElementById("q-cnt").textContent=`${qi}/${spg.length}`;
-  document.getElementById("q-bar").style.width=`${qi/spg.length*100}%`;
-  document.getElementById("q-svar").innerHTML=q.svar.map((s,i)=>`
-    <button class="ans-btn ${svar[qi]===s.score?'sel':''}" onclick="vaelg(${s.score},${i})">
-      <span style="color:#334155;margin-right:6px">${s.nr}.</span>${s.tekst}
-    </button>`).join("");
-}
-function vaelg(score,idx){
-  svar[qi]=score;
-  document.querySelectorAll(".ans-btn").forEach((b,i)=>b.classList.toggle("sel",i===idx));
-  setTimeout(()=>{qi++;visQ();},280);
-}
-async function indsend(){
-  const beloeb=parseFloat(document.getElementById("beloeb-inp").value)||0;
-  const res=await fetch("/api/profil",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({svar:svar.filter(s=>s!=null),beloeb})}).then(r=>r.json());
-  document.getElementById("ps2").style.display="none";
-  document.getElementById("ps3").style.display="block";
-
-  document.getElementById("p-ikon").textContent=PROFIL_IKONER[res.profil.navn]||"📊";
-  document.getElementById("p-navn").textContent=res.profil.navn;
-  document.getElementById("p-beskr").textContent=res.profil.beskrivelse;
-  document.getElementById("p-pct").textContent=Math.round(res.score_ratio*100)+"%";
-  document.getElementById("p-alt").textContent=res.profil.alternativer;
-
-  document.getElementById("alloc").innerHTML=Object.entries(res.fordeling).map(([k,pct])=>{
-    const dkk=res.beloeb_fordeling[k]||0;
-    const c=ALLOC_FARVER[k]||"#94a3b8";
-    return `<div style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:5px">
-        <span style="font-weight:500">${k}</span>
-        <span style="color:#64748b">${pct}% — <span style="color:#E2E8F0;font-weight:600">${dkk.toLocaleString("da-DK")} DKK</span></span>
-      </div>
-      <div style="background:rgba(255,255,255,.05);border-radius:4px;height:8px;overflow:hidden">
-        <div class="alloc-fill" style="width:${pct}%;background:${c}"></div>
-      </div></div>`;
-  }).join("");
-
-  document.getElementById("p-sektorer").innerHTML=res.top_sektorer.map(s=>{
-    const etfStr=s.etfs.map(e=>e.navn).join(", ")||"—";
-    const aktStr=Object.entries(s.aktier).map(([r,l])=>`<span style="color:#334155">${r}:</span> ${l.slice(0,2).map(a=>a.ticker).join(", ")}`).join(" · ");
-    return `<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.035)">
-      <div class="rb ${rbCls(s.rank)}">${s.rank}</div>
-      <span style="font-size:18px">${s.ikon||'📊'}</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:600;font-size:.85rem">${s.sektor} <span style="color:#475569;font-weight:400">${s.composite.toFixed(2)}</span></div>
-        <div style="font-size:.72rem;color:#475569;margin-top:2px">ETF: ${etfStr}</div>
-        ${aktStr?`<div style="font-size:.72rem;color:#475569;margin-top:1px">${aktStr}</div>`:""}
-      </div></div>`;
-  }).join("");
-}
-function resetP(){document.getElementById("ps3").style.display="none";document.getElementById("ps1").style.display="block"}
-
-// ── HISTORIK ───────────────────────────────────────────────────────────────
-function renderHistorik(){
-  const h=D.historik;
-  const FARVER={USA:"#3B82F6",Europa:"#10B981"};
-
-  function mkChart(id,ind,suffix=""){
-    const kvSet=new Set();
-    for(const [,data] of Object.entries(h)) (data[ind]||[]).forEach(p=>kvSet.add(p.kvartal));
-    const kvs=Array.from(kvSet).sort();
-    const datasets=Object.entries(h).map(([r,data])=>{
-      const m=(data[ind]||[]).reduce((a,p)=>{a[p.kvartal]=p.vaerdi;return a},{});
-      return {label:r,data:kvs.map(k=>m[k]??null),borderColor:FARVER[r]||"#94a3b8",backgroundColor:(FARVER[r]||"#94a3b8")+"22",tension:.3,borderWidth:2,pointRadius:3,spanGaps:true};
-    }).filter(d=>d.data.some(v=>v!=null));
-    const ctx=document.getElementById(id).getContext("2d");
-    if(charts[id]) charts[id].destroy();
-    charts[id]=new Chart(ctx,{type:"line",data:{labels:kvs,datasets},
-      options:{responsive:true,plugins:{legend:{labels:{color:"#94a3b8",font:{size:10},boxWidth:12}}},
-        scales:{x:{ticks:{color:"#475569",font:{size:9},maxRotation:45},grid:{color:"rgba(255,255,255,.03)"}},
-                y:{ticks:{color:"#475569",font:{size:10}},grid:{color:"rgba(255,255,255,.03)"},
-                   title:{display:!!suffix,text:suffix,color:"#475569",font:{size:9}}}}}});
-  }
-  mkChart("c-pmi","PMI");
-  mkChart("c-rate","10yr","%");
-  mkChart("c-cpi","CPI","%");
-  mkChart("c-vix","VIX");
-
-  const tbody=document.getElementById("fremtid-tabel");
-  const INDS=["BNP","PMI","10 YR rate","CPI","VIX","Unemployment"];
-  tbody.innerHTML="";
-  for(const [region,data] of Object.entries(D.fremtid).filter(([r])=>r!=="Danmark")){
-    let first=true;
-    for(const ind of INDS){
-      if(!data[ind]) continue;
-      const {q1,q2}=data[ind];
-      tbody.innerHTML+=`<tr style="border-bottom:1px solid rgba(255,255,255,.035);transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.02)'" onmouseout="this.style.background=''">
-        <td style="padding:8px 18px;font-size:.82rem;${first?'font-weight:600;color:#E2E8F0':'color:transparent'}">${first?region:''}</td>
-        <td style="padding:8px 14px;font-size:.75rem;color:#64748b">${ind}</td>
-        <td style="padding:8px 14px;font-size:.75rem;text-align:right;font-family:'SF Mono',monospace">${q1!=null?q1:'—'}</td>
-        <td style="padding:8px 14px;font-size:.75rem;text-align:right;font-family:'SF Mono',monospace;color:#60A5FA">${q2!=null?q2:'—'}</td>
-      </tr>`;
-      first=false;
-    }
-  }
 }
 </script>
 </body>

@@ -1,7 +1,7 @@
 import os
 from flask import Flask, render_template, jsonify, request
-from data import (hent_alle_data, match_profil, parse_fordeling,
-                  simuler_sektorer, sektor_ind_scores, INDIKATORER, SEKTOR_RÆKKEFØLGE,
+from data import (hent_alle_data, simuler_sektorer, sektor_ind_scores,
+                  INDIKATORER, SEKTOR_RÆKKEFØLGE,
                   DEFAULT_MAKRO, FASE_META, INDIKATOR_TYPE)
 
 app = Flask(__name__)
@@ -85,40 +85,6 @@ def api_simuler():
                 try: prev_inputs[region][ind] = float(val)
                 except: pass
     return jsonify(simuler_sektorer(inputs, prev_inputs))
-
-
-@app.route("/api/spoergeskema")
-def api_spoergeskema():
-    return jsonify(get_data()["spoergeskema"])
-
-
-@app.route("/api/profil", methods=["POST"])
-def api_profil():
-    d = get_data()
-    body = request.get_json()
-    svar = body.get("svar", [])
-    total = sum(svar)
-    maks = sum(max(s["score"] for s in q["svar"]) for q in d["spoergeskema"])
-    ratio = total / maks if maks else 0
-    profil = match_profil(d["profiler"], ratio)
-    fordeling = parse_fordeling(profil["fordeling"])
-    beloeb = body.get("beloeb", 0)
-    beloeb_fordeling = {k: round(v/100*beloeb) for k,v in fordeling.items()}
-
-    top_sektorer = []
-    for s in d["sektorer"][:5]:
-        sektor = s["sektor"]
-        etfs = d["etf_liste"].get(sektor, [])[:2]
-        aktier = {}
-        for region, liste in d["aktier"].items():
-            m = sorted([a for a in liste if a["sektor"]==sektor],
-                       key=lambda x: x["market_cap"], reverse=True)[:3]
-            if m: aktier[region] = m
-        top_sektorer.append({**s, "etfs":etfs, "aktier":aktier})
-
-    return jsonify({"profil":profil,"score_ratio":round(ratio,3),"total_score":total,
-                    "maks_score":maks,"fordeling":fordeling,"beloeb_fordeling":beloeb_fordeling,
-                    "top_sektorer":top_sektorer})
 
 
 @app.route("/api/sektor_inds/<navn>")
