@@ -92,6 +92,33 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:3px}
 ::-webkit-scrollbar-track{background:transparent}
+
+/* Mobile sidebar overlay */
+#sidebar-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:49;display:none}
+#sidebar-overlay.show{display:block}
+#menu-toggle{display:none}
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 860px){
+  #menu-toggle{display:flex !important}
+  #sidebar{transform:translateX(-100%);transition:transform .25s ease;box-shadow:4px 0 24px rgba(0,0,0,.4)}
+  #sidebar.open{transform:translateX(0)}
+  #main-content{margin-left:0 !important}
+  header{padding:0 14px !important}
+  main{padding:14px !important}
+  #dash-grid-main, #dash-grid-bottom, #skabelon-grid, #sd-grid, #momentum-grid{
+    grid-template-columns:1fr !important;
+  }
+  #fase-banner{flex-direction:column;align-items:flex-start !important}
+  .hm-cell{width:38px;height:28px;font-size:.62rem}
+}
+@media (max-width: 480px){
+  header{height:auto !important;padding:10px 12px !important;flex-wrap:wrap;gap:6px}
+  #hdr-status{font-size:.68rem}
+  main{padding:10px !important}
+  .card[style*="grid-template-columns:repeat(auto-fit"]{grid-template-columns:1fr !important}
+  input[type=number]{width:64px}
+}
 </style>
 </head>
 <body>
@@ -138,12 +165,17 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
   </div>
 </aside>
 
+<div id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
+
 <!-- ═══════════ MAIN ═══════════ -->
-<div style="margin-left:220px;min-height:100vh;background:#070A10">
+<div id="main-content" style="margin-left:220px;min-height:100vh;background:#070A10">
 
   <!-- Top bar -->
   <header style="height:52px;border-bottom:1px solid rgba(255,255,255,.055);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;background:#070A10;z-index:40">
-    <div id="hdr-breadcrumb" style="font-size:.82rem;color:#475569">Dashboard</div>
+    <div style="display:flex;align-items:center;gap:10px;min-width:0">
+      <button id="menu-toggle" onclick="toggleSidebar()" style="align-items:center;justify-content:center;width:30px;height:30px;border-radius:6px;border:1px solid rgba(255,255,255,.08);background:transparent;color:#94a3b8;cursor:pointer;font-size:15px;flex-shrink:0">☰</button>
+      <div id="hdr-breadcrumb" style="font-size:.82rem;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Dashboard</div>
+    </div>
     <div id="hdr-status" style="display:flex;align-items:center;gap:8px;font-size:.75rem;color:#475569">
       <div class="spinner" style="width:12px;height:12px"></div><span>Loading…</span>
     </div>
@@ -183,7 +215,7 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
       </div>
 
       <!-- 2-col grid: indicators + sector ranking -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+      <div id="dash-grid-main" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
 
         <!-- Macro indicators -->
         <div>
@@ -202,7 +234,7 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
       </div>
 
       <!-- Cycle Compass + Indicator Momentum -->
-      <div style="display:grid;grid-template-columns:300px 1fr;gap:16px">
+      <div id="dash-grid-bottom" style="display:grid;grid-template-columns:300px 1fr;gap:16px">
 
         <!-- Cycle Compass -->
         <div class="card" style="padding:20px;display:flex;flex-direction:column;align-items:center">
@@ -293,7 +325,7 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
       </div>
 
       <!-- 2-col grid -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div id="skabelon-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
 
         <!-- Inputs left -->
         <div class="card" style="padding:20px">
@@ -355,7 +387,7 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
           </div>
           <button onclick="document.getElementById('sektor-detalje').style.display='none'" style="color:#475569;background:transparent;border:none;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:all .15s">✕</button>
         </div>
-        <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
+        <div id="sd-grid" style="padding:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
           <div>
             <div style="font-size:.65rem;font-weight:700;color:#334155;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">ETFs</div>
             <div id="sd-etfs"></div>
@@ -452,6 +484,8 @@ async function goTab(tab, btn){
   document.getElementById('hdr-breadcrumb').textContent =
     {dashboard:'Dashboard',heatmap:'Multi-quarter analysis',skabelon:'My Expectations',
      sektorer:'Sectors'}[tab]||tab;
+
+  if(window.innerWidth<=860) toggleSidebar(false);
 
   if(tab==="heatmap" && !hmData){
     hmData = await fetch("/api/heatmap").then(r=>r.json());
@@ -1050,6 +1084,14 @@ async function openSektor(navn){
 
   document.getElementById("sektor-detalje").style.display="block";
   document.getElementById("sektor-detalje").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+function toggleSidebar(force){
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  const show = force !== undefined ? force : !sb.classList.contains('open');
+  sb.classList.toggle('open', show);
+  ov.classList.toggle('show', show);
 }
 
 function goTabSektor(sektor){
