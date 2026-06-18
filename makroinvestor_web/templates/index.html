@@ -890,6 +890,7 @@ function setRegionTab(region, btn){
   if(btn) btn.classList.add("active");
   activeRegion = region;
   buildTemplateInputs();
+  runSim();
 }
 
 function syncSlider(ind, val){
