@@ -91,7 +91,7 @@ def api_simuler():
 def api_sektor_inds(navn):
     d = get_data()
     s = next((x for x in d["sektorer"] if x["sektor"].lower()==navn.lower()), None)
-    if not s: return jsonify({"fejl":"ikke fundet"}), 404
+    if not s: return jsonify({"error":"not found"}), 404
     return jsonify(sektor_ind_scores(d["seneste_makro"], s["sektor"]))
 
 
@@ -99,7 +99,7 @@ def api_sektor_inds(navn):
 def api_sektor(navn):
     d = get_data()
     s = next((x for x in d["sektorer"] if x["sektor"].lower()==navn.lower()), None)
-    if not s: return jsonify({"fejl":"ikke fundet"}), 404
+    if not s: return jsonify({"error":"not found"}), 404
     etfs = d["etf_liste"].get(s["sektor"],[])
     aktier = {r: sorted([a for a in l if a["sektor"]==s["sektor"]],
                          key=lambda x:x["market_cap"],reverse=True)

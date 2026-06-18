@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="da">
+<html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Makroinvestor 2026</title>
+<title>Macro Investor 2026</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#070A10;color:#E2E8F0;font-family:'Inter',system-ui,sans-serif;min-height:100vh}
@@ -104,35 +104,35 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
     <div style="display:flex;align-items:center;gap:10px">
       <div style="width:32px;height:32px;background:linear-gradient(135deg,#6366F1,#3B82F6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px">📈</div>
       <div>
-        <div style="font-weight:700;font-size:.9rem;color:#E2E8F0">Makroinvestor</div>
-        <div style="font-size:.65rem;color:#475569">Sektoranalyse 2026</div>
+        <div style="font-weight:700;font-size:.9rem;color:#E2E8F0">Macro Investor</div>
+        <div style="font-size:.65rem;color:#475569">Sector Analysis 2026</div>
       </div>
     </div>
   </div>
 
   <!-- Nav -->
   <nav style="padding:12px 10px;flex:1;overflow-y:auto">
-    <div style="font-size:.6rem;font-weight:700;color:#334155;letter-spacing:.1em;padding:0 10px 8px;text-transform:uppercase">Analyse</div>
+    <div style="font-size:.6rem;font-weight:700;color:#334155;letter-spacing:.1em;padding:0 10px 8px;text-transform:uppercase">Analysis</div>
     <button onclick="goTab('dashboard',this)" data-tab="dashboard" class="nav-item active">
       <span style="font-size:14px;width:18px;text-align:center">📊</span>Dashboard
     </button>
     <button onclick="goTab('heatmap',this)" data-tab="heatmap" class="nav-item">
-      <span style="font-size:14px;width:18px;text-align:center">🗺️</span>Multi-kvartal
+      <span style="font-size:14px;width:18px;text-align:center">🗺️</span>Multi-quarter
     </button>
     <button onclick="goTab('skabelon',this)" data-tab="skabelon" class="nav-item">
-      <span style="font-size:14px;width:18px;text-align:center">🔭</span>Mine forventninger
+      <span style="font-size:14px;width:18px;text-align:center">🔭</span>My Expectations
     </button>
 
-    <div style="font-size:.6rem;font-weight:700;color:#334155;letter-spacing:.1em;padding:12px 10px 8px;text-transform:uppercase">Investering</div>
+    <div style="font-size:.6rem;font-weight:700;color:#334155;letter-spacing:.1em;padding:12px 10px 8px;text-transform:uppercase">Investing</div>
     <button onclick="goTab('sektorer',this)" data-tab="sektorer" class="nav-item">
-      <span style="font-size:14px;width:18px;text-align:center">🏆</span>Sektorer
+      <span style="font-size:14px;width:18px;text-align:center">🏆</span>Sectors
     </button>
   </nav>
 
   <!-- Phase badge bottom -->
   <div style="padding:16px;border-top:1px solid rgba(255,255,255,.055)">
     <div id="side-fase" style="border-radius:8px;padding:10px 12px;background:rgba(99,102,241,.1);border-left:2px solid #6366F1">
-      <div style="font-size:.6rem;color:#475569;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Aktuel fase</div>
+      <div style="font-size:.6rem;color:#475569;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Current phase</div>
       <div id="side-fase-navn" style="font-weight:700;font-size:.85rem;color:#E2E8F0">—</div>
     </div>
   </div>
@@ -145,7 +145,7 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
   <header style="height:52px;border-bottom:1px solid rgba(255,255,255,.055);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;background:#070A10;z-index:40">
     <div id="hdr-breadcrumb" style="font-size:.82rem;color:#475569">Dashboard</div>
     <div id="hdr-status" style="display:flex;align-items:center;gap:8px;font-size:.75rem;color:#475569">
-      <div class="spinner" style="width:12px;height:12px"></div><span>Indlæser…</span>
+      <div class="spinner" style="width:12px;height:12px"></div><span>Loading…</span>
     </div>
   </header>
 
@@ -154,7 +154,7 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
     <!-- LOADING -->
     <div id="loading" style="display:flex;align-items:center;justify-content:center;height:240px;gap:16px">
       <div class="spinner" style="width:36px;height:36px;border-width:3px"></div>
-      <span style="color:#64748b">Analyserer makroøkonomiske data…</span>
+      <span style="color:#64748b">Analyzing macroeconomic data…</span>
     </div>
 
     <!-- ═══════════ DASHBOARD ═══════════ -->
@@ -174,8 +174,8 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
         </div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           <div style="display:flex;gap:6px;background:rgba(255,255,255,.03);border-radius:8px;padding:3px" id="dash-region-tabs">
-            <button class="region-btn active" onclick="setDashRegion('Samlet',this)">🌐 Samlet</button>
-            <button class="region-btn" onclick="setDashRegion('Europa',this)">🇪🇺 Europa</button>
+            <button class="region-btn active" onclick="setDashRegion('Samlet',this)">🌐 Overall</button>
+            <button class="region-btn" onclick="setDashRegion('Europa',this)">🇪🇺 Europe</button>
             <button class="region-btn" onclick="setDashRegion('USA',this)">🇺🇸 USA</button>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap" id="fase-pct"></div>
@@ -187,40 +187,40 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
 
         <!-- Macro indicators -->
         <div>
-          <div style="font-size:.65rem;font-weight:700;color:#334155;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">Makroindikatorer — Q3 2026</div>
+          <div style="font-size:.65rem;font-weight:700;color:#334155;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">Macro Indicators — Q3 2026</div>
           <div id="ind-grid" style="display:flex;flex-direction:column;gap:10px"></div>
         </div>
 
         <!-- Sector ranking -->
         <div class="card" style="overflow:hidden">
           <div style="padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.055);display:flex;align-items:center;justify-content:space-between">
-            <span style="font-weight:600;font-size:.88rem">🏆 Sektorrankering</span>
-            <span style="font-size:.7rem;color:#475569">Makroscore Q3 2026</span>
+            <span style="font-weight:600;font-size:.88rem">🏆 Sector Ranking</span>
+            <span style="font-size:.7rem;color:#475569">Macro score Q3 2026</span>
           </div>
           <div id="dash-sektor-tabel"></div>
         </div>
       </div>
 
-      <!-- Konjunktur Kompas + Indikator Momentum -->
+      <!-- Cycle Compass + Indicator Momentum -->
       <div style="display:grid;grid-template-columns:300px 1fr;gap:16px">
 
         <!-- Cycle Compass -->
         <div class="card" style="padding:20px;display:flex;flex-direction:column;align-items:center">
-          <div style="font-size:.65rem;font-weight:700;color:#475569;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;align-self:flex-start">Konjunktur Kompas</div>
+          <div style="font-size:.65rem;font-weight:700;color:#475569;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;align-self:flex-start">Cycle Compass</div>
           <div id="cycle-compass"></div>
           <div id="compass-legend" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:16px;width:100%"></div>
           <div id="pillar-momentum" style="margin-top:14px;width:100%;border-top:1px solid rgba(255,255,255,.05);padding-top:12px"></div>
         </div>
 
-        <!-- Indikator Momentum -->
+        <!-- Indicator Momentum -->
         <div class="card" style="overflow:hidden">
           <div style="padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.055);display:flex;align-items:center;justify-content:space-between">
-            <span style="font-size:.65rem;font-weight:700;color:#475569;letter-spacing:.1em;text-transform:uppercase">Indikator Momentum</span>
+            <span style="font-size:.65rem;font-weight:700;color:#475569;letter-spacing:.1em;text-transform:uppercase">Indicator Momentum</span>
             <span style="font-size:.65rem;color:#334155">Q1 → Q3 2026 &nbsp;↑ bullish &nbsp;↓ bearish</span>
           </div>
           <div id="momentum-grid" style="display:grid;grid-template-columns:1fr 1fr">
             <div>
-              <div style="padding:8px 16px;font-size:.65rem;font-weight:700;color:#4ade80;border-bottom:1px solid rgba(255,255,255,.04);letter-spacing:.05em">🇪🇺 EUROPA</div>
+              <div style="padding:8px 16px;font-size:.65rem;font-weight:700;color:#4ade80;border-bottom:1px solid rgba(255,255,255,.04);letter-spacing:.05em">🇪🇺 EUROPE</div>
               <div id="momentum-eu" style="overflow-y:auto;max-height:260px"></div>
             </div>
             <div style="border-left:1px solid rgba(255,255,255,.05)">
@@ -238,17 +238,17 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
       <div class="card" style="overflow:hidden;margin-bottom:20px">
         <div style="padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.055);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
           <div>
-            <div style="font-weight:600;font-size:.88rem;margin-bottom:2px">🗺️ Sektor × Kvartal heatmap</div>
+            <div style="font-weight:600;font-size:.88rem;margin-bottom:2px">🗺️ Sector × Quarter Heatmap</div>
             <div style="font-size:.7rem">
-              <span class="kv-hist">■ Historisk (BNP-scores 1-5)</span>
+              <span class="kv-hist">■ Historical (GDP scores 1-5)</span>
               <span style="color:#334155"> · </span>
-              <span class="kv-proj">■ Prognose (makroscorer)</span>
+              <span class="kv-proj">■ Forecast (macro scores)</span>
             </div>
           </div>
           <div style="display:flex;gap:6px;font-size:.7rem">
-            <span style="padding:3px 8px;border-radius:4px;background:rgba(16,185,129,.2);color:#34D399">4.5+ Høj</span>
+            <span style="padding:3px 8px;border-radius:4px;background:rgba(16,185,129,.2);color:#34D399">4.5+ High</span>
             <span style="padding:3px 8px;border-radius:4px;background:rgba(245,158,11,.2);color:#FCD34D">3.0 Mid</span>
-            <span style="padding:3px 8px;border-radius:4px;background:rgba(239,68,68,.2);color:#F87171">1.5 Lav</span>
+            <span style="padding:3px 8px;border-radius:4px;background:rgba(239,68,68,.2);color:#F87171">1.5 Low</span>
           </div>
         </div>
         <div style="overflow-x:auto;padding:16px">
@@ -256,11 +256,11 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
         </div>
       </div>
 
-      <!-- Indikator breakdown -->
+      <!-- Indicator breakdown -->
       <div class="card" style="overflow:hidden">
         <div style="padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.055)">
-          <div style="font-weight:600;font-size:.88rem;margin-bottom:2px">🔬 Indikator-bidrag per sektor (Q3 2026)</div>
-          <div style="font-size:.72rem;color:#475569">Klik på en sektor herunder for at se score per indikator</div>
+          <div style="font-weight:600;font-size:.88rem;margin-bottom:2px">🔬 Indicator Contribution per Sector (Q3 2026)</div>
+          <div style="font-size:.72rem;color:#475569">Click a sector below to see the score per indicator</div>
         </div>
         <div style="padding:16px;overflow-x:auto">
           <div id="sektor-selector" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px"></div>
@@ -276,19 +276,19 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
 
       <!-- Info banner -->
       <div style="background:#0C1018;border:1px solid rgba(255,255,255,.055);border-radius:12px;padding:16px 20px;margin-bottom:16px">
-        <div style="font-size:.85rem;color:#CBD5E1;margin-bottom:4px">🔭 <strong>Mine forventninger</strong> — Indtast dine egne makroforventninger og se hvilke sektorer der performer bedst i dit scenarie.</div>
+        <div style="font-size:.85rem;color:#CBD5E1;margin-bottom:4px">🔭 <strong>My Expectations</strong> — Enter your own macro expectations and see which sectors perform best in your scenario.</div>
         <div style="font-size:.72rem;color:#475569">
-          Præ-udfyldt med seneste data (<span id="tmpl-kvartal" style="color:#60a5fa">—</span>).
-          <span style="font-size:.6rem;background:rgba(16,185,129,.12);color:#34D399;border:1px solid rgba(16,185,129,.25);border-radius:3px;padding:0 4px">EXCEL</span> = fra din Excel-fil &nbsp;
+          Pre-filled with the latest data (<span id="tmpl-kvartal" style="color:#60a5fa">—</span>).
+          <span style="font-size:.6rem;background:rgba(16,185,129,.12);color:#34D399;border:1px solid rgba(16,185,129,.25);border-radius:3px;padding:0 4px">EXCEL</span> = from your Excel file &nbsp;
           <span style="font-size:.6rem;background:rgba(16,185,129,.12);color:#10B981;border:1px solid rgba(16,185,129,.3);border-radius:3px;padding:0 4px">● LIVE</span> = FRED/ECB API &nbsp;
-          <span style="font-size:.6rem;background:rgba(99,102,241,.1);color:#818CF8;border:1px solid rgba(99,102,241,.25);border-radius:3px;padding:0 4px">EXCEL</span> = Excel-fil &nbsp;
-          <span style="font-size:.6rem;background:rgba(148,163,184,.08);color:#64748b;border:1px solid rgba(148,163,184,.15);border-radius:3px;padding:0 4px">EST.</span> = estimat
+          <span style="font-size:.6rem;background:rgba(99,102,241,.1);color:#818CF8;border:1px solid rgba(99,102,241,.25);border-radius:3px;padding:0 4px">EXCEL</span> = Excel file &nbsp;
+          <span style="font-size:.6rem;background:rgba(148,163,184,.08);color:#64748b;border:1px solid rgba(148,163,184,.15);border-radius:3px;padding:0 4px">EST.</span> = estimate
         </div>
       </div>
 
       <!-- Region tabs -->
       <div style="display:flex;gap:8px;margin-bottom:16px">
-        <button class="region-btn active" onclick="setRegionTab('Europa',this)">🇪🇺 Europa</button>
+        <button class="region-btn active" onclick="setRegionTab('Europa',this)">🇪🇺 Europe</button>
         <button class="region-btn" onclick="setRegionTab('USA',this)">🇺🇸 USA</button>
       </div>
 
@@ -298,10 +298,10 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
         <!-- Inputs left -->
         <div class="card" style="padding:20px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-            <span style="font-weight:600;font-size:.88rem">📥 Dine makroforventninger</span>
+            <span style="font-weight:600;font-size:.88rem">📥 Your macro expectations</span>
             <div style="display:flex;gap:8px">
-              <button onclick="resetToExcel()" style="font-size:.72rem;color:#60a5fa;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:6px;padding:4px 10px;cursor:pointer;transition:all .15s">📊 Excel-data</button>
-              <button onclick="resetTemplate()" style="font-size:.72rem;color:#64748b;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:4px 10px;cursor:pointer;transition:all .15s">↺ Standard</button>
+              <button onclick="resetToExcel()" style="font-size:.72rem;color:#60a5fa;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:6px;padding:4px 10px;cursor:pointer;transition:all .15s">📊 Excel data</button>
+              <button onclick="resetTemplate()" style="font-size:.72rem;color:#64748b;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:4px 10px;cursor:pointer;transition:all .15s">↺ Default</button>
             </div>
           </div>
           <div id="makro-inputs"></div>
@@ -312,7 +312,7 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
 
           <!-- Phase card -->
           <div class="card" style="padding:16px" id="sim-fase-card">
-            <div style="font-size:.65rem;color:#475569;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Beregnet fase</div>
+            <div style="font-size:.65rem;color:#475569;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Calculated phase</div>
             <div style="display:flex;align-items:center;gap:12px">
               <span style="font-size:28px" id="sim-fase-ikon">⏳</span>
               <div>
@@ -324,7 +324,7 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
 
           <!-- Sector scores -->
           <div class="card" style="overflow:hidden">
-            <div style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.055);font-size:.82rem;font-weight:600">🎯 Sektorscorer</div>
+            <div style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.055);font-size:.82rem;font-weight:600">🎯 Sector Scores</div>
             <div id="sim-sektorer"></div>
           </div>
         </div>
@@ -332,13 +332,13 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
 
       <!-- Scenarios -->
       <div class="card" style="padding:16px">
-        <div style="font-size:.65rem;font-weight:700;color:#334155;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">Hurtige scenarier</div>
+        <div style="font-size:.65rem;font-weight:700;color:#334155;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">Quick scenarios</div>
         <div style="display:flex;flex-wrap:wrap;gap:8px">
           <button onclick="applyScenario('recession')" style="padding:6px 14px;border-radius:999px;font-size:.75rem;font-weight:600;background:rgba(239,68,68,.12);color:#F87171;border:1px solid rgba(239,68,68,.2);cursor:pointer;transition:all .15s">📉 Recession</button>
-          <button onclick="applyScenario('boom')" style="padding:6px 14px;border-radius:999px;font-size:.75rem;font-weight:600;background:rgba(16,185,129,.12);color:#34D399;border:1px solid rgba(16,185,129,.2);cursor:pointer;transition:all .15s">🚀 Opsving</button>
+          <button onclick="applyScenario('boom')" style="padding:6px 14px;border-radius:999px;font-size:.75rem;font-weight:600;background:rgba(16,185,129,.12);color:#34D399;border:1px solid rgba(16,185,129,.2);cursor:pointer;transition:all .15s">🚀 Boom</button>
           <button onclick="applyScenario('stagflation')" style="padding:6px 14px;border-radius:999px;font-size:.75rem;font-weight:600;background:rgba(245,158,11,.12);color:#FCD34D;border:1px solid rgba(245,158,11,.2);cursor:pointer;transition:all .15s">🔥 Stagflation</button>
           <button onclick="applyScenario('softlanding')" style="padding:6px 14px;border-radius:999px;font-size:.75rem;font-weight:600;background:rgba(59,130,246,.12);color:#60A5FA;border:1px solid rgba(59,130,246,.2);cursor:pointer;transition:all .15s">🛬 Soft landing</button>
-          <button onclick="applyScenario('ratehike')" style="padding:6px 14px;border-radius:999px;font-size:.75rem;font-weight:600;background:rgba(168,85,247,.12);color:#c084fc;border:1px solid rgba(168,85,247,.2);cursor:pointer;transition:all .15s">📈 Rentestigning</button>
+          <button onclick="applyScenario('ratehike')" style="padding:6px 14px;border-radius:999px;font-size:.75rem;font-weight:600;background:rgba(168,85,247,.12);color:#c084fc;border:1px solid rgba(168,85,247,.2);cursor:pointer;transition:all .15s">📈 Rate hike</button>
         </div>
       </div>
     </div>
@@ -357,15 +357,15 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
         </div>
         <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
           <div>
-            <div style="font-size:.65rem;font-weight:700;color:#334155;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">ETF'er</div>
+            <div style="font-size:.65rem;font-weight:700;color:#334155;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">ETFs</div>
             <div id="sd-etfs"></div>
           </div>
           <div>
-            <div style="font-size:.65rem;font-weight:700;color:#334155;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">Top aktier</div>
+            <div style="font-size:.65rem;font-weight:700;color:#334155;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">Top stocks</div>
             <div id="sd-aktier"></div>
           </div>
           <div>
-            <div style="font-size:.65rem;font-weight:700;color:#334155;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">Indikatorscorer Q3 2026</div>
+            <div style="font-size:.65rem;font-weight:700;color:#334155;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">Indicator scores Q3 2026</div>
             <div id="sd-inds"></div>
           </div>
         </div>
@@ -376,7 +376,7 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
   </main>
 
   <footer style="text-align:center;font-size:.72rem;color:#1E293B;padding:24px;border-top:1px solid rgba(255,255,255,.03);margin-top:20px">
-    ⚠️ Ikke finansiel rådgivning. Data: <span id="ftr-dato">—</span>
+    ⚠️ Not financial advice. Data: <span id="ftr-dato">—</span>
   </footer>
 </div>
 
@@ -386,8 +386,10 @@ let D = null, hmData = null, tmpl = null;
 let activeRegion = "Europa", dashRegion = "Samlet";
 let simInputs = null;
 
-// ── Farvehjælpere ──────────────────────────────────────────────────────────
+// ── Color helpers ──────────────────────────────────────────────────────────
 const REGION_FARVER = {Europa:"#10B981",USA:"#3B82F6"};
+const REGION_LABEL = {Samlet:"Overall",Europa:"Europe",USA:"USA"};
+function regionLabel(r){ return REGION_LABEL[r] || r; }
 
 function scoreKlasse(s){
   if(s>=4.5) return "hm-h";
@@ -418,13 +420,13 @@ window.addEventListener("DOMContentLoaded",async ()=>{
     document.getElementById("hdr-status").innerHTML =
       `<span style="color:${hasFred&&liveFelter>0?'#10B981':'#F59E0B'}">●</span>
        <span>${D.opdateret}</span>
-       ${liveFelter>0?`<span style="font-size:.65rem;color:#10B981;background:rgba(16,185,129,.1);padding:1px 6px;border-radius:4px;border:1px solid rgba(16,185,129,.2)">LIVE ${liveFelter} felter</span>`
-         :`<span style="font-size:.65rem;color:#F59E0B;background:rgba(245,158,11,.1);padding:1px 6px;border-radius:4px;border:1px solid rgba(245,158,11,.2)">${hasFred?'FRED FEJL':'INGEN API-NØGLE'}</span>`}
-       <button onclick="refreshData()" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.2);color:#818CF8;border-radius:6px;padding:2px 8px;font-size:.65rem;cursor:pointer">↻ Opdater</button>`;
+       ${liveFelter>0?`<span style="font-size:.65rem;color:#10B981;background:rgba(16,185,129,.1);padding:1px 6px;border-radius:4px;border:1px solid rgba(16,185,129,.2)">LIVE ${liveFelter} fields</span>`
+         :`<span style="font-size:.65rem;color:#F59E0B;background:rgba(245,158,11,.1);padding:1px 6px;border-radius:4px;border:1px solid rgba(245,158,11,.2)">${hasFred?'FRED ERROR':'NO API KEY'}</span>`}
+       <button onclick="refreshData()" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.2);color:#818CF8;border-radius:6px;padding:2px 8px;font-size:.65rem;cursor:pointer">↻ Refresh</button>`;
   });
 
 async function refreshData(){
-  document.getElementById("hdr-status").innerHTML='<span class="spinner" style="width:12px;height:12px;display:inline-block"></span> Henter data...';
+  document.getElementById("hdr-status").innerHTML='<span class="spinner" style="width:12px;height:12px;display:inline-block"></span> Fetching data...';
   await fetch("/api/refresh",{method:"POST"});
   const [dash] = await Promise.all([fetch("/api/dashboard").then(r=>r.json())]);
   D = dash; renderDashboard();
@@ -448,8 +450,8 @@ async function goTab(tab, btn){
 
   // Breadcrumb
   document.getElementById('hdr-breadcrumb').textContent =
-    {dashboard:'Dashboard',heatmap:'Multi-kvartal analyse',skabelon:'Mine forventninger',
-     sektorer:'Sektorer'}[tab]||tab;
+    {dashboard:'Dashboard',heatmap:'Multi-quarter analysis',skabelon:'My Expectations',
+     sektorer:'Sectors'}[tab]||tab;
 
   if(tab==="heatmap" && !hmData){
     hmData = await fetch("/api/heatmap").then(r=>r.json());
@@ -457,7 +459,7 @@ async function goTab(tab, btn){
   }
   if(tab==="skabelon" && !tmpl){
     tmpl = await fetch("/api/template").then(r=>r.json());
-    // Præ-udfyld med seneste Excel-data (ikke hardkodede standardværdier)
+    // Pre-fill with latest Excel data (not hardcoded default values)
     simInputs = JSON.parse(JSON.stringify(tmpl.seneste_makro || tmpl.default_makro));
     document.getElementById("tmpl-kvartal").textContent = tmpl.seneste_kvartal || "—";
     buildTemplateInputs();
@@ -475,7 +477,7 @@ function setDashRegion(region, btn){
 }
 
 function getAktivFase(){
-  // "Samlet" = globalt komposit-billede. Ellers den rene region-specifikke fase.
+  // "Samlet" = global composite view. Otherwise the pure region-specific phase.
   const g = D.makro_fase;
   if(dashRegion === "Samlet") return g;
   const d = g.detaljer.find(x=>x.region===dashRegion);
@@ -489,7 +491,7 @@ function getAktivFase(){
 function renderDashboard(){
   const f = getAktivFase();
   document.getElementById("fase-ikon").textContent  = f.ikon;
-  document.getElementById("fase-titel").textContent = `${f.fase} — ${f.titel}${dashRegion!=="Samlet"?" ("+dashRegion+")":""}`;
+  document.getElementById("fase-titel").textContent = `${f.fase} — ${f.titel}${dashRegion!=="Samlet"?" ("+regionLabel(dashRegion)+")":""}`;
   document.getElementById("fase-beskr").textContent = f.beskrivelse;
   const chip = document.getElementById("fase-chip");
   chip.textContent = f.fase; chip.className=`fase-chip fase-${f.fase}`;
@@ -503,18 +505,18 @@ function renderDashboard(){
     Object.entries(f.fase_pct).map(([fs,pct])=>
       `<span class="fase-chip fase-${fs}">${fs} ${pct}%</span>`).join("");
 
-  // Indikatorer — vis kun valgt region, eller begge ved "Samlet"
+  // Indicators — show only the selected region, or both when "Samlet" (overall)
   document.getElementById("ind-grid").innerHTML = f.detaljer.map(d=>`
     <div class="card" style="padding:14px 16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <span style="font-weight:600;font-size:.82rem">${d.region}</span>
+        <span style="font-weight:600;font-size:.82rem">${regionLabel(d.region)}</span>
         <span class="fase-chip fase-${d.fase}">${d.fase}</span>
       </div>
       <div>
         ${d.indikatorer.map(i=>`
           <div class="ind-row">
             <span style="font-size:.75rem;color:#64748b;flex:1">${i.naam||i.navn}</span>
-            <span class="tag ${i.type==='ledende'?'tag-lead':i.type==='lagging'?'tag-lag':'tag-sim'}" style="margin-right:8px">${i.type||''}</span>
+            <span class="tag ${i.type==='leading'?'tag-lead':i.type==='lagging'?'tag-lag':'tag-sim'}" style="margin-right:8px">${i.type||''}</span>
             <span class="mono" style="color:#E2E8F0;margin-right:8px">${i.vaerdi}</span>
             <span style="font-size:.65rem;color:#334155;margin-right:6px">×${i.vaegt}</span>
             ${i.fase?`<span class="fase-chip fase-${i.fase}" style="font-size:.6rem;padding:1px 6px">${i.fase}</span>`:'<span style="color:#334155;font-size:.7rem">—</span>'}
@@ -522,7 +524,7 @@ function renderDashboard(){
       </div>
     </div>`).join("");
 
-  // Sektor tabel — rangér efter den valgte regions egen score, ikke kun komposit
+  // Sector table — rank by the selected region's own score, not just the composite
   const scoreKey = dashRegion==="Europa" ? "eu" : dashRegion==="USA" ? "usa" : "composite";
   const sektorListe = [...D.sektorer]
     .filter(s=>s[scoreKey]!=null)
@@ -542,7 +544,7 @@ function renderDashboard(){
         </div>
         <div style="text-align:right;flex-shrink:0">
           <div style="font-weight:700;font-size:.88rem;color:${score>=4?'#10B981':score>=3?'#F59E0B':'#EF4444'}">${score.toFixed(2)}</div>
-          <div style="font-size:.65rem;color:#334155">${dashRegion==="Samlet"?`EU ${s.eu?.toFixed(2)||'–'} · USA ${s.usa?.toFixed(2)||'–'}`:`Komposit ${s.composite.toFixed(2)}`}</div>
+          <div style="font-size:.65rem;color:#334155">${dashRegion==="Samlet"?`EU ${s.eu?.toFixed(2)||'–'} · USA ${s.usa?.toFixed(2)||'–'}`:`Composite ${s.composite.toFixed(2)}`}</div>
         </div>
       </div>`;
     }).join("");
@@ -551,7 +553,7 @@ function renderDashboard(){
   const el = document.getElementById('side-fase');
   el.style.background = (phaseColors[f.fase]||'#6366F1')+'18';
   el.style.borderLeft = '2px solid '+(phaseColors[f.fase]||'#6366F1');
-  document.getElementById('side-fase-navn').textContent = f.fase+' — '+f.titel+(dashRegion!=="Samlet"?' ('+dashRegion+')':'');
+  document.getElementById('side-fase-navn').textContent = f.fase+' — '+f.titel+(dashRegion!=="Samlet"?' ('+regionLabel(dashRegion)+')':'');
   document.getElementById('side-fase-navn').style.color = phaseColors[f.fase]||'#E2E8F0';
 
   renderCycleCompass(f);
@@ -625,7 +627,7 @@ function renderCycleCompass(f){
         </div>
       </div>`).join("");
 
-  // Pillar momentum (kun hvis D.pillars er tilgængeligt)
+  // Pillar momentum (only if D.pillars is available)
   const pillarEl = document.getElementById("pillar-momentum");
   if(!pillarEl) return;
   const pillars = D.pillars||{};
@@ -645,12 +647,12 @@ function renderCycleCompass(f){
     return `<span style="color:#64748b;font-size:.7rem">→</span>`;
   };
 
-  // Vis kun den valgte regions egne pillar-scores ("Samlet" = gennemsnit over regioner, klart mærket)
+  // Show only the selected region's own pillar scores ("Samlet" = average across regions, clearly labeled)
   const allRegions = dashRegion === "Samlet" ? Object.keys(pillars) : [dashRegion].filter(r=>pillars[r]);
   if(!allRegions.length){ pillarEl.innerHTML=""; return; }
   const hasMomentum = allRegions.some(r=>pillars[r]?._momentum && Object.keys(pillars[r]._momentum).length>0);
   const erGennemsnit = dashRegion === "Samlet" && allRegions.length > 1;
-  pillarEl.innerHTML = `<div style="font-size:.6rem;font-weight:700;color:#475569;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Pillar Scores${hasMomentum?" + Momentum":""}${erGennemsnit?" (gns. EU+USA)":` (${dashRegion})`}</div>`
+  pillarEl.innerHTML = `<div style="font-size:.6rem;font-weight:700;color:#475569;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Pillar Scores${hasMomentum?" + Momentum":""}${erGennemsnit?" (avg. EU+USA)":` (${regionLabel(dashRegion)})`}</div>`
     + pillarNames.map(p=>{
       const scores = allRegions.map(r=>pillars[r]?.[p]).filter(v=>v!=null);
       const avg = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
@@ -668,8 +670,8 @@ function renderCycleCompass(f){
 }
 
 function renderMomentum(){
-  // Brug seneste_makro (vaerdi + prev_vaerdi) fra template-data
-  // Hentes ved tab-load; falder tilbage på D.fremtid-baseret comparison
+  // Uses seneste_makro (vaerdi + prev_vaerdi) from template data
+  // Loaded on tab-load; falls back to D.fremtid-based comparison
   const allInds = ["PMI","Yield Curve","Retail Sales","NFP","Core CPI","BNP","Wage Growth","Energy","10 YR","VIX","Unemployment"];
 
   function momentumHtml(region, smakro){
@@ -700,7 +702,7 @@ function renderMomentum(){
     }).join("");
   }
 
-  // Skjul/vis kolonner ud fra valgt dashboard-region (Samlet = begge synlige)
+  // Hide/show columns based on the selected dashboard region (Samlet = both visible)
   const euCol = document.getElementById("momentum-eu")?.parentElement;
   const usaCol = document.getElementById("momentum-usa")?.parentElement;
   if(euCol) euCol.style.display = (dashRegion==="Samlet"||dashRegion==="Europa") ? "" : "none";
@@ -731,7 +733,7 @@ function renderHeatmap(){
   const kvs = hmData.alle_kvartaler;
   const sek = hmData.sektorer;
 
-  let html = "<tr><th style='text-align:left;padding-right:12px;font-size:.7rem;font-weight:500;color:#475569;min-width:160px;white-space:nowrap'>Sektor</th>";
+  let html = "<tr><th style='text-align:left;padding-right:12px;font-size:.7rem;font-weight:500;color:#475569;min-width:160px;white-space:nowrap'>Sector</th>";
   kvs.forEach(kv=>{
     const isProj = kv.includes("2026");
     html += `<th style="text-align:center;font-size:.65rem;padding-bottom:6px;color:${isProj?'#60A5FA':'#475569'}">
@@ -781,7 +783,7 @@ function showIndBreakdown(sektor){
         const total = d.totals?.[region];
         return `
           <div class="card" style="padding:12px">
-            <div style="font-size:.72rem;font-weight:600;color:#94A3B8;margin-bottom:8px">${region}</div>
+            <div style="font-size:.72rem;font-weight:600;color:#94A3B8;margin-bottom:8px">${regionLabel(region)}</div>
             ${rows.map(r=>`
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:.72rem">
                 <span style="color:#475569;width:100px;flex-shrink:0">${r.ind}</span>
@@ -796,7 +798,7 @@ function showIndBreakdown(sektor){
                   <span style="font-weight:700">${j.delta>0?'+':''}${j.delta}</span>
                 </div>`).join("")}
               <div style="display:flex;justify-content:space-between;border-top:1px solid rgba(255,255,255,.04);padding-top:4px;margin-top:${(d.justeringer?.[region]||[]).length?'4':'0'}px">
-                <span style="color:#475569">Justeret score</span>
+                <span style="color:#475569">Adjusted score</span>
                 <span style="font-weight:700;color:#E2E8F0">${total!=null?total.toFixed(2):'—'}</span>
               </div>
             </div>
@@ -805,9 +807,9 @@ function showIndBreakdown(sektor){
   });
 }
 
-// ── SKABELON ───────────────────────────────────────────────────────────────
-// Baltic Dry og Currency fjernet. Nye: Yield Curve, NFP, Retail Sales, Wage Growth, Energy
-// Retail Sales = YoY % (nominelt)
+// ── TEMPLATE ───────────────────────────────────────────────────────────────
+// Baltic Dry and Currency removed. New: Yield Curve, NFP, Retail Sales, Wage Growth, Energy
+// Retail Sales = YoY % (nominal)
 const SCENARIOS = {
   recession:   {PMI:44,"Yield Curve":-0.8,"Retail Sales":-3.0, NFP:-50, "Core CPI":1.2,BNP:-1.5,"Wage Growth":1.8,Energy:-30,"10 YR":2.5,VIX:42,Unemployment:8.5},
   boom:        {PMI:57,"Yield Curve":1.8, "Retail Sales":9.0,  NFP:320, "Core CPI":3.2,BNP:3.5, "Wage Growth":4.8,Energy:35, "10 YR":4.5,VIX:13,Unemployment:3.2},
@@ -816,7 +818,7 @@ const SCENARIOS = {
   ratehike:    {PMI:50,"Yield Curve":-0.2,"Retail Sales":2.0,  NFP:90,  "Core CPI":4.2,BNP:1.5, "Wage Growth":4.8,Energy:25, "10 YR":6.0,VIX:22,Unemployment:5.0},
 };
 
-// Fasekriterier til visuelt hint i slideren
+// Phase thresholds for the visual hint on the slider
 const IND_FASER = {
   PMI:           [{l:30,lbl:"Recession"},{l:47,lbl:"Late"},{l:50,lbl:"Early"},{l:54,lbl:"Mid"}],
   "Yield Curve": [{l:-2,lbl:"Recession"},{l:-0.5,lbl:"Late"},{l:0.2,lbl:"Mid"},{l:1.2,lbl:"Early"}],
@@ -848,7 +850,7 @@ function buildTemplateInputs(){
     VIX:           [8,   65,   1],
     Unemployment:  [2,   15,   0.1],
   };
-  const typeClasses = {ledende:"tag-lead",samtidig:"tag-sim",lagging:"tag-lag"};
+  const typeClasses = {leading:"tag-lead",coincident:"tag-sim",lagging:"tag-lag"};
 
   const region = activeRegion;
   const container = document.getElementById("makro-inputs");
@@ -929,7 +931,7 @@ async function runSim(){
   const fm = res.fase_meta;
   document.getElementById("sim-fase-ikon").textContent  = fm[2]||"❓";
   document.getElementById("sim-fase-titel").textContent = `${res.fase} — ${fm[0]||""}`;
-  const faser_str = Object.entries(res.faser||{}).map(([r,f])=>`${r}: ${f}`).join(" · ");
+  const faser_str = Object.entries(res.faser||{}).map(([r,f])=>`${regionLabel(r)}: ${f}`).join(" · ");
   document.getElementById("sim-fase-detaljer").textContent = faser_str;
 
   // Sektorer
@@ -1007,24 +1009,24 @@ async function openSektor(navn){
      <span style="font-size:.72rem;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.05);color:#94A3B8;border:1px solid rgba(255,255,255,.08)">Rank #${d.rank}</span>`;
 
   document.getElementById("sd-etfs").innerHTML = d.etfs.length
-    ? d.etfs.map(e=>`<div class="card-sm" style="padding:10px;margin-bottom:6px"><div style="font-size:.78rem;font-weight:500">${e.navn}</div><div style="font-size:.68rem;color:#475569;margin-top:2px">${e.isin} · ${e.region}</div></div>`).join("")
-    : '<p style="font-size:.75rem;color:#475569">Ingen ETF</p>';
+    ? d.etfs.map(e=>`<div class="card-sm" style="padding:10px;margin-bottom:6px"><div style="font-size:.78rem;font-weight:500">${e.navn}</div><div style="font-size:.68rem;color:#475569;margin-top:2px">${e.isin} · ${regionLabel(e.region)}</div></div>`).join("")
+    : '<p style="font-size:.75rem;color:#475569">No ETFs</p>';
 
   let aktHtml="";
   for(const [r,l] of Object.entries(d.aktier||{})){
-    aktHtml+=`<div style="font-size:.68rem;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:.06em;margin-top:8px;margin-bottom:4px">${r}</div>`;
+    aktHtml+=`<div style="font-size:.68rem;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:.06em;margin-top:8px;margin-bottom:4px">${regionLabel(r)}</div>`;
     aktHtml+=l.map(a=>`<div style="display:flex;justify-content:space-between;font-size:.75rem;background:rgba(255,255,255,.03);border-radius:6px;padding:6px 10px;margin-bottom:4px">
       <span class="mono" style="font-weight:700">${a.ticker}</span>
-      <span style="color:#475569">${a.market_cap_mia} mia</span>
+      <span style="color:#475569">${a.market_cap_mia}bn</span>
       ${a.change_pct!=null?`<span style="color:${a.change_pct>=0?'#10B981':'#EF4444'}">${a.change_pct>=0?'+':''}${a.change_pct}%</span>`:''}
     </div>`).join("");
   }
-  document.getElementById("sd-aktier").innerHTML = aktHtml||'<p style="font-size:.75rem;color:#475569">Ingen aktier</p>';
+  document.getElementById("sd-aktier").innerHTML = aktHtml||'<p style="font-size:.75rem;color:#475569">No stocks</p>';
 
-  // Indikatorer — hent fra simulator (samme kilde som dashboard)
+  // Indicators — fetched from simulator (same source as dashboard)
   fetch(`/api/sektor_inds/${encodeURIComponent(d.sektor)}`).then(r=>r.json()).then(si=>{
     const phaseColors = {Early:"#10B981",Mid:"#3B82F6",Late:"#F59E0B",Recession:"#EF4444"};
-    // Merge Europa+USA: gennemsnit per indikator
+    // Merge Europe+USA: average per indicator
     const merged = {};
     ["Europa","USA"].forEach(rg=>{
       (si.regioner?.[rg]||[]).forEach(r=>{

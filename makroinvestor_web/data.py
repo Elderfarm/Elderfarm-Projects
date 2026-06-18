@@ -73,10 +73,10 @@ def vaegt(ind, region="USA"):
 INDIKATOR_VAEGTER = INDIKATOR_VAEGTER_REGION["USA"]
 # Kategorisering: ledende vs. lagging (til UI-visning)
 INDIKATOR_TYPE = {
-    "PMI": "ledende", "Yield Curve": "ledende",
-    "Retail Sales": "ledende", "NFP": "ledende",
-    "Core CPI": "samtidig", "BNP": "lagging", "Wage Growth": "samtidig",
-    "Energy": "ledende", "10 YR": "lagging", "VIX": "ledende", "Unemployment": "lagging",
+    "PMI": "leading", "Yield Curve": "leading",
+    "Retail Sales": "leading", "NFP": "leading",
+    "Core CPI": "coincident", "BNP": "lagging", "Wage Growth": "coincident",
+    "Energy": "leading", "10 YR": "lagging", "VIX": "leading", "Unemployment": "lagging",
 }
 
 SEKTOR_MAP = {
@@ -122,10 +122,10 @@ SEKTOR_IKONER = {
 }
 
 FASE_META = {
-    "Early":     ("Tidlig opsving", "Økonomi i bedring. Bred opgang, cykliske sektorer outperformer.", "🌱", "#4ade80"),
-    "Mid":       ("Midt-cyklus",    "Solid vækst, moderat inflation. Bred eksponering fordelagtig.",   "🚀", "#60a5fa"),
-    "Late":      ("Sent cyklus",    "Stram pengepolitik, stigende inflation. Defensivt & energi.",     "🌇", "#facc15"),
-    "Recession": ("Recession",      "Negativ vækst. Obligationer, guld og defensive sektorer.",        "⚠️", "#f87171"),
+    "Early":     ("Early recovery", "Economy improving. Broad upswing, cyclical sectors outperform.", "🌱", "#4ade80"),
+    "Mid":       ("Mid-cycle",      "Solid growth, moderate inflation. Broad exposure favorable.",    "🚀", "#60a5fa"),
+    "Late":      ("Late-cycle",     "Tight monetary policy, rising inflation. Defensives & energy.",  "🌇", "#facc15"),
+    "Recession": ("Recession",      "Negative growth. Bonds, gold and defensive sectors.",            "⚠️", "#f87171"),
 }
 
 # Aktuelle makrodata — opdateret 18. juni 2026 med live kilde-referencer
@@ -137,54 +137,54 @@ DEFAULT_MAKRO = {
     "Europa": {
         # Eurozone Composite PMI maj 2026 FINAL: 48.5 (opjusteret fra prelim. 47.5)
         # Manufacturing 51.6 (op), Services 47.7 (stadig kontraktion, men mindre hård)
-        "PMI":          {"vaerdi": 48.5, "enhed": "",   "label": "PMI Eurozone Composite (maj 2026, final)"},
+        "PMI":          {"vaerdi": 48.5, "enhed": "",   "label": "PMI Eurozone Composite (May 2026, final)"},
         # Germany 10Y Bund: 2.93% · 2Y: 2.63% → spread +0.30% (18. juni 2026)
-        "Yield Curve":  {"vaerdi": 0.30, "enhed": "%",  "label": "Yield Curve 10Y-2Y (18. juni 2026)"},
+        "Yield Curve":  {"vaerdi": 0.30, "enhed": "%",  "label": "Yield Curve 10Y-2Y (June 18, 2026)"},
         # EU Retail Sales svag — services PMI indikerer forbrugertilbageholdelse
         # Estimat: ca. +2.5% YoY (eurozone retail Q1/tidlig Q2)
-        "Retail Sales": {"vaerdi": 2.5,  "enhed": "%",  "label": "Retail Sales YoY % (estimat)"},
+        "Retail Sales": {"vaerdi": 2.5,  "enhed": "%",  "label": "Retail Sales YoY % (estimate)"},
         # Eurozone månedlig beskæftigelse ca. 60-80k netto (stabil men aftagende)
-        "NFP":          {"vaerdi": 65.0, "enhed": "k",  "label": "Beskæftigelsesvækst netto (t/md)"},
+        "NFP":          {"vaerdi": 65.0, "enhed": "k",  "label": "Net employment growth (per month)"},
         # Eurostat core HICP (ex energi, mad, alkohol, tobak) maj 2026: 2.5% YoY (headline 3.2%)
-        "Core CPI":     {"vaerdi": 2.5,  "enhed": "%",  "label": "Kerninflation HICP (maj 2026)"},
+        "Core CPI":     {"vaerdi": 2.5,  "enhed": "%",  "label": "Core inflation HICP (May 2026)"},
         # Eurozone BNP YoY Q1 2026: +0.8% (markant afmatning fra 1.3% i Q4 2025)
-        "BNP":          {"vaerdi": 0.8,  "enhed": "%",  "label": "BNP vækst YoY Q1 2026"},
+        "BNP":          {"vaerdi": 0.8,  "enhed": "%",  "label": "GDP growth YoY Q1 2026"},
         # ECB forhandlet lønvækst fortsat ca. 3.5% i tidlig 2026 (ECB løntracker)
-        "Wage Growth":  {"vaerdi": 3.5,  "enhed": "%",  "label": "Lønvækst YoY % (ECB løntracker)"},
+        "Wage Growth":  {"vaerdi": 3.5,  "enhed": "%",  "label": "Wage growth YoY % (ECB wage tracker)"},
         # Brent oliepris kollapset: ~$79 (18. juni 2026) vs ~$105 i juni 2025 → ca. -25% YoY
         # USA-Iran fredsaftale fjernede forsyningskrisen der drev sidste års høje priser
-        "Energy":       {"vaerdi": -25.0,"enhed": "%",  "label": "Energipriser olie YoY % (Brent, 18. juni 2026)"},
+        "Energy":       {"vaerdi": -25.0,"enhed": "%",  "label": "Oil price YoY % (Brent, June 18, 2026)"},
         # Germany 10Y Bund: 2.93% (18. juni 2026) — faldet fra 3.00% efter oliekollaps
-        "10 YR":        {"vaerdi": 2.93, "enhed": "%",  "label": "10-årig Bund rente (18. juni 2026)"},
+        "10 YR":        {"vaerdi": 2.93, "enhed": "%",  "label": "10Y Bund yield (June 18, 2026)"},
         # VIX globalt signal: 16.4 (17. juni 2026 close) — fortsat aftagende fra 30+ i marts
-        "VIX":          {"vaerdi": 16.4, "enhed": "",   "label": "VIX (17. juni 2026)"},
+        "VIX":          {"vaerdi": 16.4, "enhed": "",   "label": "VIX (June 17, 2026)"},
         # Eurozone arbejdsløshed april 2026: 6.3% (Eurostat)
-        "Unemployment": {"vaerdi": 6.3,  "enhed": "%",  "label": "Arbejdsløshed (april 2026)"},
+        "Unemployment": {"vaerdi": 6.3,  "enhed": "%",  "label": "Unemployment rate (April 2026)"},
     },
     "USA": {
         # ISM Manufacturing PMI maj 2026: 54.0 (5. ekspansionsmåned i træk, udgivet 1. juni)
         "PMI":          {"vaerdi": 54.0, "enhed": "",   "label": "ISM Manufacturing PMI (maj 2026)"},
         # 10Y Treasury: 4.49% · 2Y: 4.20% → spread +0.29% (17. juni 2026)
-        "Yield Curve":  {"vaerdi": 0.29, "enhed": "%",  "label": "Yield Curve 10Y-2Y (17. juni 2026)"},
+        "Yield Curve":  {"vaerdi": 0.29, "enhed": "%",  "label": "Yield Curve 10Y-2Y (June 17, 2026)"},
         # US Retail Sales core YoY maj 2026: +7.0% (8. vækstmåned i træk)
-        "Retail Sales": {"vaerdi": 7.0,  "enhed": "%",  "label": "Retail Sales YoY % (maj 2026)"},
+        "Retail Sales": {"vaerdi": 7.0,  "enhed": "%",  "label": "Retail Sales YoY % (May 2026)"},
         # BLS NFP maj 2026: +172k (over forventning på 85k) — juni-tal udkommer 2. juli
-        "NFP":          {"vaerdi": 172,  "enhed": "k",  "label": "Non-Farm Payrolls (maj 2026)"},
+        "NFP":          {"vaerdi": 172,  "enhed": "k",  "label": "Non-Farm Payrolls (May 2026)"},
         # BLS Core CPI (ex food+energy) maj 2026: +2.9% YoY (headline 4.2%) — juni-tal udkommer 14. juli
-        "Core CPI":     {"vaerdi": 2.9,  "enhed": "%",  "label": "Core CPI YoY (maj 2026)"},
+        "Core CPI":     {"vaerdi": 2.9,  "enhed": "%",  "label": "Core CPI YoY (May 2026)"},
         # BEA Real GDP YoY Q1 2026: +2.6% (Q/Q annualiseret: 1.6%)
         "BNP":          {"vaerdi": 2.6,  "enhed": "%",  "label": "Real GDP YoY Q1 2026"},
         # BLS Avg. Hourly Earnings maj 2026: +3.4% YoY (aftagende fra 3.6%)
-        "Wage Growth":  {"vaerdi": 3.4,  "enhed": "%",  "label": "Avg. Hourly Earnings YoY (maj 2026)"},
+        "Wage Growth":  {"vaerdi": 3.4,  "enhed": "%",  "label": "Avg. Hourly Earnings YoY (May 2026)"},
         # WTI oliepris kollapset: ~$75.5 (18. juni 2026) vs ~$100 i juni 2025 → ca. -24% YoY
         # USA-Iran fredsaftale + IEA-varsel om forsyningsoverskud presser priserne ned
-        "Energy":       {"vaerdi": -24.0,"enhed": "%",  "label": "WTI råolie YoY % (18. juni 2026)"},
+        "Energy":       {"vaerdi": -24.0,"enhed": "%",  "label": "WTI crude oil YoY % (June 18, 2026)"},
         # 10Y US Treasury: 4.49% (17. juni 2026)
-        "10 YR":        {"vaerdi": 4.49, "enhed": "%",  "label": "10Y Treasury (17. juni 2026)"},
+        "10 YR":        {"vaerdi": 4.49, "enhed": "%",  "label": "10Y Treasury (June 17, 2026)"},
         # VIX: 16.4 (17. juni 2026 close)
-        "VIX":          {"vaerdi": 16.4, "enhed": "",   "label": "VIX (17. juni 2026)"},
+        "VIX":          {"vaerdi": 16.4, "enhed": "",   "label": "VIX (June 17, 2026)"},
         # BLS Unemployment maj 2026: 4.3% (stabilt)
-        "Unemployment": {"vaerdi": 4.3,  "enhed": "%",  "label": "Unemployment rate (maj 2026)"},
+        "Unemployment": {"vaerdi": 4.3,  "enhed": "%",  "label": "Unemployment rate (May 2026)"},
     },
 }
 
@@ -1301,16 +1301,16 @@ def sektor_ind_scores(seneste_makro, sektor):
         if energy_fase in ("Mid", "Late"):
             delta = ENERGI_AFHAENGIGHED.get(region, {}).get(sektor, {}).get(energy_fase, 0)
             if delta != 0:
-                adjs.append({"label": f"Energiafhængighed ({region})", "delta": round(delta, 2)})
+                adjs.append({"label": f"Energy dependency ({region})", "delta": round(delta, 2)})
         if energy_fase == "Late":
             delta = DEFENSIV_STAGFLATION.get(sektor, 0)
             if delta != 0:
-                adjs.append({"label": "Stagflations-premium (energichok)", "delta": round(delta, 2)})
+                adjs.append({"label": "Stagflation premium (energy shock)", "delta": round(delta, 2)})
         if region == "USA":
             global_fase = f.get("_global", "Mid")
             delta = AI_FORDEL_USA.get(sektor, {}).get(global_fase, 0)
             if delta != 0:
-                adjs.append({"label": "USA AI-strukturel fordel", "delta": round(delta, 2)})
+                adjs.append({"label": "USA AI structural advantage", "delta": round(delta, 2)})
         justeringer[region] = adjs
 
     return {"regioner": result, "totals": totals, "justeringer": justeringer}
