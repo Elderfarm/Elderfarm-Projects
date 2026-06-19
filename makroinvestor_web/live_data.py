@@ -242,15 +242,27 @@ def _stooq_quarterly(ticker):
     if cache_key in _cache and time.time() - _cache[cache_key][0] < _cache_ttl:
         return _cache[cache_key][1]
     try:
-        r = requests.get(STOOQ_BASE, params={"s": ticker, "i": "q"}, timeout=8)
+        r = requests.get(
+            STOOQ_BASE, params={"s": ticker, "i": "q"}, timeout=8,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; MakroinvestorBot/1.0)"},
+        )
+        lines = r.text.strip().splitlines()
+        # Stooq svarer med en fejl-side ("Exceeded the daily hits limit" e.l.) i
+        # stedet for CSV hvis IP'en bliver bot-blokeret — fang det tydeligt i loggen
+        # i stedet for at fejle stille med 0 rækker.
+        if r.status_code != 200 or not lines or not lines[0].lower().startswith("date"):
+            logger.warning(f"Stooq {ticker}: uventet svar (status={r.status_code}): {r.text[:120]!r}")
+            return []
         rows = []
-        for line in r.text.strip().splitlines()[1:]:
+        for line in lines[1:]:
             felter = line.split(",")
             if len(felter) >= 5:
                 try:
                     rows.append({"dato": felter[0], "close": float(felter[4])})
                 except ValueError:
                     continue
+        if not rows:
+            logger.warning(f"Stooq {ticker}: CSV-header ok, men 0 rækker parset ({len(lines)} linjer)")
         _cache[cache_key] = (time.time(), rows)
         return rows
     except Exception as e:
