@@ -81,6 +81,227 @@ def _fred_gdp_yoy():
     return round((obs[0][1] - obs[4][1]) / obs[4][1] * 100, 2)
 
 
+# ── FRED historiske kvartalsserier ────────────────────────────────────────────
+# Bruges til at udvide det historiske indikatorsæt i data.py (model_historisk_sektorer
+# / backtest_model) ud over de 5 indikatorer der findes i Excel-filen, med rigtige
+# FRED-tal i stedet for manuelt indtastede historiske værdier.
+
+_KVARTAL_SLUTDATO = {}
+for _aar in range(2023, 2027):
+    _KVARTAL_SLUTDATO[f"Q1 {_aar}"] = f"{_aar}-03-31"
+    _KVARTAL_SLUTDATO[f"Q2 {_aar}"] = f"{_aar}-06-30"
+    _KVARTAL_SLUTDATO[f"Q3 {_aar}"] = f"{_aar}-09-30"
+    _KVARTAL_SLUTDATO[f"Q4 {_aar}"] = f"{_aar}-12-31"
+
+
+def _fred_obs_all(series_id):
+    """Hent ALLE observationer fra 2023-01-01 og frem, stigende dato-orden."""
+    if not FRED_API_KEY or not REQUESTS_OK:
+        return []
+    key = f"fred_all_{series_id}"
+    if key in _cache and time.time() - _cache[key][0] < _cache_ttl:
+        return _cache[key][1]
+    try:
+        r = requests.get(FRED_BASE, params={
+            "series_id": series_id, "api_key": FRED_API_KEY,
+            "file_type": "json", "sort_order": "asc",
+            "observation_start": "2023-01-01",
+        }, timeout=8)
+        obs = [(o["date"], float(o["value"])) for o in r.json().get("observations", [])
+               if o["value"] != "."]
+        _cache[key] = (time.time(), obs)
+        return obs
+    except Exception as e:
+        logger.warning(f"FRED (hist) {series_id}: {e}")
+        return []
+
+
+def _value_at_or_before(obs, dato):
+    """Sidste observation på eller før 'dato' (YYYY-MM-DD) i en stigende (dato,val)-liste."""
+    res = None
+    for d, v in obs:
+        if d <= dato:
+            res = v
+        else:
+            break
+    return res
+
+
+def _fred_quarterly_level(series_id, kvartaler):
+    """{kvartal: niveau} — værdien ved/lige før kvartalets slutdato."""
+    obs = _fred_obs_all(series_id)
+    if not obs:
+        return {}
+    result = {}
+    for kv in kvartaler:
+        slut = _KVARTAL_SLUTDATO.get(kv)
+        if not slut:
+            continue
+        v = _value_at_or_before(obs, slut)
+        if v is not None:
+            result[kv] = v
+    return result
+
+
+def _fred_quarterly_yoy(series_id, kvartaler):
+    """{kvartal: YoY% ændring} ift. samme kvartals slutdato året før."""
+    obs = _fred_obs_all(series_id)
+    if not obs:
+        return {}
+    result = {}
+    for kv in kvartaler:
+        slut = _KVARTAL_SLUTDATO.get(kv)
+        if not slut:
+            continue
+        aar, mdr_dag = slut.split("-", 1)
+        slut_sidste_aar = f"{int(aar)-1}-{mdr_dag}"
+        now = _value_at_or_before(obs, slut)
+        then = _value_at_or_before(obs, slut_sidste_aar)
+        if now is not None and then is not None and then != 0:
+            result[kv] = round((now - then) / abs(then) * 100, 2)
+    return result
+
+
+def _fred_quarterly_diff(series_id, kvartaler):
+    """{kvartal: ændring siden forrige kvartal} (f.eks. NFP)."""
+    obs = _fred_obs_all(series_id)
+    if not obs:
+        return {}
+    niveauer = {}
+    for kv in kvartaler:
+        slut = _KVARTAL_SLUTDATO.get(kv)
+        if not slut:
+            continue
+        v = _value_at_or_before(obs, slut)
+        if v is not None:
+            niveauer[kv] = v
+    result = {}
+    forrige = None
+    for kv in kvartaler:
+        if kv in niveauer:
+            if forrige is not None:
+                result[kv] = round(niveauer[kv] - forrige, 1)
+            forrige = niveauer[kv]
+    return result
+
+
+USA_HIST_SERIES = {
+    "PMI":           ("level", "NAPM"),
+    "10 YR":         ("level", "GS10"),
+    "VIX":           ("level", "VIXCLS"),
+    "Unemployment":  ("level", "UNRATE"),
+    "Core CPI":      ("yoy",   "CPILFESL"),
+    "BNP":           ("yoy",   "GDPC1"),
+    "Wage Growth":   ("yoy",   "CES0500000003"),
+    "Retail Sales":  ("yoy",   "RSXFS"),
+    "Energy":        ("yoy",   "DCOILWTICO"),
+    "NFP":           ("diff",  "PAYEMS"),
+}
+
+
+def hent_historisk_indikatorer_usa(kvartaler):
+    """{indikator: {kvartal: vaerdi}} med rigtige FRED-tal for USA. Tom dict ved
+    manglende FRED_API_KEY eller netværksfejl — kalderen falder da tilbage til
+    Excel-baserede historiske data."""
+    result = {}
+    for ind, (kind, series_id) in USA_HIST_SERIES.items():
+        if kind == "level":
+            serie = _fred_quarterly_level(series_id, kvartaler)
+        elif kind == "yoy":
+            serie = _fred_quarterly_yoy(series_id, kvartaler)
+        else:
+            serie = _fred_quarterly_diff(series_id, kvartaler)
+        if serie:
+            result[ind] = serie
+    return result
+
+
+# ── ECB historiske kvartalsserier ─────────────────────────────────────────────
+# Mere begrænset end FRED — intet PMI- eller NFP-ækvivalent findes offentligt
+# for Europa, så kun Yield Curve, Core CPI, Unemployment og Energy dækkes.
+
+def _ecb_obs_all(flow, key):
+    """Hent ALLE observationer fra 2023 og frem, stigende dato-orden."""
+    if not REQUESTS_OK:
+        return []
+    cache_key = f"ecb_all_{flow}_{key}"
+    if cache_key in _cache and time.time() - _cache[cache_key][0] < _cache_ttl:
+        return _cache[cache_key][1]
+    try:
+        url = f"{ECB_BASE}/{flow}/{key}?startPeriod=2023-01-01&format=jsondata"
+        r = requests.get(url, timeout=8, headers={"Accept": "application/json"})
+        data = r.json()
+        series = list(data["dataSets"][0]["series"].values())[0]["observations"]
+        periods = data["structure"]["dimensions"]["observation"][0]["values"]
+        obs = sorted(
+            [(periods[int(k)]["id"], float(v[0])) for k, v in series.items()],
+            key=lambda t: t[0],
+        )
+        _cache[cache_key] = (time.time(), obs)
+        return obs
+    except Exception as e:
+        logger.warning(f"ECB (hist) {flow}/{key}: {e}")
+        return []
+
+
+def _ecb_quarterly_level(flow, key, kvartaler, already_pct_change=False):
+    """{kvartal: niveau} — ECB-perioder er typisk månedlige, så vi matcher på
+    'YYYY-MM'-præfiks af kvartalets slutdato."""
+    obs = _ecb_obs_all(flow, key)
+    if not obs:
+        return {}
+    result = {}
+    for kv in kvartaler:
+        slut = _KVARTAL_SLUTDATO.get(kv)
+        if not slut:
+            continue
+        maaned_prefix = slut[:7]
+        v = _value_at_or_before(obs, maaned_prefix if len(obs[0][0]) == 7 else slut)
+        if v is not None:
+            result[kv] = round(v, 2)
+    return result
+
+
+EUROPA_HIST_SERIES = {
+    "Yield Curve": None,  # beregnes separat (10Y - 2Y), se nedenfor
+    "Core CPI":    ("ICP", "M.U2.N.XEF000.4.ANR"),
+    "Unemployment":("STS", "M.I8.S.UNEH.RTT000.4.000"),
+    "Energy":      ("ICP", "M.U2.N.NRG000.4.ANR"),
+    "10 YR":       ("YC",  "B.U2.EUR.4F.G_N_A.SV_C_YM.SR_10Y"),
+}
+
+
+def hent_historisk_indikatorer_europa(kvartaler):
+    """{indikator: {kvartal: vaerdi}} med rigtige ECB-tal for Europa. Tom dict ved
+    netværksfejl — kalderen falder da tilbage til Excel-baserede historiske data."""
+    result = {}
+    for ind, spec in EUROPA_HIST_SERIES.items():
+        if spec is None:
+            continue
+        flow, key = spec
+        serie = _ecb_quarterly_level(flow, key, kvartaler)
+        if serie:
+            result[ind] = serie
+
+    r10 = result.get("10 YR")
+    r2 = _ecb_quarterly_level("YC", "B.U2.EUR.4F.G_N_A.SV_C_YM.SR_2Y", kvartaler)
+    if r10 and r2:
+        yc = {kv: round(r10[kv] - r2[kv], 2) for kv in r10 if kv in r2}
+        if yc:
+            result["Yield Curve"] = yc
+    return result
+
+
+def hent_historisk_indikatorer(kvartaler):
+    """{region: {indikator: {kvartal: vaerdi}}} — rigtige FRED/ECB-tal til at
+    udvide/overskrive de historiske Excel-baserede indikatorer i data.py.
+    Tom region-dict hvis API'erne er uden for rækkevidde."""
+    return {
+        "USA":    hent_historisk_indikatorer_usa(kvartaler),
+        "Europa": hent_historisk_indikatorer_europa(kvartaler),
+    }
+
+
 # ── ECB SDW helpers ───────────────────────────────────────────────────────────
 
 def _ecb(flow, key, limit=14):

@@ -1190,10 +1190,24 @@ def beregn_sektorscorer(dk, eu, usa, fase):
     return res
 
 
-def _model_faser_for_kvartal(kv, region, historik, fremtid):
+def _hent_live_historisk_indikatorer(kvartaler):
+    """Forsøg at hente rigtige FRED/ECB-historiske indikatorer (se live_data.py).
+    Tom dict ved manglende FRED_API_KEY/netværk — kalderen falder da tilbage til
+    de Excel-baserede historiske ark."""
+    try:
+        from live_data import hent_historisk_indikatorer
+        return hent_historisk_indikatorer(kvartaler)
+    except Exception as e:
+        import logging; logging.getLogger(__name__).warning(f"live historisk indikator-hentning fejl: {e}")
+        return {}
+
+
+def _model_faser_for_kvartal(kv, region, historik, fremtid, live_hist=None):
     """
-    Indikator-input til klassificer_makro for ét kvartal/én region, hentet fra
-    den kilde der faktisk har data for kvartalet:
+    Indikator-input til klassificer_makro for ét kvartal/én region. Live
+    FRED/ECB-tal (live_hist, se hent_historisk_indikatorer) har FØRSTE prioritet
+    per indikator/kvartal — de er rigtige tal, ikke estimater. Excel-arkene
+    bruges som fallback for indikatorer/kvartaler hvor live-data ikke fandtes:
       - KVARTALER_HIST (Q1 2024-Q4 2025): de historiske Excel-ark
         (PMI, 10 yr rate, CPI, VIX, Unemployment) — 5 indikatorer, og
         Unemployment har et hul i Q2 2025 (ingen data i kildearkene).
@@ -1202,7 +1216,15 @@ def _model_faser_for_kvartal(kv, region, historik, fremtid):
     Returnerer en klassificeret fase-dict, eller None hvis ingen data fandtes.
     """
     inputs = {}
+    live_region = (live_hist or {}).get(region, {})
+    for ind, serie in live_region.items():
+        val = serie.get(kv)
+        if val is not None:
+            inputs[ind] = val
+
     for ind, excel_key in _HIST_IND_KEYS.items():
+        if ind in inputs:
+            continue
         serie = historik.get(region, {}).get(excel_key, [])
         entry = next((e for e in serie if e.get("kvartal") == kv), None)
         if entry and isinstance(entry.get("vaerdi"), (int, float)):
@@ -1227,13 +1249,14 @@ def _model_faser_for_kvartal(kv, region, historik, fremtid):
     return klassificer_makro(inputs, region)
 
 
-def _model_score_kvartal(kv, historik, fremtid):
+def _model_score_kvartal(kv, historik, fremtid, live_hist=None):
     """{sektor: score} for ét kvartal — gennemsnit af Europa+USA, beregnet med
     klassificer_makro + _score_sektor_region. Samme metode for alle kvartaler,
-    uanset om input kommer fra historik-arkene eller Fremtid vækst-arket."""
+    uanset om input kommer fra live FRED/ECB-data, historik-arkene eller
+    Fremtid vækst-arket."""
     region_scores = {sektor: [] for sektor in SEKTOR_RÆKKEFØLGE}
     for region in ("Europa", "USA"):
-        faser = _model_faser_for_kvartal(kv, region, historik, fremtid)
+        faser = _model_faser_for_kvartal(kv, region, historik, fremtid, live_hist)
         if faser is None:
             continue
         for sektor in SEKTOR_RÆKKEFØLGE:
@@ -1250,20 +1273,23 @@ def model_historisk_sektorer(wb):
     klassificer_makro + _score_sektor_region på rå indikatorværdier, IKKE det
     manuelt tildelte "Point score sektor"-ark.
 
-    Begrænsning: kun de indikatorer der findes historisk i Excel-filen er
-    tilgængelige — 5 for Q1 2024-Q4 2025 (PMI, 10 YR, Core CPI, VIX,
-    Unemployment), 6 for Q1+Q2 2026 (+ BNP) — ikke det fulde 11-indikator-sæt.
-    Modellen anvendes derfor på et tyndere datagrundlag for fortiden end for
-    nutiden, men beregningsmetoden er ens.
+    Indikator-kilder, i prioriteret orden: rigtige FRED/ECB-tal (hvis
+    FRED_API_KEY/netværk er tilgængeligt — se hent_historisk_indikatorer i
+    live_data.py, op til 9-10 indikatorer for USA og 5 for Europa), dernæst
+    Excel-arkene som fallback (5 for Q1 2024-Q4 2025, 6 for Q1+Q2 2026).
+    Modellen anvendes derfor potentielt på et tyndere datagrundlag for fortiden
+    end for nutiden, men beregningsmetoden er ens.
 
     Returnerer {sektor: {kvartal: score}} — gennemsnit af Europa+USA.
     """
     historik = hent_historisk_makro(wb)
     fremtid = hent_fremtid_vaekst(wb)
+    kvartaler = KVARTALER_HIST + KVARTALER_Q1Q2_2026
+    live_hist = _hent_live_historisk_indikatorer(kvartaler)
     resultat = {sektor: {} for sektor in SEKTOR_RÆKKEFØLGE}
 
-    for kv in KVARTALER_HIST + KVARTALER_Q1Q2_2026:
-        for sektor, score in _model_score_kvartal(kv, historik, fremtid).items():
+    for kv in kvartaler:
+        for sektor, score in _model_score_kvartal(kv, historik, fremtid, live_hist).items():
             resultat[sektor][kv] = score
 
     return resultat
@@ -1498,14 +1524,16 @@ def backtest_model(wb, sektor_afkast_live=None):
     historisk_bnp = hent_historisk_bnp(wb)
     fremtid = hent_fremtid_vaekst(wb)
     sektor_afkast_live = sektor_afkast_live or {}
+    kvartaler = KVARTALER_HIST + KVARTALER_Q1Q2_2026
+    live_hist = _hent_live_historisk_indikatorer(kvartaler)
 
     rows = []
     prev_realized = {}
-    for kv in KVARTALER_HIST + KVARTALER_Q1Q2_2026:
+    for kv in kvartaler:
         region_resultater = {}
 
         for region in ("Europa", "USA"):
-            faser = _model_faser_for_kvartal(kv, region, historik, fremtid)
+            faser = _model_faser_for_kvartal(kv, region, historik, fremtid, live_hist)
             if faser is None:
                 continue
 
