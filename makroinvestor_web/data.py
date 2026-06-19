@@ -1316,6 +1316,85 @@ def sektor_ind_scores(seneste_makro, sektor):
     return {"regioner": result, "totals": totals, "justeringer": justeringer}
 
 
+# ── Backtest / model-validering ───────────────────────────────────────────────
+# Sammenligner modellens sektor-ranking mod realiserede sektorscorer (fra BNP-
+# arket) per historisk kvartal, via Spearman rangkorrelation. Begrænset til de
+# indikatorer der findes historisk (PMI, 10 YR, Core CPI [kun Europa], VIX) —
+# ikke det fulde 11-indikator-sæt, så resultatet er en tilnærmelse, ikke en
+# eksakt replay af det live model-output.
+
+_HIST_IND_KEYS = {"PMI": "PMI", "10 YR": "10yr", "Core CPI": "CPI", "VIX": "VIX"}
+
+def _rang(vaerdier):
+    rang = [0] * len(vaerdier)
+    for r, i in enumerate(sorted(range(len(vaerdier)), key=lambda i: vaerdier[i])):
+        rang[i] = r + 1
+    return rang
+
+def _spearman(a, b):
+    n = len(a)
+    if n < 3:
+        return None
+    ra, rb = _rang(a), _rang(b)
+    ma, mb = sum(ra) / n, sum(rb) / n
+    cov = sum((ra[i] - ma) * (rb[i] - mb) for i in range(n))
+    va = sum((x - ma) ** 2 for x in ra)
+    vb = sum((x - mb) ** 2 for x in rb)
+    if va == 0 or vb == 0:
+        return None
+    return round(cov / (va * vb) ** 0.5, 3)
+
+def backtest_model(wb):
+    """
+    Backtest: for hvert historisk kvartal (Q1 2024–Q4 2025), beregn modellens
+    sektorscore (gennemsnit Europa+USA, baseret på tilgængelige historiske
+    indikatorer) og sammenlign rang mod realiseret sektorscore fra BNP-arket.
+    Returnerer {kvartaler: [{kvartal, antal_sektorer, korrelation}], gennemsnit}.
+    """
+    historik = hent_historisk_makro(wb)
+    historisk_bnp = hent_historisk_bnp(wb)
+
+    rows = []
+    for kv in KVARTALER_HIST:
+        model_per_sektor = {}
+        realized_per_sektor = {}
+
+        for region in ("Europa", "USA"):
+            inputs = {}
+            for ind, excel_key in _HIST_IND_KEYS.items():
+                serie = historik.get(region, {}).get(excel_key, [])
+                entry = next((e for e in serie if e.get("kvartal") == kv), None)
+                if entry and isinstance(entry.get("vaerdi"), (int, float)):
+                    inputs[ind] = entry["vaerdi"]
+            if not inputs:
+                continue
+            faser = klassificer_makro(inputs, region)
+
+            for sektor in SEKTOR_RÆKKEFØLGE:
+                sc = _score_sektor_region(sektor, region, faser)
+                if sc is not None:
+                    model_per_sektor.setdefault(sektor, []).append(sc)
+
+                realiseret = historisk_bnp.get(sektor, {}).get(kv, {}).get(region)
+                if isinstance(realiseret, (int, float)):
+                    realized_per_sektor.setdefault(sektor, []).append(realiseret)
+
+        faelles = sorted(set(model_per_sektor) & set(realized_per_sektor))
+        if len(faelles) < 3:
+            rows.append({"kvartal": kv, "antal_sektorer": len(faelles), "korrelation": None})
+            continue
+
+        model_vals = [sum(model_per_sektor[s]) / len(model_per_sektor[s]) for s in faelles]
+        realized_vals = [sum(realized_per_sektor[s]) / len(realized_per_sektor[s]) for s in faelles]
+        korr = _spearman(model_vals, realized_vals)
+        rows.append({"kvartal": kv, "antal_sektorer": len(faelles), "korrelation": korr})
+
+    gyldige = [r["korrelation"] for r in rows if r["korrelation"] is not None]
+    gennemsnit = round(sum(gyldige) / len(gyldige), 3) if gyldige else None
+
+    return {"kvartaler": rows, "gennemsnit": gennemsnit}
+
+
 # ── Risikoprofil ──────────────────────────────────────────────────────────────
 
 def match_profil(profiler, ratio):

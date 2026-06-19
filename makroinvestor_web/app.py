@@ -2,10 +2,12 @@ import os
 from flask import Flask, render_template, jsonify, request
 from data import (hent_alle_data, simuler_sektorer, sektor_ind_scores,
                   INDIKATORER, SEKTOR_RÆKKEFØLGE,
-                  DEFAULT_MAKRO, FASE_META, INDIKATOR_TYPE)
+                  DEFAULT_MAKRO, FASE_META, INDIKATOR_TYPE,
+                  backtest_model, indlaes_wb)
 
 app = Flask(__name__)
 _cache = {}
+_backtest_cache = {}
 
 def get_data():
     if not _cache:
@@ -109,6 +111,14 @@ def api_sektor(navn):
     ma = {region: d["makro_analyse"].get(region,{}).get(s["sektor"],{})
           for region in ["Europa","USA"]}
     return jsonify({**s,"etfs":etfs,"aktier":aktier,"historisk":hist,"makro_analyse":ma})
+
+
+@app.route("/api/backtest")
+def api_backtest():
+    """Backtest af modellens sektor-ranking mod realiserede historiske scorer."""
+    if not _backtest_cache:
+        _backtest_cache.update(backtest_model(indlaes_wb()))
+    return jsonify(_backtest_cache)
 
 
 @app.route("/api/live_status")

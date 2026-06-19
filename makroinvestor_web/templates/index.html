@@ -154,6 +154,11 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
     <button onclick="goTab('sektorer',this)" data-tab="sektorer" class="nav-item">
       <span style="font-size:14px;width:18px;text-align:center">🏆</span>Sectors
     </button>
+
+    <div style="font-size:.6rem;font-weight:700;color:#334155;letter-spacing:.1em;padding:12px 10px 8px;text-transform:uppercase">Info</div>
+    <button onclick="goTab('about',this)" data-tab="about" class="nav-item">
+      <span style="font-size:14px;width:18px;text-align:center">ℹ️</span>About
+    </button>
   </nav>
 
   <!-- Phase badge bottom -->
@@ -405,6 +410,50 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
       </div>
     </div>
 
+    <!-- ABOUT -->
+    <div id="tab-about" style="display:none" class="slide">
+      <div class="card" style="padding:24px;max-width:760px">
+        <h1 style="font-size:1.3rem;font-weight:700;margin-bottom:6px">What is Macro Investor?</h1>
+        <p style="color:#64748b;font-size:.85rem;margin-bottom:20px">A guide to what this site does, what it doesn't do, and how to read the numbers.</p>
+
+        <h2 style="font-size:.95rem;font-weight:700;color:#818CF8;margin:18px 0 6px">Purpose</h2>
+        <p style="font-size:.85rem;line-height:1.6;color:#CBD5E1">
+          This site translates macroeconomic data (PMI, inflation, employment, rates, energy, volatility)
+          into a <strong>business-cycle phase</strong> (Early / Mid / Late / Recession) for Europe and the USA
+          separately, and uses that phase to rank GICS sectors by which ones historically tend to perform best
+          in that phase. It is a <strong>decision-support tool</strong> for thinking about sector rotation —
+          not a price forecast, not investment advice, and not a guarantee of future returns.
+        </p>
+
+        <h2 style="font-size:.95rem;font-weight:700;color:#818CF8;margin:18px 0 6px">How it works</h2>
+        <ul style="font-size:.85rem;line-height:1.7;color:#CBD5E1;padding-left:18px">
+          <li><strong>Dashboard</strong> — current phase per region + sector ranking from the latest available macro data.</li>
+          <li><strong>Multi-quarter</strong> — a heatmap of sector scores across historical and projected quarters.</li>
+          <li><strong>My Expectations</strong> — a sandbox where you input your own macro assumptions and see how the
+              phase and sector ranking change. Useful for scenario testing ("what if oil spikes 30%?").</li>
+          <li><strong>Sectors</strong> — per-sector detail: which indicators drive its score, related ETFs and stocks.</li>
+        </ul>
+
+        <h2 style="font-size:.95rem;font-weight:700;color:#818CF8;margin:18px 0 6px">Important limitations</h2>
+        <p style="font-size:.85rem;line-height:1.6;color:#CBD5E1">
+          The indicator weights, phase thresholds, and sector-sensitivity scores are <strong>expert judgement
+          encoded as rules</strong> — they are not statistically fitted to historical returns. The model has not
+          been formally backtested against realized sector performance. Treat its output as one structured
+          opinion among several inputs to your own research, not as a signal to trade on directly. Live data
+          sources (ECB/FRED) can fail; when they do, the site falls back to a manually-updated snapshot that may
+          be stale by days or weeks.
+        </p>
+
+        <h2 style="font-size:.95rem;font-weight:700;color:#818CF8;margin:18px 0 6px">Model validation</h2>
+        <p style="font-size:.85rem;line-height:1.6;color:#CBD5E1;margin-bottom:10px">
+          The table below compares the model's sector ranking against realized sector scores for each historical
+          quarter (Q1 2024–Q4 2025), using a Spearman rank correlation. A value near +1 means the model's ranking
+          matched what actually happened; near 0 means no relationship; negative means it was inversely wrong.
+        </p>
+        <div id="backtest-box" style="font-size:.8rem;color:#64748b">Loading backtest…</div>
+      </div>
+    </div>
+
   </main>
 
   <footer style="text-align:center;font-size:.72rem;color:#1E293B;padding:24px;border-top:1px solid rgba(255,255,255,.03);margin-top:20px">
@@ -414,7 +463,7 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
 
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
-let D = null, hmData = null, tmpl = null;
+let D = null, hmData = null, tmpl = null, btDataLoaded = false;
 let activeRegion = "Europa", dashRegion = "Samlet";
 let simInputs = null;
 
@@ -483,9 +532,14 @@ async function goTab(tab, btn){
   // Breadcrumb
   document.getElementById('hdr-breadcrumb').textContent =
     {dashboard:'Dashboard',heatmap:'Multi-quarter analysis',skabelon:'My Expectations',
-     sektorer:'Sectors'}[tab]||tab;
+     sektorer:'Sectors', about:'About'}[tab]||tab;
 
   if(window.innerWidth<=860) toggleSidebar(false);
+
+  if(tab==="about" && !btDataLoaded){
+    btDataLoaded = true;
+    fetch("/api/backtest").then(r=>r.json()).then(renderBacktest);
+  }
 
   if(tab==="heatmap" && !hmData){
     hmData = await fetch("/api/heatmap").then(r=>r.json());
@@ -1084,6 +1138,42 @@ async function openSektor(navn){
 
   document.getElementById("sektor-detalje").style.display="block";
   document.getElementById("sektor-detalje").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+function renderBacktest(bt){
+  const box = document.getElementById("backtest-box");
+  if(!bt || !bt.kvartaler || !bt.kvartaler.length){
+    box.innerHTML = `<span style="color:#F87171">No historical data available for backtesting.</span>`;
+    return;
+  }
+  const rows = bt.kvartaler.map(k=>{
+    const c = k.korrelation;
+    const color = c===null ? "#475569" : c>0.3 ? "#34D399" : c<-0.3 ? "#F87171" : "#FCD34D";
+    return `<tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+      <td style="padding:6px 10px;color:#94a3b8">${k.kvartal}</td>
+      <td style="padding:6px 10px;color:#475569">${k.antal_sektorer}</td>
+      <td style="padding:6px 10px;font-weight:700;color:${color}">${c===null?"N/A":c.toFixed(2)}</td>
+    </tr>`;
+  }).join("");
+  const avgColor = bt.gennemsnit===null ? "#475569" : bt.gennemsnit>0.3 ? "#34D399" : bt.gennemsnit<-0.3 ? "#F87171" : "#FCD34D";
+  box.innerHTML = `
+    <div style="margin-bottom:12px;font-size:.85rem">
+      Average rank correlation across ${bt.kvartaler.length} quarters:
+      <strong style="color:${avgColor}">${bt.gennemsnit===null?"N/A":bt.gennemsnit.toFixed(2)}</strong>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+      <thead><tr style="border-bottom:1px solid rgba(255,255,255,.08);color:#334155;text-transform:uppercase;font-size:.65rem">
+        <th style="padding:6px 10px;text-align:left">Quarter</th>
+        <th style="padding:6px 10px;text-align:left">Sectors compared</th>
+        <th style="padding:6px 10px;text-align:left">Rank correlation</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p style="margin-top:12px;font-size:.72rem;color:#475569">
+      Realized scores come from the BNP-based historical sector data (Q1 2024–Q4 2025). Model scores use only the
+      indicators available historically (PMI, 10Y rate, Core CPI, VIX) and may differ slightly from the live
+      11-indicator model used elsewhere on the site.
+    </p>`;
 }
 
 function toggleSidebar(force){
