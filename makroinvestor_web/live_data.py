@@ -213,6 +213,14 @@ def hent_historisk_indikatorer_usa(kvartaler):
             serie = _fred_quarterly_diff(series_id, kvartaler)
         if serie:
             result[ind] = serie
+
+    # Yield Curve 10Y-2Y — beregnes som forskellen mellem to FRED-niveauserier
+    r10 = result.get("10 YR") or _fred_quarterly_level("GS10", kvartaler)
+    r2 = _fred_quarterly_level("GS2", kvartaler)
+    if r10 and r2:
+        yc = {kv: round(r10[kv] - r2[kv], 2) for kv in r10 if kv in r2}
+        if yc:
+            result["Yield Curve"] = yc
     return result
 
 

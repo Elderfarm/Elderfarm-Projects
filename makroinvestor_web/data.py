@@ -1204,15 +1204,16 @@ def _hent_live_historisk_indikatorer(kvartaler):
 
 def _model_faser_for_kvartal(kv, region, historik, fremtid, live_hist=None):
     """
-    Indikator-input til klassificer_makro for ét kvartal/én region. Live
-    FRED/ECB-tal (live_hist, se hent_historisk_indikatorer) har FØRSTE prioritet
-    per indikator/kvartal — de er rigtige tal, ikke estimater. Excel-arkene
-    bruges som fallback for indikatorer/kvartaler hvor live-data ikke fandtes:
-      - KVARTALER_HIST (Q1 2024-Q4 2025): de historiske Excel-ark
-        (PMI, 10 yr rate, CPI, VIX, Unemployment) — 5 indikatorer, og
-        Unemployment har et hul i Q2 2025 (ingen data i kildearkene).
-      - KVARTALER_Q1Q2_2026: "Fremtid vækst"-arkets q1/q2-kolonner —
-        6 indikatorer tilgængelige (+ BNP).
+    Indikator-input til klassificer_makro for ét kvartal/én region, bygget op
+    indikator for indikator i prioriteret orden — først fundne værdi vinder:
+      1. Live FRED/ECB-tal (live_hist, se hent_historisk_indikatorer) — rigtige
+         tal, ikke estimater. For Q1+Q2 2026 dækker FRED/ECB ofte allerede det
+         meste eller hele kvartalet (afhængigt af hvornår kvartalet er afsluttet
+         relativt til seneste FRED-publicering).
+      2. De historiske Excel-ark (PMI, 10 yr rate, CPI, VIX, Unemployment) for
+         KVARTALER_HIST (Q1 2024-Q4 2025) — Unemployment har et hul i Q2 2025.
+      3. For KVARTALER_Q1Q2_2026 specifikt: "Fremtid vækst"-arkets q1/q2-kolonner
+         fylder evt. resterende huller efter live-data (op til 6 indikatorer + BNP).
     Returnerer en klassificeret fase-dict, eller None hvis ingen data fandtes.
     """
     inputs = {}
@@ -1230,19 +1231,20 @@ def _model_faser_for_kvartal(kv, region, historik, fremtid, live_hist=None):
         if entry and isinstance(entry.get("vaerdi"), (int, float)):
             inputs[ind] = entry["vaerdi"]
 
-    if not inputs:
-        kol = {"Q1 2026": "q1", "Q2 2026": "q2"}.get(kv)
-        if kol:
-            for excel_key, ind in _FREMTID_NAVNE.items():
-                serie = fremtid.get(region, {}).get(excel_key)
-                if not serie:
-                    continue
-                val = serie.get(kol)
-                if val is None:
-                    continue
-                if ind in _PROCENT_INDS and abs(val) < 1:
-                    val = round(val * 100, 2)
-                inputs[ind] = val
+    kol = {"Q1 2026": "q1", "Q2 2026": "q2"}.get(kv)
+    if kol:
+        for excel_key, ind in _FREMTID_NAVNE.items():
+            if ind in inputs:
+                continue
+            serie = fremtid.get(region, {}).get(excel_key)
+            if not serie:
+                continue
+            val = serie.get(kol)
+            if val is None:
+                continue
+            if ind in _PROCENT_INDS and abs(val) < 1:
+                val = round(val * 100, 2)
+            inputs[ind] = val
 
     if not inputs:
         return None
