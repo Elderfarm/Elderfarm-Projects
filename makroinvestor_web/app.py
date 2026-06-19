@@ -1,7 +1,7 @@
 import os
 from flask import Flask, render_template, jsonify, request
 from data import (hent_alle_data, simuler_sektorer, sektor_ind_scores,
-                  INDIKATORER, SEKTOR_RÆKKEFØLGE, KVARTALER_HIST,
+                  INDIKATORER, SEKTOR_RÆKKEFØLGE, KVARTALER_HIST, KVARTALER_Q1Q2_2026,
                   DEFAULT_MAKRO, FASE_META, INDIKATOR_TYPE,
                   backtest_model, indlaes_wb)
 
@@ -117,7 +117,7 @@ def _hent_live_sektor_afkast(region):
     """Forsøg at hente faktiske sektor-ETF-afkast (Stooq) for en region. Tom dict ved fejl/ingen netværk."""
     try:
         from live_data import hent_live_sektor_afkast
-        return hent_live_sektor_afkast(KVARTALER_HIST, region=region)
+        return hent_live_sektor_afkast(KVARTALER_HIST + KVARTALER_Q1Q2_2026, region=region)
     except Exception as e:
         import logging; logging.getLogger(__name__).warning(f"live sektor-afkast fejl ({region}): {e}")
         return {}

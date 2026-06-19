@@ -14,8 +14,12 @@ EXCEL_PATH = os.environ.get("MAKRO_EXCEL", _DEFAULT_EXCEL)
 
 KVARTALER_HIST = ["Q1 2024","Q2 2024","Q3 2024","Q4 2024",
                   "Q1 2025","Q2 2025","Q3 2025","Q4 2025"]
-KVARTALER_PROJ = ["Q1 2026","Q2 2026","Q3 2026"]
-ALLE_KVARTALER = KVARTALER_HIST + KVARTALER_PROJ
+# Q1+Q2 2026 er afsluttede kvartaler på beregningstidspunktet (ikke prognose
+# længere) — scores beregnes med samme model-metode som KVARTALER_HIST, men ud
+# fra "Fremtid vækst"-arkets q1/q2-kolonner i stedet for de historiske ark.
+KVARTALER_Q1Q2_2026 = ["Q1 2026","Q2 2026"]
+KVARTALER_PROJ = ["Q3 2026"]
+ALLE_KVARTALER = KVARTALER_HIST + KVARTALER_Q1Q2_2026 + KVARTALER_PROJ
 
 # Optimeret indikatorliste — Baltic Dry og Currency fjernet (Asien-bias, ikke konjunkturel)
 # Tilføjet: Yield Curve (10Y-2Y), NFP, Retail Sales, Wage Growth, Energy (olie YoY%)
@@ -1156,43 +1160,80 @@ def beregn_sektorscorer(dk, eu, usa, fase):
     return res
 
 
+def _model_faser_for_kvartal(kv, region, historik, fremtid):
+    """
+    Indikator-input til klassificer_makro for ét kvartal/én region, hentet fra
+    den kilde der faktisk har data for kvartalet:
+      - KVARTALER_HIST (Q1 2024-Q4 2025): de historiske Excel-ark
+        (PMI, 10 yr rate, CPI, VIX) — kun 4 indikatorer tilgængelige.
+      - KVARTALER_Q1Q2_2026: "Fremtid vækst"-arkets q1/q2-kolonner —
+        6 indikatorer tilgængelige (+ BNP, Unemployment).
+    Returnerer en klassificeret fase-dict, eller None hvis ingen data fandtes.
+    """
+    inputs = {}
+    for ind, excel_key in _HIST_IND_KEYS.items():
+        serie = historik.get(region, {}).get(excel_key, [])
+        entry = next((e for e in serie if e.get("kvartal") == kv), None)
+        if entry and isinstance(entry.get("vaerdi"), (int, float)):
+            inputs[ind] = entry["vaerdi"]
+
+    if not inputs:
+        kol = {"Q1 2026": "q1", "Q2 2026": "q2"}.get(kv)
+        if kol:
+            for excel_key, ind in _FREMTID_NAVNE.items():
+                serie = fremtid.get(region, {}).get(excel_key)
+                if not serie:
+                    continue
+                val = serie.get(kol)
+                if val is None:
+                    continue
+                if ind in _PROCENT_INDS and abs(val) < 1:
+                    val = round(val * 100, 2)
+                inputs[ind] = val
+
+    if not inputs:
+        return None
+    return klassificer_makro(inputs, region)
+
+
+def _model_score_kvartal(kv, historik, fremtid):
+    """{sektor: score} for ét kvartal — gennemsnit af Europa+USA, beregnet med
+    klassificer_makro + _score_sektor_region. Samme metode for alle kvartaler,
+    uanset om input kommer fra historik-arkene eller Fremtid vækst-arket."""
+    region_scores = {sektor: [] for sektor in SEKTOR_RÆKKEFØLGE}
+    for region in ("Europa", "USA"):
+        faser = _model_faser_for_kvartal(kv, region, historik, fremtid)
+        if faser is None:
+            continue
+        for sektor in SEKTOR_RÆKKEFØLGE:
+            sc = _score_sektor_region(sektor, region, faser)
+            if sc is not None:
+                region_scores[sektor].append(sc)
+    return {s: round(sum(v) / len(v), 2) for s, v in region_scores.items() if v}
+
+
 def model_historisk_sektorer(wb):
     """
-    Beregn historiske sektorscorer (Q1 2024 - Q4 2025) med PRÆCIS samme metode
-    som de aktuelle/projekterede kvartaler: klassificer_makro + _score_sektor_region
-    på rå indikatorværdier, IKKE det manuelt tildelte "Point score sektor"-ark.
+    Beregn sektorscorer for alle afsluttede kvartaler (Q1 2024 - Q2 2026) med
+    PRÆCIS samme metode som det aktuelle/projekterede kvartal:
+    klassificer_makro + _score_sektor_region på rå indikatorværdier, IKKE det
+    manuelt tildelte "Point score sektor"-ark.
 
     Begrænsning: kun de indikatorer der findes historisk i Excel-filen er
-    tilgængelige (PMI, 10 YR, Core CPI [kun Europa], VIX [kun fra 2025]) —
-    ikke det fulde 11-indikator-sæt. Modellen anvendes derfor på et tyndere
-    datagrundlag for fortiden end for nutiden, men beregningsmetoden er ens.
+    tilgængelige — 4 for Q1 2024-Q4 2025 (PMI, 10 YR, Core CPI, VIX), 6 for
+    Q1+Q2 2026 (+ BNP, Unemployment) — ikke det fulde 11-indikator-sæt.
+    Modellen anvendes derfor på et tyndere datagrundlag for fortiden end for
+    nutiden, men beregningsmetoden er ens.
 
     Returnerer {sektor: {kvartal: score}} — gennemsnit af Europa+USA.
     """
     historik = hent_historisk_makro(wb)
+    fremtid = hent_fremtid_vaekst(wb)
     resultat = {sektor: {} for sektor in SEKTOR_RÆKKEFØLGE}
 
-    for kv in KVARTALER_HIST:
-        region_scores = {sektor: [] for sektor in SEKTOR_RÆKKEFØLGE}
-
-        for region in ("Europa", "USA"):
-            inputs = {}
-            for ind, excel_key in _HIST_IND_KEYS.items():
-                serie = historik.get(region, {}).get(excel_key, [])
-                entry = next((e for e in serie if e.get("kvartal") == kv), None)
-                if entry and isinstance(entry.get("vaerdi"), (int, float)):
-                    inputs[ind] = entry["vaerdi"]
-            if not inputs:
-                continue
-            faser = klassificer_makro(inputs, region)
-            for sektor in SEKTOR_RÆKKEFØLGE:
-                sc = _score_sektor_region(sektor, region, faser)
-                if sc is not None:
-                    region_scores[sektor].append(sc)
-
-        for sektor, scores in region_scores.items():
-            if scores:
-                resultat[sektor][kv] = round(sum(scores) / len(scores), 2)
+    for kv in KVARTALER_HIST + KVARTALER_Q1Q2_2026:
+        for sektor, score in _model_score_kvartal(kv, historik, fremtid).items():
+            resultat[sektor][kv] = score
 
     return resultat
 
@@ -1210,9 +1251,9 @@ def byg_heatmap(model_historisk, sim_scores):
     for sektor in SEKTOR_RÆKKEFØLGE:
         heatmap[sektor] = {}
 
-        # Historiske kvartaler — model-beregnet, samme metode som prognosen
+        # Afsluttede kvartaler (historik + Q1/Q2 2026) — model-beregnet, samme metode som prognosen
         hist_data = model_historisk.get(sektor, {})
-        for kv in KVARTALER_HIST:
+        for kv in KVARTALER_HIST + KVARTALER_Q1Q2_2026:
             score = hist_data.get(kv)
             if score is not None:
                 heatmap[sektor][kv] = {"score": score, "kilde": "historisk"}
@@ -1387,9 +1428,10 @@ def _spearman(a, b):
 
 def backtest_model(wb, sektor_afkast_live=None):
     """
-    Backtest: for hvert historisk kvartal (Q1 2024–Q4 2025), beregn modellens
-    sektorscore (baseret på tilgængelige historiske indikatorer) og sammenlign
-    rang mod realiseret sektorperformance — PER REGION, ikke blandet sammen.
+    Backtest: for hvert afsluttet kvartal (Q1 2024–Q2 2026), beregn modellens
+    sektorscore (baseret på tilgængelige indikatorer for kvartalet) og
+    sammenlign rang mod realiseret sektorperformance — PER REGION, ikke
+    blandet sammen.
 
     Vigtigt: Europa og USA sammenlignes hver for sig, fordi deres ground truth
     har forskellige enheder (USA: faktisk ETF-afkast i %, Europa: manuelt
@@ -1398,32 +1440,33 @@ def backtest_model(wb, sektor_afkast_live=None):
     for hver region for sig, og kvartalets samlede korrelation er
     gennemsnittet af de regioner der har nok datapunkter (≥3 sektorer).
 
+    Q1+Q2 2026 indgår nu også som rigtige (afsluttede) valideringskvartaler —
+    modelinput hentes fra "Fremtid vækst"-arket i stedet for historik-arkene
+    (se _model_faser_for_kvartal). De har ingen Point-score-fallback (det
+    arket dækker kun Q1 2024-Q4 2025), så de bidrager kun til backtesten når
+    live ETF-afkast kan hentes.
+
     Ground truth pr. region (sektor_afkast_live: {region: {sektor: {kvartal: pct}}}):
       USA:    SPDR Select Sector-ETF'er (Stooq) — verificerede tickers, ægte marked.
       Europa: iShares STOXX 600-sektor-UCITS-ETF'er (Stooq) — tickers IKKE
               verificeret i sandbox, se note i live_data.SEKTOR_ETF_EUROPA.
       Begge regioner falder tilbage til Point-score-arket (BNP-fanen i Excel,
       et manuelt ekspertskøn, ikke faktiske afkast) hvis live-data ikke kan
-      hentes for en given sektor/kvartal.
+      hentes for en given sektor/kvartal (kun muligt for Q1 2024-Q4 2025).
     """
     historik = hent_historisk_makro(wb)
     historisk_bnp = hent_historisk_bnp(wb)
+    fremtid = hent_fremtid_vaekst(wb)
     sektor_afkast_live = sektor_afkast_live or {}
 
     rows = []
-    for kv in KVARTALER_HIST:
+    for kv in KVARTALER_HIST + KVARTALER_Q1Q2_2026:
         region_resultater = {}
 
         for region in ("Europa", "USA"):
-            inputs = {}
-            for ind, excel_key in _HIST_IND_KEYS.items():
-                serie = historik.get(region, {}).get(excel_key, [])
-                entry = next((e for e in serie if e.get("kvartal") == kv), None)
-                if entry and isinstance(entry.get("vaerdi"), (int, float)):
-                    inputs[ind] = entry["vaerdi"]
-            if not inputs:
+            faser = _model_faser_for_kvartal(kv, region, historik, fremtid)
+            if faser is None:
                 continue
-            faser = klassificer_makro(inputs, region)
 
             model_per_sektor = {}
             realized_per_sektor = {}

@@ -824,7 +824,7 @@ function renderHeatmap(){
 
   let html = "<tr><th style='text-align:left;padding-right:12px;font-size:.7rem;font-weight:500;color:#475569;min-width:160px;white-space:nowrap'>Sector</th>";
   kvs.forEach(kv=>{
-    const isProj = kv.includes("2026");
+    const isProj = sek.some(s => hmData.heatmap[s]?.[kv]?.kilde === "prognose");
     html += `<th style="text-align:center;font-size:.65rem;padding-bottom:6px;color:${isProj?'#60A5FA':'#475569'}">
       ${kv.replace(" ","<br/>")}</th>`;
   });
