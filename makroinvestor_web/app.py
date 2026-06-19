@@ -1,7 +1,7 @@
 import os
 from flask import Flask, render_template, jsonify, request
 from data import (hent_alle_data, simuler_sektorer, sektor_ind_scores,
-                  INDIKATORER, SEKTOR_RÆKKEFØLGE,
+                  INDIKATORER, SEKTOR_RÆKKEFØLGE, KVARTALER_HIST,
                   DEFAULT_MAKRO, FASE_META, INDIKATOR_TYPE,
                   backtest_model, indlaes_wb)
 
@@ -113,11 +113,26 @@ def api_sektor(navn):
     return jsonify({**s,"etfs":etfs,"aktier":aktier,"historisk":hist,"makro_analyse":ma})
 
 
+def _hent_live_sektor_afkast():
+    """Forsøg at hente faktiske sektor-ETF-afkast (Stooq). Tom dict ved fejl/ingen netværk."""
+    try:
+        from live_data import hent_live_sektor_afkast
+        return hent_live_sektor_afkast(KVARTALER_HIST)
+    except Exception as e:
+        import logging; logging.getLogger(__name__).warning(f"live sektor-afkast fejl: {e}")
+        return {}
+
+
 @app.route("/api/backtest")
 def api_backtest():
-    """Backtest af modellens sektor-ranking mod realiserede historiske scorer."""
+    """
+    Backtest af modellens sektor-ranking mod realiserede historiske scorer.
+    Henter ægte sektor-ETF-afkast (USA, via Stooq) hvis netværk tillader det —
+    falder ellers tilbage til det manuelle Point-score-ark i Excel-filen.
+    """
     if not _backtest_cache:
-        _backtest_cache.update(backtest_model(indlaes_wb()))
+        live_afkast = _hent_live_sektor_afkast()
+        _backtest_cache.update(backtest_model(indlaes_wb(), sektor_afkast_live=live_afkast))
     return jsonify(_backtest_cache)
 
 
@@ -135,8 +150,9 @@ def api_live_status():
 
 @app.route("/api/refresh", methods=["POST"])
 def api_refresh():
-    """Ryd cache og hent friske data (live + Excel)."""
+    """Ryd cache og hent friske data (live makro + Excel + sektor-ETF-backtest)."""
     _cache.clear()
+    _backtest_cache.clear()
     d = get_data()
     live_count = sum(
         1 for rg in d["seneste_makro"].values()

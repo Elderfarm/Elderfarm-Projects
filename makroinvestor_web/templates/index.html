@@ -1146,6 +1146,8 @@ function renderBacktest(bt){
     box.innerHTML = `<span style="color:#F87171">No historical data available for backtesting.</span>`;
     return;
   }
+  const kildeLabel = {live_etf:"Live ETF", blandet:"Mixed", point_score_estimat:"Estimate"};
+  const kildeColor = {live_etf:"#34D399", blandet:"#60a5fa", point_score_estimat:"#64748b"};
   const rows = bt.kvartaler.map(k=>{
     const c = k.korrelation;
     const color = c===null ? "#475569" : c>0.3 ? "#34D399" : c<-0.3 ? "#F87171" : "#FCD34D";
@@ -1153,25 +1155,33 @@ function renderBacktest(bt){
       <td style="padding:6px 10px;color:#94a3b8">${k.kvartal}</td>
       <td style="padding:6px 10px;color:#475569">${k.antal_sektorer}</td>
       <td style="padding:6px 10px;font-weight:700;color:${color}">${c===null?"N/A":c.toFixed(2)}</td>
+      <td style="padding:6px 10px;color:${kildeColor[k.kilde]||'#64748b'}">${kildeLabel[k.kilde]||k.kilde||"?"}</td>
     </tr>`;
   }).join("");
   const avgColor = bt.gennemsnit===null ? "#475569" : bt.gennemsnit>0.3 ? "#34D399" : bt.gennemsnit<-0.3 ? "#F87171" : "#FCD34D";
+  const liveNote = bt.live_data_brugt
+    ? `<span style="color:#34D399">●</span> ${bt.antal_kvartaler_live} of ${bt.kvartaler.length} quarters use real US sector-ETF returns (Stooq) as ground truth.`
+    : `<span style="color:#F59E0B">●</span> No live market data could be fetched right now — all quarters fall back to the manual "Point score" estimate in the Excel sheet, which is itself an expert guess, not real returns. Click "↻ Refresh" on the dashboard to retry.`;
   box.innerHTML = `
-    <div style="margin-bottom:12px;font-size:.85rem">
+    <div style="margin-bottom:8px;font-size:.85rem">
       Average rank correlation across ${bt.kvartaler.length} quarters:
       <strong style="color:${avgColor}">${bt.gennemsnit===null?"N/A":bt.gennemsnit.toFixed(2)}</strong>
     </div>
+    <div style="margin-bottom:12px;font-size:.72rem;color:#64748b">${liveNote}</div>
     <table style="width:100%;border-collapse:collapse;font-size:.78rem">
       <thead><tr style="border-bottom:1px solid rgba(255,255,255,.08);color:#334155;text-transform:uppercase;font-size:.65rem">
         <th style="padding:6px 10px;text-align:left">Quarter</th>
         <th style="padding:6px 10px;text-align:left">Sectors compared</th>
         <th style="padding:6px 10px;text-align:left">Rank correlation</th>
+        <th style="padding:6px 10px;text-align:left">Ground truth</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
     <p style="margin-top:12px;font-size:.72rem;color:#475569">
-      Realized scores come from the BNP-based historical sector data (Q1 2024–Q4 2025). Model scores use only the
-      indicators available historically (PMI, 10Y rate, Core CPI, VIX) and may differ slightly from the live
+      "Live ETF" rows compare the model's USA sector ranking against actual SPDR sector-ETF quarterly returns.
+      "Estimate" rows (Europe always, USA when live data is unavailable) compare against a manually-scored
+      Excel sheet, not real market performance — read those correlations with caution. Model scores use only the
+      indicators available historically (PMI, 10Y rate, Core CPI, VIX), so they may differ slightly from the live
       11-indicator model used elsewhere on the site.
     </p>`;
 }

@@ -1344,20 +1344,29 @@ def _spearman(a, b):
         return None
     return round(cov / (va * vb) ** 0.5, 3)
 
-def backtest_model(wb):
+def backtest_model(wb, sektor_afkast_live=None):
     """
     Backtest: for hvert historisk kvartal (Q1 2024–Q4 2025), beregn modellens
-    sektorscore (gennemsnit Europa+USA, baseret på tilgængelige historiske
-    indikatorer) og sammenlign rang mod realiseret sektorscore fra BNP-arket.
-    Returnerer {kvartaler: [{kvartal, antal_sektorer, korrelation}], gennemsnit}.
+    sektorscore (baseret på tilgængelige historiske indikatorer) og sammenlign
+    rang mod realiseret sektorperformance.
+
+    Ground truth — i prioriteret rækkefølge:
+      1. sektor_afkast_live (USA): faktiske kvartalsafkast fra sektor-ETF'er
+         (Stooq, hentet via live_data.hent_live_sektor_afkast) — ægte marked.
+      2. Point-score-arket (BNP-fanen i Excel): et manuelt ekspertskøn,
+         IKKE faktiske afkast. Bruges som fallback når live-data ikke kan
+         hentes (f.eks. ingen internetadgang), og altid for Europa, som ikke
+         har et tilsvarende verificeret sektor-ETF-sæt endnu.
     """
     historik = hent_historisk_makro(wb)
     historisk_bnp = hent_historisk_bnp(wb)
+    sektor_afkast_live = sektor_afkast_live or {}
 
     rows = []
     for kv in KVARTALER_HIST:
         model_per_sektor = {}
         realized_per_sektor = {}
+        kilder = set()
 
         for region in ("Europa", "USA"):
             inputs = {}
@@ -1375,24 +1384,33 @@ def backtest_model(wb):
                 if sc is not None:
                     model_per_sektor.setdefault(sektor, []).append(sc)
 
-                realiseret = historisk_bnp.get(sektor, {}).get(kv, {}).get(region)
-                if isinstance(realiseret, (int, float)):
-                    realized_per_sektor.setdefault(sektor, []).append(realiseret)
+                live_afkast = sektor_afkast_live.get(sektor, {}).get(kv) if region == "USA" else None
+                if live_afkast is not None:
+                    realized_per_sektor.setdefault(sektor, []).append(live_afkast)
+                    kilder.add("live_etf")
+                else:
+                    realiseret = historisk_bnp.get(sektor, {}).get(kv, {}).get(region)
+                    if isinstance(realiseret, (int, float)):
+                        realized_per_sektor.setdefault(sektor, []).append(realiseret)
+                        kilder.add("point_score_estimat")
 
         faelles = sorted(set(model_per_sektor) & set(realized_per_sektor))
+        kilde = "live_etf" if kilder == {"live_etf"} else ("blandet" if "live_etf" in kilder else "point_score_estimat")
         if len(faelles) < 3:
-            rows.append({"kvartal": kv, "antal_sektorer": len(faelles), "korrelation": None})
+            rows.append({"kvartal": kv, "antal_sektorer": len(faelles), "korrelation": None, "kilde": kilde})
             continue
 
         model_vals = [sum(model_per_sektor[s]) / len(model_per_sektor[s]) for s in faelles]
         realized_vals = [sum(realized_per_sektor[s]) / len(realized_per_sektor[s]) for s in faelles]
         korr = _spearman(model_vals, realized_vals)
-        rows.append({"kvartal": kv, "antal_sektorer": len(faelles), "korrelation": korr})
+        rows.append({"kvartal": kv, "antal_sektorer": len(faelles), "korrelation": korr, "kilde": kilde})
 
     gyldige = [r["korrelation"] for r in rows if r["korrelation"] is not None]
     gennemsnit = round(sum(gyldige) / len(gyldige), 3) if gyldige else None
+    live_andel = sum(1 for r in rows if r["kilde"] in ("live_etf", "blandet"))
 
-    return {"kvartaler": rows, "gennemsnit": gennemsnit}
+    return {"kvartaler": rows, "gennemsnit": gennemsnit,
+            "live_data_brugt": live_andel > 0, "antal_kvartaler_live": live_andel}
 
 
 # ── Risikoprofil ──────────────────────────────────────────────────────────────

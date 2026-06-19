@@ -211,6 +211,95 @@ def hent_live_makro():
     return {"USA": usa, "Europa": eu}
 
 
+# ── Sektor-ETF historiske afkast (Stooq, gratis, ingen nøgle) ─────────────────
+# Bruges som ÆGTE ground truth i model-backtesten (se data.backtest_model),
+# i stedet for det manuelt tildelte "Point score sektor"-ark i Excel-filen.
+# Kun USA har verificerede, likvide sektor-ETF-tickers (SPDR Select Sector).
+# Europa har ikke et tilsvarende robust ETF-sæt med pålidelige tickers på Stooq,
+# så Europa falder fortsat tilbage til Point-score-arket i backtesten.
+
+STOOQ_BASE = "https://stooq.com/q/d/l/"
+
+SEKTOR_ETF_USA = {
+    "Information Technology":  "xlk.us",
+    "Communications Services": "xlc.us",
+    "Industrials":              "xli.us",
+    "Financials":                "xlf.us",
+    "Consumer Discretionary":  "xly.us",
+    "Energy":                    "xle.us",
+    "Health Care":                "xlv.us",
+    "Real Estate":              "xlre.us",
+    "Consumer Staples":          "xlp.us",
+    "Materials":                  "xlb.us",
+    "Utilities":                  "xlu.us",
+}
+
+def _stooq_quarterly(ticker):
+    """Hent kvartalsvise lukkekurser for en ticker fra Stooq. Gratis, ingen API-nøgle."""
+    if not REQUESTS_OK:
+        return []
+    cache_key = f"stooq_{ticker}"
+    if cache_key in _cache and time.time() - _cache[cache_key][0] < _cache_ttl:
+        return _cache[cache_key][1]
+    try:
+        r = requests.get(STOOQ_BASE, params={"s": ticker, "i": "q"}, timeout=8)
+        rows = []
+        for line in r.text.strip().splitlines()[1:]:
+            felter = line.split(",")
+            if len(felter) >= 5:
+                try:
+                    rows.append({"dato": felter[0], "close": float(felter[4])})
+                except ValueError:
+                    continue
+        _cache[cache_key] = (time.time(), rows)
+        return rows
+    except Exception as e:
+        logger.warning(f"Stooq {ticker}: {e}")
+        return []
+
+
+def _kvartal_fra_dato(dato_str):
+    """'2024-03-28' → 'Q1 2024'."""
+    try:
+        aar, mdr, _ = dato_str.split("-")
+        return f"Q{(int(mdr) - 1) // 3 + 1} {aar}"
+    except Exception:
+        return None
+
+
+def hent_live_sektor_afkast(kvartaler):
+    """
+    Hent faktiske kvartalsafkast (%) for USA's GICS-sektorer via SPDR sector-ETF'er.
+    Returnerer {sektor: {kvartal: afkast_pct}} — afkast fra forrige kvartals
+    slutkurs til dette kvartals slutkurs. Tom dict hvis Stooq er uden for
+    rækkevidde (f.eks. en sandbox uden internetadgang) — kalderen falder da
+    tilbage til den manuelle Point-score-vurdering i backtesten.
+    """
+    result = {}
+    for sektor, ticker in SEKTOR_ETF_USA.items():
+        rows = _stooq_quarterly(ticker)
+        if not rows:
+            continue
+        by_kv = {}
+        for row in rows:
+            kv = _kvartal_fra_dato(row["dato"])
+            if kv in kvartaler:
+                by_kv[kv] = row["close"]
+        sorted_kv = sorted(by_kv.keys(), key=lambda k: kvartaler.index(k))
+        afkast = {}
+        prev_close = None
+        for kv in sorted_kv:
+            close = by_kv[kv]
+            if prev_close is not None:
+                afkast[kv] = round((close / prev_close - 1) * 100, 2)
+            prev_close = close
+        if afkast:
+            result[sektor] = afkast
+    if result:
+        logger.info(f"Live sektor-ETF-afkast hentet for {len(result)} sektorer")
+    return result
+
+
 def flet_med_default(live, default):
     """
     Flet live data med DEFAULT_MAKRO.
