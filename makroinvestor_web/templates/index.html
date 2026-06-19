@@ -1168,9 +1168,10 @@ function renderBacktest(bt){
   const regionCell = (r)=>{
     if(!r) return `<span style="color:#475569">N/A</span>`;
     const c = r.korrelation;
-    const color = c===null ? "#475569" : c>0.3 ? "#34D399" : c<-0.3 ? "#F87171" : "#FCD34D";
+    const color = r.frosset ? "#475569" : c===null ? "#475569" : c>0.3 ? "#34D399" : c<-0.3 ? "#F87171" : "#FCD34D";
+    const label = r.frosset ? `frozen ground truth, excluded` : `${kildeLabel[r.kilde]||r.kilde||"?"}, n=${r.antal_sektorer}`;
     return `<span style="font-weight:700;color:${color}">${c===null?"N/A":c.toFixed(2)}</span>
-      <span style="font-size:.65rem;color:${kildeColor[r.kilde]||'#64748b'}"> (${kildeLabel[r.kilde]||r.kilde||"?"}, n=${r.antal_sektorer})</span>`;
+      <span style="font-size:.65rem;color:${r.frosset?'#F59E0B':(kildeColor[r.kilde]||'#64748b')}"> (${label})</span>`;
   };
   const rows = bt.kvartaler.map(k=>{
     const c = k.korrelation;
@@ -1207,8 +1208,11 @@ function renderBacktest(bt){
       SPDR Select Sector ETFs for USA (verified tickers), and iShares STOXX Europe 600 sector ETFs for Europe
       (tickers not yet independently verified — treat Europe's "Live ETF" rows with extra caution until confirmed).
       "Estimate" rows fall back to the manually-scored "Point score" Excel sheet, not real market performance.
-      Model scores use only the indicators available historically (PMI, 10Y rate, Core CPI, VIX), so they may
-      differ slightly from the live 11-indicator model used elsewhere on the site.
+      Model scores use only the indicators available historically (PMI, 10Y rate, Core CPI, VIX, Unemployment),
+      so they may differ slightly from the live 11-indicator model used elsewhere on the site. Quarters where the
+      "Point score" sheet repeats an identical, unchanged sector ranking from the prior quarter are marked
+      "frozen ground truth, excluded" — comparing the model against a stale, un-updated benchmark would not
+      test anything real, so those region/quarter combinations are left out of the averages above.
     </p>`;
 }
 

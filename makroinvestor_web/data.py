@@ -740,6 +740,36 @@ def hent_historisk_makro(wb):
         elif cur and isinstance(row[3],str) and row[3].startswith("Q") and isinstance(row[4],(int,float)):
             h[cur]["VIX"].append({"kvartal":row[3],"vaerdi":row[4],"fase":row[5]})
 
+    # Unemployment — to ark dækker forskellige perioder og lægges sammen:
+    # "Arbejdsløshed" (Q1 2024-Q1 2025, % som tal eller tekststreng med komma)
+    # og "Unemployment" (Q3 2025- , decimal andel der skal ganges med 100).
+    ws = wb["Arbejdsløshed"]
+    cur = None
+    for row in ws.iter_rows(values_only=True):
+        if row[3]=="Kvartal" and isinstance(row[4],str):
+            lbl = row[4]
+            if "Euroområdet" in lbl or "EU" in lbl: cur="Europa"
+            elif "USA" in lbl: cur="USA"
+            else: cur=None
+            if cur: h.setdefault(cur,{}).setdefault("Unemployment",[])
+        elif cur and isinstance(row[3],str) and row[3].startswith("Q"):
+            raw = row[4]
+            if isinstance(raw,str):
+                raw = raw.replace(" ","").replace(" ","").replace(",",".")
+                try: raw = float(raw)
+                except ValueError: continue
+            if isinstance(raw,(int,float)):
+                h[cur]["Unemployment"].append({"kvartal":row[3],"vaerdi":round(raw,2)})
+
+    ws = wb["Unemployment"]
+    cur = None
+    for row in ws.iter_rows(values_only=True):
+        if row[3]=="Kvartal" and isinstance(row[4],str):
+            cur = row[4] if row[4] in ("Europa","USA") else None
+            if cur: h.setdefault(cur,{}).setdefault("Unemployment",[])
+        elif cur and isinstance(row[3],str) and row[3].startswith("Q") and isinstance(row[4],(int,float)):
+            h[cur]["Unemployment"].append({"kvartal":row[3],"vaerdi":round(row[4]*100,2)})
+
     return h
 
 
@@ -1165,9 +1195,10 @@ def _model_faser_for_kvartal(kv, region, historik, fremtid):
     Indikator-input til klassificer_makro for ét kvartal/én region, hentet fra
     den kilde der faktisk har data for kvartalet:
       - KVARTALER_HIST (Q1 2024-Q4 2025): de historiske Excel-ark
-        (PMI, 10 yr rate, CPI, VIX) — kun 4 indikatorer tilgængelige.
+        (PMI, 10 yr rate, CPI, VIX, Unemployment) — 5 indikatorer, og
+        Unemployment har et hul i Q2 2025 (ingen data i kildearkene).
       - KVARTALER_Q1Q2_2026: "Fremtid vækst"-arkets q1/q2-kolonner —
-        6 indikatorer tilgængelige (+ BNP, Unemployment).
+        6 indikatorer tilgængelige (+ BNP).
     Returnerer en klassificeret fase-dict, eller None hvis ingen data fandtes.
     """
     inputs = {}
@@ -1220,8 +1251,8 @@ def model_historisk_sektorer(wb):
     manuelt tildelte "Point score sektor"-ark.
 
     Begrænsning: kun de indikatorer der findes historisk i Excel-filen er
-    tilgængelige — 4 for Q1 2024-Q4 2025 (PMI, 10 YR, Core CPI, VIX), 6 for
-    Q1+Q2 2026 (+ BNP, Unemployment) — ikke det fulde 11-indikator-sæt.
+    tilgængelige — 5 for Q1 2024-Q4 2025 (PMI, 10 YR, Core CPI, VIX,
+    Unemployment), 6 for Q1+Q2 2026 (+ BNP) — ikke det fulde 11-indikator-sæt.
     Modellen anvendes derfor på et tyndere datagrundlag for fortiden end for
     nutiden, men beregningsmetoden er ens.
 
@@ -1405,7 +1436,8 @@ def sektor_ind_scores(seneste_makro, sektor):
 # ikke det fulde 11-indikator-sæt, så resultatet er en tilnærmelse, ikke en
 # eksakt replay af det live model-output.
 
-_HIST_IND_KEYS = {"PMI": "PMI", "10 YR": "10yr", "Core CPI": "CPI", "VIX": "VIX"}
+_HIST_IND_KEYS = {"PMI": "PMI", "10 YR": "10yr", "Core CPI": "CPI", "VIX": "VIX",
+                   "Unemployment": "Unemployment"}
 
 def _rang(vaerdier):
     rang = [0] * len(vaerdier)
@@ -1453,6 +1485,14 @@ def backtest_model(wb, sektor_afkast_live=None):
       Begge regioner falder tilbage til Point-score-arket (BNP-fanen i Excel,
       et manuelt ekspertskøn, ikke faktiske afkast) hvis live-data ikke kan
       hentes for en given sektor/kvartal (kun muligt for Q1 2024-Q4 2025).
+
+    "Frosne" kvartaler: Point-score-arket har flere kvartaler i træk med
+    BOGSTAVELIGT identiske sektor-scorer per region (sandsynligvis ikke
+    genvurderet, blot kopieret fra forrige kvartal). At sammenligne modellen
+    mod uændret ground truth tester ikke noget reelt, så sådanne
+    region/kvartal-kombinationer markeres "frosset": true og udelades fra
+    både kvartalets og det samlede gennemsnits korrelation (selve tallet vises
+    stadig, til diagnostik).
     """
     historik = hent_historisk_makro(wb)
     historisk_bnp = hent_historisk_bnp(wb)
@@ -1460,6 +1500,7 @@ def backtest_model(wb, sektor_afkast_live=None):
     sektor_afkast_live = sektor_afkast_live or {}
 
     rows = []
+    prev_realized = {}
     for kv in KVARTALER_HIST + KVARTALER_Q1Q2_2026:
         region_resultater = {}
 
@@ -1493,11 +1534,19 @@ def backtest_model(wb, sektor_afkast_live=None):
             model_vals = [model_per_sektor[s] for s in faelles]
             realized_vals = [realized_per_sektor[s] for s in faelles]
             korr = _spearman(model_vals, realized_vals)
+
+            frosset = (kilde == "point_score_estimat" and
+                       prev_realized.get(region) == realized_per_sektor)
+            if kilde == "point_score_estimat":
+                prev_realized[region] = realized_per_sektor
+
             region_resultater[region] = {
-                "korrelation": korr, "antal_sektorer": len(faelles), "kilde": kilde,
+                "korrelation": korr, "antal_sektorer": len(faelles),
+                "kilde": kilde, "frosset": frosset,
             }
 
-        korr_vals = [r["korrelation"] for r in region_resultater.values() if r["korrelation"] is not None]
+        korr_vals = [r["korrelation"] for r in region_resultater.values()
+                     if r["korrelation"] is not None and not r["frosset"]]
         korr_kvartal = round(sum(korr_vals) / len(korr_vals), 3) if korr_vals else None
         rows.append({
             "kvartal": kv,
