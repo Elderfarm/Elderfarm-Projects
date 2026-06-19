@@ -1156,11 +1156,53 @@ def beregn_sektorscorer(dk, eu, usa, fase):
     return res
 
 
-def byg_heatmap(historisk_bnp, sim_scores):
+def model_historisk_sektorer(wb):
+    """
+    Beregn historiske sektorscorer (Q1 2024 - Q4 2025) med PRÆCIS samme metode
+    som de aktuelle/projekterede kvartaler: klassificer_makro + _score_sektor_region
+    på rå indikatorværdier, IKKE det manuelt tildelte "Point score sektor"-ark.
+
+    Begrænsning: kun de indikatorer der findes historisk i Excel-filen er
+    tilgængelige (PMI, 10 YR, Core CPI [kun Europa], VIX [kun fra 2025]) —
+    ikke det fulde 11-indikator-sæt. Modellen anvendes derfor på et tyndere
+    datagrundlag for fortiden end for nutiden, men beregningsmetoden er ens.
+
+    Returnerer {sektor: {kvartal: score}} — gennemsnit af Europa+USA.
+    """
+    historik = hent_historisk_makro(wb)
+    resultat = {sektor: {} for sektor in SEKTOR_RÆKKEFØLGE}
+
+    for kv in KVARTALER_HIST:
+        region_scores = {sektor: [] for sektor in SEKTOR_RÆKKEFØLGE}
+
+        for region in ("Europa", "USA"):
+            inputs = {}
+            for ind, excel_key in _HIST_IND_KEYS.items():
+                serie = historik.get(region, {}).get(excel_key, [])
+                entry = next((e for e in serie if e.get("kvartal") == kv), None)
+                if entry and isinstance(entry.get("vaerdi"), (int, float)):
+                    inputs[ind] = entry["vaerdi"]
+            if not inputs:
+                continue
+            faser = klassificer_makro(inputs, region)
+            for sektor in SEKTOR_RÆKKEFØLGE:
+                sc = _score_sektor_region(sektor, region, faser)
+                if sc is not None:
+                    region_scores[sektor].append(sc)
+
+        for sektor, scores in region_scores.items():
+            if scores:
+                resultat[sektor][kv] = round(sum(scores) / len(scores), 2)
+
+    return resultat
+
+
+def byg_heatmap(model_historisk, sim_scores):
     """
     Byg multi-kvartal heatmap data.
-    historisk_bnp: {sektor: {kvartal: {region: score}}} — fra BNP-ark (EU+USA)
-    sim_scores: {sektor: score} — fra simuler_sektorer(), bruges til Q1+Q2 2026
+    model_historisk: {sektor: {kvartal: score}} — fra model_historisk_sektorer(),
+                      samme beregningsmetode som de projekterede kvartaler.
+    sim_scores: {sektor: score} — fra simuler_sektorer(), bruges til projekterede kvartaler
     Returnerer: {sektor: {kvartal: {'score': float, 'kilde': str}}}
     """
     heatmap = {}
@@ -1168,13 +1210,12 @@ def byg_heatmap(historisk_bnp, sim_scores):
     for sektor in SEKTOR_RÆKKEFØLGE:
         heatmap[sektor] = {}
 
-        # Historiske kvartaler fra BNP-arket (Q1 2024 - Q4 2025), kun EU+USA
-        bnp_data = historisk_bnp.get(sektor, {})
+        # Historiske kvartaler — model-beregnet, samme metode som prognosen
+        hist_data = model_historisk.get(sektor, {})
         for kv in KVARTALER_HIST:
-            region_vals = bnp_data.get(kv, {})
-            vals = [v for r,v in region_vals.items() if isinstance(v,(int,float)) and r != "Danmark"]
-            if vals:
-                heatmap[sektor][kv] = {"score": round(sum(vals)/len(vals),2), "kilde":"historisk"}
+            score = hist_data.get(kv)
+            if score is not None:
+                heatmap[sektor][kv] = {"score": score, "kilde": "historisk"}
 
         # Projekterede kvartaler: brug simulator-score (samme som dashboard)
         score = sim_scores.get(sektor)
@@ -1527,7 +1568,8 @@ def hent_alle_data():
 
     # Byg sim_scores lookup til heatmap projection: {sektor: score}
     sim_scores_map = {s["sektor"]: s["score"] for s in sektorer}
-    heatmap = byg_heatmap(historisk_bnp, sim_scores_map)
+    model_historisk = model_historisk_sektorer(wb)
+    heatmap = byg_heatmap(model_historisk, sim_scores_map)
 
     # Seneste kvartal med data
     seneste_kvartal = ALLE_KVARTALER[-1]
