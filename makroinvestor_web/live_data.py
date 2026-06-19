@@ -214,24 +214,43 @@ def hent_live_makro():
 # ── Sektor-ETF historiske afkast (Stooq, gratis, ingen nøgle) ─────────────────
 # Bruges som ÆGTE ground truth i model-backtesten (se data.backtest_model),
 # i stedet for det manuelt tildelte "Point score sektor"-ark i Excel-filen.
-# Kun USA har verificerede, likvide sektor-ETF-tickers (SPDR Select Sector).
-# Europa har ikke et tilsvarende robust ETF-sæt med pålidelige tickers på Stooq,
-# så Europa falder fortsat tilbage til Point-score-arket i backtesten.
+# USA: verificerede, likvide SPDR Select Sector-ETF'er — høj konfidens.
+# Europa: iShares STOXX Europe 600-sektor-UCITS-ETF'er (Xetra). Disse tickers
+# er IKKE blevet verificeret mod Stooq i denne sandbox (ingen netadgang her) —
+# de er baseret på almen kendskab til iShares' STOXX 600-sektorserie. Tjek
+# /api/live_status og server-logs efter deploy; en sektor der konsekvent
+# logger "uventet svar" fra Stooq bør rettes eller fjernes herfra. "Energy" er
+# udeladt for Europa, fordi der ikke er en ticker vi er sikre nok på.
 
 STOOQ_BASE = "https://stooq.com/q/d/l/"
 
 SEKTOR_ETF_USA = {
-    "Information Technology":  "xlk.us",
-    "Communications Services": "xlc.us",
-    "Industrials":              "xli.us",
-    "Financials":                "xlf.us",
-    "Consumer Discretionary":  "xly.us",
-    "Energy":                    "xle.us",
-    "Health Care":                "xlv.us",
-    "Real Estate":              "xlre.us",
-    "Consumer Staples":          "xlp.us",
-    "Materials":                  "xlb.us",
-    "Utilities":                  "xlu.us",
+    "Information Technology":  ["xlk.us"],
+    "Communications Services": ["xlc.us"],
+    "Industrials":              ["xli.us"],
+    "Financials":                ["xlf.us"],
+    "Consumer Discretionary":  ["xly.us"],
+    "Energy":                    ["xle.us"],
+    "Health Care":                ["xlv.us"],
+    "Real Estate":              ["xlre.us"],
+    "Consumer Staples":          ["xlp.us"],
+    "Materials":                  ["xlb.us"],
+    "Utilities":                  ["xlu.us"],
+}
+
+# UNVERIFICERET — se note ovenfor. Nogle GICS-sektorer dækkes af flere STOXX
+# 600-undersektor-ETF'er; afkastet for sådanne sektorer er gennemsnittet af dem.
+SEKTOR_ETF_EUROPA = {
+    "Information Technology":  ["exh4.de"],
+    "Communications Services": ["exh3.de", "exh8.de"],
+    "Industrials":              ["exv3.de"],
+    "Financials":                ["exh9.de", "exh5.de"],
+    "Consumer Discretionary":  ["exh7.de", "exv9.de"],
+    "Health Care":                ["exh1.de"],
+    "Real Estate":              ["exh6.de"],
+    "Consumer Staples":          ["exv5.de", "exv6.de"],
+    "Materials":                  ["exv1.de", "exv7.de"],
+    "Utilities":                  ["exh2.de"],
 }
 
 def _stooq_quarterly(ticker):
@@ -279,36 +298,53 @@ def _kvartal_fra_dato(dato_str):
         return None
 
 
-def hent_live_sektor_afkast(kvartaler):
+def _ticker_afkast(ticker, kvartaler):
+    """Kvartalsafkast (%) for én ticker. {kvartal: afkast_pct}."""
+    rows = _stooq_quarterly(ticker)
+    if not rows:
+        return {}
+    by_kv = {}
+    for row in rows:
+        kv = _kvartal_fra_dato(row["dato"])
+        if kv in kvartaler:
+            by_kv[kv] = row["close"]
+    sorted_kv = sorted(by_kv.keys(), key=lambda k: kvartaler.index(k))
+    afkast = {}
+    prev_close = None
+    for kv in sorted_kv:
+        close = by_kv[kv]
+        if prev_close is not None:
+            afkast[kv] = round((close / prev_close - 1) * 100, 2)
+        prev_close = close
+    return afkast
+
+
+def hent_live_sektor_afkast(kvartaler, region="USA"):
     """
-    Hent faktiske kvartalsafkast (%) for USA's GICS-sektorer via SPDR sector-ETF'er.
-    Returnerer {sektor: {kvartal: afkast_pct}} — afkast fra forrige kvartals
-    slutkurs til dette kvartals slutkurs. Tom dict hvis Stooq er uden for
-    rækkevidde (f.eks. en sandbox uden internetadgang) — kalderen falder da
-    tilbage til den manuelle Point-score-vurdering i backtesten.
+    Hent faktiske kvartalsafkast (%) for en regions GICS-sektorer via
+    sektor-ETF'er (SEKTOR_ETF_USA eller SEKTOR_ETF_EUROPA). Sektorer dækket af
+    flere undersektor-ETF'er får afkastet som et simpelt gennemsnit af dem.
+    Returnerer {sektor: {kvartal: afkast_pct}}. Tom dict hvis Stooq er uden for
+    rækkevidde (f.eks. en sandbox uden internetadgang, eller en ticker der ikke
+    findes/er forkert) — kalderen falder da tilbage til Point-score-vurderingen.
     """
+    etf_map = SEKTOR_ETF_USA if region == "USA" else SEKTOR_ETF_EUROPA
     result = {}
-    for sektor, ticker in SEKTOR_ETF_USA.items():
-        rows = _stooq_quarterly(ticker)
-        if not rows:
+    for sektor, tickers in etf_map.items():
+        per_ticker = [_ticker_afkast(t, kvartaler) for t in tickers]
+        per_ticker = [a for a in per_ticker if a]
+        if not per_ticker:
             continue
-        by_kv = {}
-        for row in rows:
-            kv = _kvartal_fra_dato(row["dato"])
-            if kv in kvartaler:
-                by_kv[kv] = row["close"]
-        sorted_kv = sorted(by_kv.keys(), key=lambda k: kvartaler.index(k))
+        alle_kv = set().union(*[a.keys() for a in per_ticker])
         afkast = {}
-        prev_close = None
-        for kv in sorted_kv:
-            close = by_kv[kv]
-            if prev_close is not None:
-                afkast[kv] = round((close / prev_close - 1) * 100, 2)
-            prev_close = close
+        for kv in alle_kv:
+            vals = [a[kv] for a in per_ticker if kv in a]
+            if vals:
+                afkast[kv] = round(sum(vals) / len(vals), 2)
         if afkast:
             result[sektor] = afkast
     if result:
-        logger.info(f"Live sektor-ETF-afkast hentet for {len(result)} sektorer")
+        logger.info(f"Live sektor-ETF-afkast ({region}) hentet for {len(result)} sektorer")
     return result
 
 

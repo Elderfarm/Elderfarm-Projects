@@ -1398,13 +1398,13 @@ def backtest_model(wb, sektor_afkast_live=None):
     for hver region for sig, og kvartalets samlede korrelation er
     gennemsnittet af de regioner der har nok datapunkter (≥3 sektorer).
 
-    Ground truth pr. region:
-      USA:    sektor_afkast_live (faktiske kvartalsafkast fra SPDR sektor-ETF'er,
-              Stooq, via live_data.hent_live_sektor_afkast) — ægte marked.
-              Falder tilbage til Point-score-arket hvis live-data ikke kan hentes.
-      Europa: Point-score-arket (BNP-fanen i Excel) — et manuelt ekspertskøn,
-              IKKE faktiske afkast. Der findes endnu ikke et verificeret
-              europæisk sektor-ETF-sæt i koden.
+    Ground truth pr. region (sektor_afkast_live: {region: {sektor: {kvartal: pct}}}):
+      USA:    SPDR Select Sector-ETF'er (Stooq) — verificerede tickers, ægte marked.
+      Europa: iShares STOXX 600-sektor-UCITS-ETF'er (Stooq) — tickers IKKE
+              verificeret i sandbox, se note i live_data.SEKTOR_ETF_EUROPA.
+      Begge regioner falder tilbage til Point-score-arket (BNP-fanen i Excel,
+      et manuelt ekspertskøn, ikke faktiske afkast) hvis live-data ikke kan
+      hentes for en given sektor/kvartal.
     """
     historik = hent_historisk_makro(wb)
     historisk_bnp = hent_historisk_bnp(wb)
@@ -1428,13 +1428,14 @@ def backtest_model(wb, sektor_afkast_live=None):
             model_per_sektor = {}
             realized_per_sektor = {}
             kilde = "point_score_estimat"
+            live_region = sektor_afkast_live.get(region, {})
 
             for sektor in SEKTOR_RÆKKEFØLGE:
                 sc = _score_sektor_region(sektor, region, faser)
                 if sc is not None:
                     model_per_sektor[sektor] = sc
 
-                live_afkast = sektor_afkast_live.get(sektor, {}).get(kv) if region == "USA" else None
+                live_afkast = live_region.get(sektor, {}).get(kv)
                 if live_afkast is not None:
                     realized_per_sektor[sektor] = live_afkast
                     kilde = "live_etf"
@@ -1464,7 +1465,8 @@ def backtest_model(wb, sektor_afkast_live=None):
     gyldige = [r["korrelation"] for r in rows if r["korrelation"] is not None]
     gennemsnit = round(sum(gyldige) / len(gyldige), 3) if gyldige else None
     live_andel = sum(
-        1 for r in rows if r["regioner"].get("USA", {}).get("kilde") == "live_etf"
+        1 for r in rows
+        if any(reg.get("kilde") == "live_etf" for reg in r["regioner"].values())
     )
 
     return {"kvartaler": rows, "gennemsnit": gennemsnit,

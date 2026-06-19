@@ -113,13 +113,13 @@ def api_sektor(navn):
     return jsonify({**s,"etfs":etfs,"aktier":aktier,"historisk":hist,"makro_analyse":ma})
 
 
-def _hent_live_sektor_afkast():
-    """Forsøg at hente faktiske sektor-ETF-afkast (Stooq). Tom dict ved fejl/ingen netværk."""
+def _hent_live_sektor_afkast(region):
+    """Forsøg at hente faktiske sektor-ETF-afkast (Stooq) for en region. Tom dict ved fejl/ingen netværk."""
     try:
         from live_data import hent_live_sektor_afkast
-        return hent_live_sektor_afkast(KVARTALER_HIST)
+        return hent_live_sektor_afkast(KVARTALER_HIST, region=region)
     except Exception as e:
-        import logging; logging.getLogger(__name__).warning(f"live sektor-afkast fejl: {e}")
+        import logging; logging.getLogger(__name__).warning(f"live sektor-afkast fejl ({region}): {e}")
         return {}
 
 
@@ -127,11 +127,17 @@ def _hent_live_sektor_afkast():
 def api_backtest():
     """
     Backtest af modellens sektor-ranking mod realiserede historiske scorer.
-    Henter ægte sektor-ETF-afkast (USA, via Stooq) hvis netværk tillader det —
-    falder ellers tilbage til det manuelle Point-score-ark i Excel-filen.
+    Henter ægte sektor-ETF-afkast (USA + Europa, via Stooq) hvis netværk tillader
+    det — falder ellers tilbage til det manuelle Point-score-ark i Excel-filen.
+    Europas ETF-tickers (iShares STOXX 600-sektor-serie) er ikke verificeret i
+    sandbox — fejler en sektor konsekvent i logs, falder den automatisk tilbage
+    til Point-score for den region/kvartal.
     """
     if not _backtest_cache:
-        live_afkast = _hent_live_sektor_afkast()
+        live_afkast = {
+            "USA":    _hent_live_sektor_afkast("USA"),
+            "Europa": _hent_live_sektor_afkast("Europa"),
+        }
         _backtest_cache.update(backtest_model(indlaes_wb(), sektor_afkast_live=live_afkast))
     return jsonify(_backtest_cache)
 

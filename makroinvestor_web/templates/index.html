@@ -1184,8 +1184,8 @@ function renderBacktest(bt){
   }).join("");
   const avgColor = bt.gennemsnit===null ? "#475569" : bt.gennemsnit>0.3 ? "#34D399" : bt.gennemsnit<-0.3 ? "#F87171" : "#FCD34D";
   const liveNote = bt.live_data_brugt
-    ? `<span style="color:#34D399">●</span> ${bt.antal_kvartaler_live} of ${bt.kvartaler.length} quarters use real US sector-ETF returns (Stooq) as ground truth for USA.`
-    : `<span style="color:#F59E0B">●</span> No live market data could be fetched right now — USA quarters fall back to the manual "Point score" estimate too. Click "↻ Refresh" on the dashboard to retry.`;
+    ? `<span style="color:#34D399">●</span> ${bt.antal_kvartaler_live} of ${bt.kvartaler.length} quarters use real sector-ETF returns (Stooq) as ground truth for at least one region.`
+    : `<span style="color:#F59E0B">●</span> No live market data could be fetched right now — all quarters fall back to the manual "Point score" estimate. Click "↻ Refresh" on the dashboard to retry.`;
   box.innerHTML = `
     <div style="margin-bottom:8px;font-size:.85rem">
       Average rank correlation across ${bt.kvartaler.length} quarters (Europe + USA combined):
@@ -1203,9 +1203,10 @@ function renderBacktest(bt){
     </table>
     <p style="margin-top:12px;font-size:.72rem;color:#475569">
       Europe and USA are scored against separate ground truth and never averaged into one another.
-      USA ("Live ETF") compares the model's sector ranking against actual SPDR sector-ETF quarterly returns.
-      Europe ("Estimate") compares against the manually-scored "Point score" Excel sheet, not real market
-      performance, since no verified European sector-ETF set exists yet — read Europe's correlation with caution.
+      "Live ETF" compares the model's sector ranking against actual sector-ETF quarterly returns —
+      SPDR Select Sector ETFs for USA (verified tickers), and iShares STOXX Europe 600 sector ETFs for Europe
+      (tickers not yet independently verified — treat Europe's "Live ETF" rows with extra caution until confirmed).
+      "Estimate" rows fall back to the manually-scored "Point score" Excel sheet, not real market performance.
       Model scores use only the indicators available historically (PMI, 10Y rate, Core CPI, VIX), so they may
       differ slightly from the live 11-indicator model used elsewhere on the site.
     </p>`;
