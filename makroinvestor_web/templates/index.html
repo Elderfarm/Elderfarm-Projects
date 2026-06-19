@@ -450,6 +450,7 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
           quarter (Q1 2024–Q4 2025), using a Spearman rank correlation. A value near +1 means the model's ranking
           matched what actually happened; near 0 means no relationship; negative means it was inversely wrong.
         </p>
+        <button onclick="refreshBacktest()" id="backtest-refresh-btn" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.2);color:#818CF8;border-radius:6px;padding:4px 10px;font-size:.72rem;cursor:pointer;margin-bottom:12px">↻ Refresh backtest data</button>
         <div id="backtest-box" style="font-size:.8rem;color:#64748b">Loading backtest…</div>
       </div>
     </div>
@@ -1138,6 +1139,22 @@ async function openSektor(navn){
 
   document.getElementById("sektor-detalje").style.display="block";
   document.getElementById("sektor-detalje").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+async function refreshBacktest(){
+  const box = document.getElementById("backtest-box");
+  const btn = document.getElementById("backtest-refresh-btn");
+  btn.disabled = true;
+  box.innerHTML = `<span class="spinner" style="width:12px;height:12px;display:inline-block"></span> Fetching live sector-ETF returns…`;
+  try{
+    await fetch("/api/refresh", {method:"POST"});
+    const bt = await fetch("/api/backtest").then(r=>r.json());
+    renderBacktest(bt);
+  } catch(e){
+    box.innerHTML = `<span style="color:#F87171">Could not refresh backtest data.</span>`;
+  } finally{
+    btn.disabled = false;
+  }
 }
 
 function renderBacktest(bt){
