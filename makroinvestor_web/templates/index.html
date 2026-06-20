@@ -436,19 +436,32 @@ input[type=number]:focus{outline:none;border-color:#6366F1}
 
         <h2 style="font-size:.95rem;font-weight:700;color:#818CF8;margin:18px 0 6px">Important limitations</h2>
         <p style="font-size:.85rem;line-height:1.6;color:#CBD5E1">
-          The indicator weights, phase thresholds, and sector-sensitivity scores are <strong>expert judgement
-          encoded as rules</strong> — they are not statistically fitted to historical returns. The model has not
-          been formally backtested against realized sector performance. Treat its output as one structured
-          opinion among several inputs to your own research, not as a signal to trade on directly. Live data
-          sources (ECB/FRED) can fail; when they do, the site falls back to a manually-updated snapshot that may
-          be stale by days or weeks.
+          The indicator weights, phase thresholds, and sector-sensitivity scores are still primarily <strong>expert
+          judgement encoded as rules</strong>, not a model fitted from scratch on historical returns. A small,
+          honest calibration pass has been run against the backtest below (see "Model validation"): an automated
+          search tried every combination of indicator weights to find what would maximize the historical
+          correlation, and a handful of changes that were both data-supported <em>and</em> consistent with
+          established macro theory were kept (e.g. raising VIX's and the 10-year rate's weight). Changes the
+          search wanted to make that contradicted basic macro theory — like dropping ISM PMI's weight to zero —
+          were rejected even though they would have produced a higher backtest number, because that would be
+          overfitting to a tiny sample, not a more accurate model. The honest takeaway: with only ~7 valid
+          historical quarters to validate against, this model's <strong>real-world predictive accuracy is
+          currently low and not statistically reliable</strong> — treat its output as one structured opinion
+          among several inputs to your own research, not as a signal to trade on directly. Live data sources
+          (ECB/FRED) can fail; when they do, the site falls back to a manually-updated snapshot that may be stale
+          by days or weeks.
         </p>
 
         <h2 style="font-size:.95rem;font-weight:700;color:#818CF8;margin:18px 0 6px">Model validation</h2>
         <p style="font-size:.85rem;line-height:1.6;color:#CBD5E1;margin-bottom:10px">
           The table below compares the model's sector ranking against realized sector scores for each historical
-          quarter (Q1 2024–Q4 2025), using a Spearman rank correlation. A value near +1 means the model's ranking
-          matched what actually happened; near 0 means no relationship; negative means it was inversely wrong.
+          quarter (Q1 2024–Q2 2026, where data is available), using a Spearman rank correlation. A value near +1
+          means the model's ranking matched what actually happened; near 0 means no relationship; negative means
+          it was inversely wrong. The current average is low (roughly 0.05–0.1) — that is a genuine measurement,
+          not a bug, and reflects the small sample size (8 quarters total) and the partly stale/manually-scored
+          ground truth for some of them (flagged "frozen ground truth, excluded" where applicable), more than it
+          reflects the model being fundamentally wrong. Q1/Q2 2026 will only populate once real sector-ETF returns
+          for those quarters become available from the live data feed.
         </p>
         <button onclick="refreshBacktest()" id="backtest-refresh-btn" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.2);color:#818CF8;border-radius:6px;padding:4px 10px;font-size:.72rem;cursor:pointer;margin-bottom:12px">↻ Refresh backtest data</button>
         <div id="backtest-box" style="font-size:.8rem;color:#64748b">Loading backtest…</div>

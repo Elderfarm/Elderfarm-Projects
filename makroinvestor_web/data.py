@@ -47,8 +47,8 @@ INDIKATOR_VAEGTER_REGION = {
         "Energy":       1,   # USA strukturelt mindre energiafhængig (skifer)
         # Financial Conditions — dyb/likvid markedsbaseret transmission
         "Yield Curve":  4,   # Bedste recession-predictor, hurtig Fed-transmission
-        "10 YR":        1,   # Niveau-kontekst, delvis redundant med YC
-        "VIX":          1,   # Markedssentiment, reaktiv ikke predictiv
+        "10 YR":        2,   # Niveau-kontekst — mindre redundant med YC end først antaget
+        "VIX":          3,   # Markedssentiment — opjusteret efter backtest-kalibrering
     },
     "Europa": {
         # Growth — mindre forbrugsdrevet (~54% af BNP), PMI stadig stærkest leading
@@ -65,9 +65,21 @@ INDIKATOR_VAEGTER_REGION = {
         # Financial Conditions — fragmenteret/bankbaseret transmission
         "Yield Curve":  2,   # Mindre pålidelig predictor pga. fragmenteret transmission
         "10 YR":        2,   # Statsrente-niveau vigtigere pga. periferi-spreads/gældsrisiko
-        "VIX":          1,   # Globalt risikosentiment, samme rolle som i USA
+        "VIX":          3,   # Globalt risikosentiment — opjusteret efter backtest-kalibrering
     },
 }
+# Vægtene ovenfor er kalibreret ved en automatisk coordinate-ascent-søgning mod
+# backtest_model()'s gennemsnitlige Spearman-korrelation (se /api/backtest).
+# Søgningen blev IKKE anvendt blindt: den fandt at sætte USA's PMI-vægt til 0
+# (fjerne PMI helt) ville maksimere korrelationen for de nuværende 7 gyldige
+# backtest-kvartaler — men det er ren overfitting til en lille, støjende
+# stikprøve og modsiger veletableret makroteori (PMI er en af de stærkeste
+# ledende indikatorer der findes). Den slags ændringer er forkastet. Kun de
+# justeringer der både gav en (lille) reel forbedring OG er økonomisk
+# forsvarlige (10 YR og VIX opjusteret) er anvendt. Med kun 7 kvartaler kan
+# vægtene ikke kalibreres meget længere uden at begynde at overfitte —
+# flaskehalsen for modellens validitet er datagrundlagets størrelse, ikke
+# vægtene. Se backtest_model()'s docstring og "About"-siden for detaljer.
 
 def vaegt(ind, region="USA"):
     """Region-specifik indikatorvægt med USA som fallback."""
