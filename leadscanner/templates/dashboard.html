@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Søg virksomheder — Leadscanner{% endblock %}
+{% block content %}
+<div class="dash-page">
+
+  <div class="dash-stats-row">
+    <div class="dash-stat-pill">
+      <span class="dash-stat-value">{{ total_in_db }}</span>
+      <span class="dash-stat-label">virksomheder i databasen</span>
+    </div>
+    <div class="dash-stat-pill">
+      <span class="dash-stat-value">{{ total_matches }}</span>
+      <span class="dash-stat-label">matcher dine filtre</span>
+    </div>
+    <div class="dash-stat-pill">
+      <span class="dash-stat-value">{{ current_user.rows_remaining() }}</span>
+      <span class="dash-stat-label">rækker tilbage denne måned ({{ current_user.plan }})</span>
+    </div>
+    {% if not has_live_cvr %}
+    <div class="dash-stat-pill warn">
+      <span class="dash-stat-value">Demo</span>
+      <span class="dash-stat-label">simulerede data — sæt CVR-credentials for live data</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <form method="GET" class="search-bar">
+    <input type="text" name="q" placeholder="Søg efter virksomhedsnavn..." value="{{ current_filters.get('q', '') }}">
+    <select name="branche">
+      <option value="">Alle brancher</option>
+      {% for kode, tekst in brancher %}
+        <option value="{{ kode }}" {% if current_filters.get('branche') == kode %}selected{% endif %}>{{ tekst }}</option>
+      {% endfor %}
+    </select>
+    <input type="text" name="by" placeholder="By" value="{{ current_filters.get('by', '') }}">
+    <select name="status">
+      <option value="aktiv" {% if current_filters.get('status', 'aktiv') == 'aktiv' %}selected{% endif %}>Kun aktive</option>
+      <option value="alle" {% if current_filters.get('status') == 'alle' %}selected{% endif %}>Alle statusser</option>
+    </select>
+    <button type="submit" class="cta-btn">Søg</button>
+  </form>
+
+  {% if companies %}
+  <form method="POST" action="{{ url_for('export_csv') }}">
+    <div class="table-toolbar">
+      <label class="select-all"><input type="checkbox" id="select-all-checkbox"> Vælg alle på siden</label>
+      <button type="submit" class="cta-btn outline">📤 Eksportér valgte til CSV</button>
+    </div>
+    <div class="table-wrap">
+      <table class="company-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Navn</th>
+            <th>Branche</th>
+            <th>By</th>
+            <th>Ansatte</th>
+            <th>Omsætning</th>
+            <th>Kontakt</th>
+            <th>Datakvalitet</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in companies %}
+          <tr>
+            <td><input type="checkbox" name="cvr_nummer" value="{{ c.cvr_nummer }}" class="row-checkbox"></td>
+            <td><a href="{{ url_for('company_detail', cvr_nummer=c.cvr_nummer) }}">{{ c.navn }}</a></td>
+            <td>{{ c.branchetekst or '—' }}</td>
+            <td>{{ c.by or '—' }}</td>
+            <td>{{ c.antal_ansatte_interval or '—' }}</td>
+            <td>{{ "{:,}".format(c.seneste_omsaetning).replace(",", ".") + " kr" if c.seneste_omsaetning else '—' }}</td>
+            <td>
+              {% if c.website %}🌐{% endif %}
+              {% if c.email %}✉️{% endif %}
+              {% if c.telefon %}📞{% endif %}
+              {% if not c.website and not c.email and not c.telefon %}—{% endif %}
+            </td>
+            <td>
+              <span class="quality-badge quality-{{ 'high' if c.data_quality_score >= 70 else ('mid' if c.data_quality_score >= 40 else 'low') }}">
+                {{ c.data_quality_score }}%
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </form>
+  {% else %}
+  <div class="empty-state">
+    <p>Ingen virksomheder matcher dine filtre endnu.</p>
+    <a href="{{ url_for('collect') }}" class="cta-btn">Kør en indsamling →</a>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+document.getElementById('select-all-checkbox')?.addEventListener('change', function() {
+  document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = this.checked);
+});
+</script>
+{% endblock %}

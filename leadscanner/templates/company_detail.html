@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ company.navn }} — Leadscanner{% endblock %}
+{% block content %}
+<div class="detail-page">
+  <a href="{{ url_for('dashboard') }}" class="back-link">← Tilbage til søgning</a>
+
+  <div class="detail-card">
+    <div class="detail-header">
+      <h1>{{ company.navn }}</h1>
+      <span class="quality-badge quality-{{ 'high' if company.data_quality_score >= 70 else ('mid' if company.data_quality_score >= 40 else 'low') }}">
+        {{ company.data_quality_score }}% datakvalitet
+      </span>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-field"><span class="label">CVR-nummer</span><span>{{ company.cvr_nummer }}</span></div>
+      <div class="detail-field"><span class="label">Status</span><span>{{ company.status or '—' }}</span></div>
+      <div class="detail-field"><span class="label">Adresse</span><span>{{ company.adresse or '—' }}, {{ company.postnr }} {{ company.by }}</span></div>
+      <div class="detail-field"><span class="label">Branche</span><span>{{ company.branchetekst or '—' }} ({{ company.branchekode or '—' }})</span></div>
+      <div class="detail-field"><span class="label">Virksomhedsform</span><span>{{ company.virksomhedsform or '—' }}</span></div>
+      <div class="detail-field"><span class="label">Stiftet</span><span>{{ company.stiftelsesdato or '—' }}</span></div>
+      <div class="detail-field"><span class="label">Antal ansatte</span><span>{{ company.antal_ansatte_interval or '—' }}</span></div>
+      <div class="detail-field"><span class="label">Seneste omsætning</span>
+        <span>{{ "{:,}".format(company.seneste_omsaetning).replace(",", ".") + " kr (" + company.seneste_regnskabsaar|string + ")" if company.seneste_omsaetning else '—' }}</span>
+      </div>
+      <div class="detail-field"><span class="label">Website</span><span>{% if company.website %}<a href="{{ company.website }}" target="_blank" rel="noopener">{{ company.website }}</a>{% else %}—{% endif %}</span></div>
+      <div class="detail-field"><span class="label">Email</span><span>{{ company.email or '—' }}</span></div>
+      <div class="detail-field"><span class="label">Telefon</span><span>{{ company.telefon or '—' }}</span></div>
+      <div class="detail-field"><span class="label">Sidst verificeret</span><span>{{ company.last_verified_at.strftime('%Y-%m-%d') if company.last_verified_at else '—' }}</span></div>
+    </div>
+
+    <form method="POST" action="{{ url_for('export_csv') }}">
+      <input type="hidden" name="cvr_nummer" value="{{ company.cvr_nummer }}">
+      <button type="submit" class="cta-btn">📤 Eksportér denne virksomhed</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

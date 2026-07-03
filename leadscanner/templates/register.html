@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Opret konto — Leadscanner{% endblock %}
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <h1>Opret gratis konto</h1>
+    <form method="POST">
+      <label>Navn</label>
+      <input type="text" name="name">
+      <label>Virksomhed</label>
+      <input type="text" name="company">
+      <label>Email</label>
+      <input type="email" name="email" required autofocus>
+      <label>Adgangskode</label>
+      <input type="password" name="password" required minlength="6">
+      <button type="submit" class="cta-btn full-width">Opret konto</button>
+    </form>
+    <p class="auth-alt">Har du allerede en konto? <a href="{{ url_for('login') }}">Log ind</a></p>
+  </div>
+</div>
+{% endblock %}

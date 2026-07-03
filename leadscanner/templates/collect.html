@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Indsamling — Leadscanner{% endblock %}
+{% block content %}
+<div class="collect-page">
+  <h1>Kør en dataindsamling</h1>
+  <p class="sub">
+    {% if has_live_cvr %}
+      Live CVR-forbindelse aktiv.
+    {% else %}
+      Ingen CVR-credentials sat — kørslen bruger simulerede demo-data. Sæt <code>CVR_API_USER</code> og <code>CVR_API_PASSWORD</code> for live data (kræver en gratis konto på datafordeler.dk).
+    {% endif %}
+  </p>
+
+  <form method="POST" class="collect-form">
+    <label>Brancher (vælg en eller flere — tomt = alle)</label>
+    <select name="branchekoder" multiple size="8">
+      {% for kode, tekst in brancher %}
+        <option value="{{ kode }}">{{ tekst }} ({{ kode }})</option>
+      {% endfor %}
+    </select>
+
+    <label>Postnumre (kommasepareret, valgfrit)</label>
+    <input type="text" name="postnumre" placeholder="2100, 8000, 5000">
+
+    <label>Antal virksomheder</label>
+    <input type="number" name="limit" value="25" min="1" max="500">
+
+    <label class="checkbox-label">
+      <input type="checkbox" name="enrich"> Berig med website/kontaktinfo (langsommere, ét opslag pr. virksomhed)
+    </label>
+
+    <button type="submit" class="cta-btn">Start indsamling →</button>
+  </form>
+
+  {% if recent_runs %}
+  <h2>Seneste kørsler</h2>
+  <div class="table-wrap">
+    <table class="company-table">
+      <thead><tr><th>Tidspunkt</th><th>Kilde</th><th>Fundet</th><th>Nye</th><th>Opdateret</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for run in recent_runs %}
+        <tr>
+          <td>{{ run.started_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ run.source_mode }}</td>
+          <td>{{ run.companies_found }}</td>
+          <td>{{ run.companies_new }}</td>
+          <td>{{ run.companies_updated }}</td>
+          <td>{{ run.status }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
