@@ -20,19 +20,13 @@ Dashboardet viser en tydelig besked om at forbinde Supabase.
 ### Sæt Supabase op
 
 1. Opret et projekt på [supabase.com](https://supabase.com)
-2. Kør migrationen i `supabase/migrations/0001_init.sql` (via SQL-editoren i
-   Supabase-dashboardet, eller `supabase db push` med Supabase CLI)
+2. Kør migrationerne i `supabase/migrations/` i rækkefølge (via SQL-editoren
+   i Supabase-dashboardet, eller `supabase db push` med Supabase CLI) —
+   `0001_init.sql` opretter skemaet, `0002_signup_trigger.sql` gør at en ny
+   bruger automatisk får oprettet sin egen virksomhed
 3. Kopiér Project URL og anon key ind i `.env.local`
-4. Opret jeres første bruger under Authentication -> Users, og indsæt en
-   tilsvarende række i `companies` og `profiles` via SQL-editoren:
-
-```sql
-insert into companies (name) values ('Jeres Firma') returning id;
--- brug id'et herfra og bruger-id'et fra Authentication -> Users:
-insert into profiles (id, company_id, full_name) values ('<bruger-id>', '<company-id>', 'Dit navn');
-```
-
-Der er ikke (endnu) en selvbetjent tilmeldingsside — se "Hvad mangler".
+4. Gå til `/signup` og opret jeres første bruger — virksomhed + profil
+   oprettes automatisk (første bruger bliver admin for sin egen virksomhed)
 
 ## Struktur
 
@@ -45,7 +39,7 @@ Der er ikke (endnu) en selvbetjent tilmeldingsside — se "Hvad mangler".
 - `src/components/ui/` — design-system (Card, Button, Input, Table, Badge, Callout, StatCard)
 - `src/app/dashboard/` — Dashboard, Udbytte, Kursregulering, Eksporter
 - `src/proxy.ts` — auth-gating (Next.js 16's afløser for `middleware.ts`)
-- `supabase/migrations/0001_init.sql` — databaseskema
+- `supabase/migrations/` — databaseskema + trigger til selvbetjent tilmelding
 
 ## Verificér beregningslogikken
 
@@ -70,12 +64,33 @@ CSS-variabler i `src/app/globals.css` (Tailwind v4's `@theme`-syntaks).
 Per aftale er følgende IKKE bygget i denne version, men kan tilføjes i
 separate omgange:
 
-- Selvbetjent tilmelding (virksomhed + bruger oprettes i dag via SQL)
-- Multi-tenant UI (flere brugere/roller pr. virksomhed)
+- Multi-tenant UI (flere brugere/roller pr. virksomhed — databasen
+  understøtter det, men der er ingen invitations-/rolle-administration i UI'en)
 - AI-chat-assistent
 - PDF-rapporter, aktivitetslog/revisionsspor, automatisk backup
 - Dark mode
 - Diagrammer (Recharts er installeret, men ikke taget i brug endnu)
+
+## Deploy til Railway
+
+Mappen indeholder `railway.json`, så Railway kan bygge og starte appen
+automatisk (Nixpacks genkender `package.json`). Startkommandoen er testet
+lokalt mod Railways `$PORT`-konvention.
+
+1. Opret et nyt projekt i Railway og forbind det til dette GitHub-repo
+2. Sæt **Root Directory** til `kursregulering_web`
+3. Tilføj miljøvariablerne `NEXT_PUBLIC_SUPABASE_URL` og
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY` under **Variables** (samme værdier som i
+   `.env.local`) — uden dem er `/dashboard` ikke login-beskyttet, se
+   "Sikkerhed" nedenfor
+4. Railway bygger med `npm run build` og starter med
+   `npm run start -- -p $PORT`
+5. Under **Settings** → **Networking** → **Generate Domain** får du en
+   `*.up.railway.app`-URL
+
+Next.js-appen er også oplagt til Vercel (byggeren er lavet af samme team og
+kræver typisk ingen ekstra konfiguration — bare forbind repoet og sæt
+Root Directory + de samme to miljøvariabler), hvis I foretrækker det.
 
 ## Sikkerhed
 
