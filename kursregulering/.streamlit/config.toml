@@ -1,0 +1,5 @@
+[theme]
+# Sætter kun farve/font på tværs af lys/mørk tilstand, så Streamlits
+# indbyggede lys/mørk-skift (i menuen øverst til højre) stadig virker normalt.
+primaryColor = "#2E7D63"
+font = "sans serif"
