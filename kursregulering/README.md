@@ -58,3 +58,19 @@ Balancekontoen (aktiv) får gevinst/tab-beløbet direkte (positivt = debet =
 værdistigning). Resultatkontoen får det modsatte fortegn, så hvert bilag
 balancerer. Tjek at det passer til jeres kontoplan — se docstring i
 `csv_eksport.py`.
+
+## Deploy til Railway
+
+Mappen indeholder `Procfile` og `railway.json`, så Railway kan bygge og
+starte appen automatisk (Nixpacks genkender `requirements.txt`).
+
+1. Opret et nyt projekt i Railway og forbind det til dette GitHub-repo
+2. Sæt **Root Directory** til `kursregulering`
+3. Railway finder selv `Procfile`/`railway.json` og starter appen med
+   `streamlit run app.py --server.port=$PORT --server.address=0.0.0.0`
+4. Når deployet er kørt, får du en `*.up.railway.app`-URL under fanen "Settings" → "Networking" → "Generate Domain"
+
+**Bemærk:** Appen har ingen login. Da den kan behandle interne
+kursreguleringsdata, bør I overveje adgangsbegrænsning (fx Railway's
+private networking, IP-begrænsning, eller en simpel adgangskode i appen),
+hvis URL'en ikke skal være offentligt tilgængelig.
