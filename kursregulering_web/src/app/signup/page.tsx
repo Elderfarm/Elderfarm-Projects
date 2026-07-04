@@ -1,24 +1,21 @@
 import Link from "next/link";
-import { Suspense } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Callout } from "@/components/ui/Callout";
-import { LoginForm } from "@/components/auth/LoginForm";
+import { SignupForm } from "@/components/auth/SignupForm";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 
-export default function LoginPage() {
+export default function SignupPage() {
   return (
     <div className="flex min-h-screen flex-1 items-center justify-center bg-muted-subtle/40 px-4">
       <Card className="w-full max-w-sm p-2">
         <CardHeader>
           <div className="mb-2 text-2xl">💹</div>
-          <CardTitle>Log ind</CardTitle>
-          <CardDescription>Aktier &amp; Udbytte — beregning og bogføring</CardDescription>
+          <CardTitle>Opret konto</CardTitle>
+          <CardDescription>Første bruger bliver automatisk admin for jeres virksomhed.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {hasSupabaseEnv() ? (
-            <Suspense>
-              <LoginForm />
-            </Suspense>
+            <SignupForm />
           ) : (
             <Callout tone="warning">
               Supabase er ikke sat op endnu. Tilføj NEXT_PUBLIC_SUPABASE_URL og
@@ -26,9 +23,9 @@ export default function LoginPage() {
             </Callout>
           )}
           <p className="text-center text-sm text-muted">
-            Ny hos os?{" "}
-            <Link href="/signup" className="font-medium text-primary hover:underline">
-              Opret konto
+            Har I allerede en konto?{" "}
+            <Link href="/login" className="font-medium text-primary hover:underline">
+              Log ind
             </Link>
           </p>
         </CardContent>
