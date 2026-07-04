@@ -79,6 +79,9 @@ a:hover { text-decoration: underline; }
 
 /* ── Dashboard ────────────────────────────────────────── */
 .dash-page { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; }
+.round-picker { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 0.88rem; }
+.round-picker select { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; }
+
 .dash-stats-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
 .dash-stat-pill { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 12px 18px; display: flex; flex-direction: column; min-width: 160px; }
 .dash-stat-pill.warn { background: #FFFBEB; border-color: #FDE68A; }
@@ -130,3 +133,38 @@ a:hover { text-decoration: underline; }
 @media (max-width: 640px) {
   .company-table th, .company-table td { padding: 10px; }
 }
+
+/* ── Konkurrence / lykkehjul ──────────────────────────── */
+.comp-page { max-width: 560px; margin: 0 auto; padding: 40px 20px 70px; text-align: center; }
+.comp-hero h1 { font-size: 1.8rem; margin-bottom: 10px; }
+.comp-sub { color: var(--grey); margin-bottom: 32px; }
+
+.wheel-wrap { position: relative; width: 280px; height: 280px; margin: 0 auto 24px; }
+.wheel-pointer { position: absolute; top: -6px; left: 50%; transform: translateX(-50%); font-size: 1.6rem; z-index: 5; color: var(--dark); }
+.wheel { position: relative; width: 280px; height: 280px; border-radius: 50%; border: 6px solid white; box-shadow: 0 8px 30px rgba(0,0,0,0.18); transform: rotate(0deg); }
+.wheel-label-wrap { position: absolute; top: 50%; left: 50%; width: 0; height: 0; transform-origin: 0 0; }
+.wheel-label-text { position: absolute; left: 14px; top: -9px; width: 110px; font-size: 0.72rem; font-weight: 700; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+
+.comp-spin-btn { font-size: 1.05rem; padding: 14px 36px; margin-bottom: 16px; }
+.spin-result { min-height: 28px; font-size: 1.2rem; font-weight: 700; opacity: 0; transition: opacity 0.3s; margin-bottom: 8px; }
+.spin-result.visible { opacity: 1; }
+
+.signup-section { max-height: 0; overflow: hidden; opacity: 0; transition: all 0.4s ease; text-align: left; }
+.signup-section.visible { max-height: 800px; opacity: 1; margin-top: 24px; }
+.signup-section h2 { font-size: 1.2rem; text-align: center; margin-bottom: 16px; }
+.signup-section form { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow); }
+.signup-section label { font-size: 0.85rem; font-weight: 600; color: var(--grey); margin-top: 12px; }
+.signup-section input[type="text"], .signup-section input[type="email"], .signup-section input[type="tel"] { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 0.95rem; }
+.signup-section .checkbox-label { display: flex; align-items: flex-start; gap: 8px; font-weight: 400; font-size: 0.82rem; line-height: 1.4; }
+.signup-section .checkbox-label input { margin-top: 3px; }
+.signup-section button { margin-top: 18px; }
+
+.comp-thanks { padding-top: 60px; }
+.comp-thanks h1 { margin-bottom: 16px; }
+.comp-thanks p { color: var(--grey); margin-bottom: 24px; }
+
+.comp-legal { text-align: left; max-width: 680px; }
+.comp-legal h1 { font-size: 1.6rem; margin-bottom: 20px; }
+.comp-legal h2 { font-size: 1.05rem; margin: 24px 0 8px; }
+.comp-legal p, .comp-legal li { color: var(--grey); font-size: 0.92rem; }
+.comp-legal ul { padding-left: 20px; margin-top: 6px; }

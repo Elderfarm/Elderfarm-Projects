@@ -18,9 +18,11 @@
         {% if current_user.is_authenticated %}
           <a href="{{ url_for('dashboard') }}" class="nav-link nav-desktop">Søg virksomheder</a>
           <a href="{{ url_for('collect') }}" class="nav-link nav-desktop">Indsamling</a>
+          <a href="{{ url_for('competition.admin_overview') }}" class="nav-link nav-desktop">Konkurrence</a>
           <span class="plan-badge plan-{{ current_user.plan }}">{{ current_user.plan|capitalize }}</span>
           <a href="{{ url_for('logout') }}" class="nav-link nav-desktop muted">Log ud</a>
         {% else %}
+          <a href="{{ url_for('competition.landing') }}" class="nav-link nav-desktop">🎁 Vind et gavekort</a>
           <a href="{{ url_for('login') }}" class="nav-link nav-desktop">Log ind</a>
           <a href="{{ url_for('register') }}" class="nav-link nav-cta">Opret gratis konto</a>
         {% endif %}

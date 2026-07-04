@@ -11,6 +11,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 
 from models import db, User, Company, ExportLog, CollectionRun, PLAN_LIMITS
 from cvr_client import HAS_LIVE_CVR
+from competition import competition_bp
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "leadscanner-dev-secret-change-in-prod")
@@ -20,6 +21,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", f"sqlite:
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
+app.register_blueprint(competition_bp)
 
 with app.app_context():
     db.create_all()

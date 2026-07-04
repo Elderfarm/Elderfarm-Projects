@@ -1,8 +1,12 @@
+import secrets
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime
 
 db = SQLAlchemy()
+
+CONSENT_KONKURRENCE_VERSION = "v1"
+CONSENT_DATADELING_VERSION = "v1"
 
 PLAN_LIMITS = {
     "gratis": 25,
@@ -108,3 +112,59 @@ class CollectionRun(db.Model):
     finished_at = db.Column(db.DateTime)
     status = db.Column(db.String(20), default="running")
     error = db.Column(db.Text)
+
+
+class CompetitionRound(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    titel = db.Column(db.String(200), nullable=False)
+    praemie_beskrivelse = db.Column(db.String(300), nullable=False)
+    starter_at = db.Column(db.DateTime, default=datetime.utcnow)
+    slutter_at = db.Column(db.DateTime)
+    status = db.Column(db.String(20), default="aktiv")  # aktiv | afsluttet
+    vinder_participant_id = db.Column(db.Integer, db.ForeignKey("participant.id"), nullable=True)
+    trukket_at = db.Column(db.DateTime)
+    participants = db.relationship(
+        "Participant", backref="competition_round", lazy=True,
+        foreign_keys="Participant.competition_round_id",
+    )
+
+    def participant_count(self):
+        return len(self.participants)
+
+    def datadeling_count(self):
+        return sum(1 for p in self.participants if p.samtykke_datadeling)
+
+
+class Participant(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    competition_round_id = db.Column(db.Integer, db.ForeignKey("competition_round.id"), nullable=False)
+    navn = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(200), nullable=False, index=True)
+    telefon = db.Column(db.String(50))
+    spin_result = db.Column(db.String(100))
+    ip_address = db.Column(db.String(64))
+
+    samtykke_konkurrence = db.Column(db.Boolean, default=True, nullable=False)
+    samtykke_konkurrence_version = db.Column(db.String(10), default=CONSENT_KONKURRENCE_VERSION)
+    samtykke_konkurrence_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    samtykke_datadeling = db.Column(db.Boolean, default=False, nullable=False)
+    samtykke_datadeling_version = db.Column(db.String(10))
+    samtykke_datadeling_at = db.Column(db.DateTime)
+
+    unsubscribe_token = db.Column(db.String(64), unique=True, default=lambda: secrets.token_urlsafe(24))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint("competition_round_id", "email", name="uq_participant_round_email"),
+    )
+
+    def to_export_dict(self):
+        return {
+            "Navn": self.navn,
+            "Email": self.email,
+            "Telefon": self.telefon or "",
+            "Tilmeldt": self.created_at.strftime("%Y-%m-%d %H:%M"),
+            "Samtykke datadeling (version)": self.samtykke_datadeling_version or "",
+            "Samtykke datadeling givet": self.samtykke_datadeling_at.strftime("%Y-%m-%d %H:%M") if self.samtykke_datadeling_at else "",
+        }

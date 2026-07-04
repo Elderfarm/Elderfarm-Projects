@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Konkurrence-admin — Leadscanner{% endblock %}
+{% block content %}
+<div class="dash-page">
+  <h1>{{ round.titel }}</h1>
+  <p class="sub">Præmie: {{ round.praemie_beskrivelse }} — status: {{ round.status }}</p>
+
+  {% if all_rounds|length > 1 %}
+  <form method="GET" class="round-picker">
+    <label for="round_id">Vis runde:</label>
+    <select name="round_id" id="round_id" onchange="this.form.submit()">
+      {% for r in all_rounds %}
+        <option value="{{ r.id }}" {% if r.id == round.id %}selected{% endif %}>
+          {{ r.titel }} — {{ r.starter_at.strftime('%Y-%m-%d') }} ({{ r.status }}, {{ r.participant_count() }} tilmeldte)
+        </option>
+      {% endfor %}
+    </select>
+  </form>
+  {% endif %}
+
+  <div class="dash-stats-row">
+    <div class="dash-stat-pill">
+      <span class="dash-stat-value">{{ round.participant_count() }}</span>
+      <span class="dash-stat-label">tilmeldte i alt</span>
+    </div>
+    <div class="dash-stat-pill">
+      <span class="dash-stat-value">{{ round.datadeling_count() }}</span>
+      <span class="dash-stat-label">har givet samtykke til datadeling</span>
+    </div>
+    {% if round.vinder_participant_id %}
+    <div class="dash-stat-pill warn">
+      <span class="dash-stat-value">✅</span>
+      <span class="dash-stat-label">Vinder trukket {{ round.trukket_at.strftime('%Y-%m-%d') }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="table-toolbar">
+    <form method="POST" action="{{ url_for('competition.traek_vinder') }}" onsubmit="return confirm('Træk en tilfældig vinder blandt alle tilmeldte?');">
+      <input type="hidden" name="round_id" value="{{ round.id }}">
+      <button type="submit" class="cta-btn outline" {% if round.status == 'afsluttet' %}disabled{% endif %}>🎲 Træk vinder</button>
+    </form>
+    <form method="POST" action="{{ url_for('competition.export_participants') }}">
+      <input type="hidden" name="round_id" value="{{ round.id }}">
+      <button type="submit" class="cta-btn">📤 Eksportér samtykkende leads (CSV)</button>
+    </form>
+  </div>
+
+  <p class="sub">Kun deltagere der har krydset af i "datadeling" indgår i eksporten — {{ round.datadeling_count() }} ud af {{ round.participant_count() }}.</p>
+
+  <div class="table-wrap">
+    <table class="company-table">
+      <thead>
+        <tr><th>Navn</th><th>Email</th><th>Telefon</th><th>Tilmeldt</th><th>Datadeling</th></tr>
+      </thead>
+      <tbody>
+        {% for p in participants %}
+        <tr {% if round.vinder_participant_id == p.id %}style="background:#FFFBEB"{% endif %}>
+          <td>{{ p.navn }}{% if round.vinder_participant_id == p.id %} 🏆{% endif %}</td>
+          <td>{{ p.email }}</td>
+          <td>{{ p.telefon or '—' }}</td>
+          <td>{{ p.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ '✅' if p.samtykke_datadeling else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

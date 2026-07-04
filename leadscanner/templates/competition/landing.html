@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Spin & vind {{ round.praemie_beskrivelse }} — Leadscanner{% endblock %}
+{% block content %}
+<div class="comp-page">
+  <div class="comp-hero">
+    <h1>🎡 Spin hjulet og deltag i konkurrencen</h1>
+    <p class="comp-sub">Vind et <strong>{{ round.praemie_beskrivelse }}</strong> — helt gratis at deltage, intet køb nødvendigt.</p>
+  </div>
+
+  <div class="wheel-wrap">
+    <div class="wheel-pointer">▼</div>
+    <div class="wheel" id="wheel"></div>
+  </div>
+
+  <button id="spin-btn" class="cta-btn comp-spin-btn">🎯 Spin hjulet</button>
+  <div id="spin-result" class="spin-result"></div>
+
+  <div id="signup-section" class="signup-section">
+    <h2>Du er tæt på! Udfyld for at deltage i lodtrækningen</h2>
+    <form method="POST" action="{{ url_for('competition.tilmeld') }}">
+      <input type="hidden" name="spin_result" id="spin_result_input">
+
+      <label>Navn</label>
+      <input type="text" name="navn" required>
+
+      <label>Email</label>
+      <input type="email" name="email" required>
+
+      <label>Telefon (valgfrit)</label>
+      <input type="tel" name="telefon">
+
+      <label class="checkbox-label">
+        <input type="checkbox" name="samtykke_konkurrence" required>
+        Jeg deltager i konkurrencen om {{ round.praemie_beskrivelse }} og har læst
+        <a href="{{ url_for('competition.vilkaar') }}" target="_blank">deltagerbetingelserne</a>.
+      </label>
+
+      <label class="checkbox-label">
+        <input type="checkbox" name="samtykke_datadeling">
+        Jeg giver desuden samtykke til at mine oplysninger (navn, email, telefon) må deles med
+        Leadscanners samarbejdspartnere til markedsføringsformål, jf.
+        <a href="{{ url_for('competition.privatliv') }}" target="_blank">privatlivspolitikken</a>. (valgfrit)
+      </label>
+
+      <button type="submit" class="cta-btn full-width">Deltag i konkurrencen →</button>
+    </form>
+  </div>
+</div>
+
+<script src="/static/js/wheel.js"></script>
+{% endblock %}
