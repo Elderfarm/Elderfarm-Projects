@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input, Label } from "@/components/ui/Input";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@/components/ui/Table";
 import { KursreguleringTabel, type KursreguleringRaekke } from "@/components/kursregulering/KursreguleringTabel";
+import { KursreguleringGuide } from "@/components/kursregulering/KursreguleringGuide";
 import {
   beregnAlle,
   harFejl,
@@ -60,6 +61,10 @@ function badgeStatus(status: "OK" | "Advarsel" | "Fejl"): BadgeStatus {
   if (status === "Fejl") return "danger";
   if (status === "Advarsel") return "warning";
   return "success";
+}
+
+function tomRaekke(): KursreguleringRaekke {
+  return { papirnavn: "", isin: "", type: "tilgang", dato: "", antal: "", kurs: "" };
 }
 
 export default function KursreguleringPage() {
@@ -126,6 +131,8 @@ export default function KursreguleringPage() {
         </p>
       </div>
 
+      <KursreguleringGuide />
+
       <Card>
         <CardHeader>
           <CardTitle>1. Indtast jeres køb/salg</CardTitle>
@@ -136,13 +143,35 @@ export default function KursreguleringPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <KursreguleringTabel raekker={raekker} onChange={setRaekker} />
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            onChange={handleFilUpload}
-            className="text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-muted-subtle file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-slate-200"
-          />
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setRaekker(EKSEMPEL_RAEKKER.map((r) => ({ ...r })));
+                setResultater(null);
+              }}
+            >
+              📖 Indlæs eksempel
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setRaekker([tomRaekke()]);
+                setResultater(null);
+              }}
+            >
+              Ryd tabel
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={handleFilUpload}
+              className="text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-muted-subtle file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-slate-200"
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -238,9 +267,14 @@ export default function KursreguleringPage() {
                     <Th>Papir</Th>
                     <Th className="text-right">Primo antal</Th>
                     <Th className="text-right">Primo kurs</Th>
+                    <Th className="text-right">Primo værdi</Th>
                     <Th className="text-right">Tilgang antal</Th>
+                    <Th className="text-right">Tilgang beløb</Th>
                     <Th className="text-right">Afgang antal</Th>
+                    <Th className="text-right">Afgang beløb</Th>
                     <Th className="text-right">Ultimo antal</Th>
+                    <Th className="text-right">Ultimo kurs</Th>
+                    <Th className="text-right">Ultimo værdi</Th>
                     <Th className="text-right">Realiseret</Th>
                     <Th className="text-right">Urealiseret</Th>
                   </Tr>
@@ -251,17 +285,23 @@ export default function KursreguleringPage() {
                       <Td>{r.papirnavn}</Td>
                       <Td className="text-right">{r.primoAntal}</Td>
                       <Td className="text-right">{r.primoKurs}</Td>
+                      <Td className="text-right">{formatKr(r.primoVaerdi)}</Td>
                       <Td className="text-right">{r.tilgangAntal}</Td>
+                      <Td className="text-right">{formatKr(r.tilgangBeloeb)}</Td>
                       <Td className="text-right">{r.afgangAntal}</Td>
+                      <Td className="text-right">{formatKr(r.afgangBeloeb)}</Td>
                       <Td className="text-right">{r.ultimoAntal}</Td>
-                      <Td className="text-right">{formatKr(r.realiseret)}</Td>
-                      <Td className="text-right">{formatKr(r.urealiseret)}</Td>
+                      <Td className="text-right">{r.ultimoKurs}</Td>
+                      <Td className="text-right">{formatKr(r.ultimoVaerdi)}</Td>
+                      <Td className="text-right font-medium">{formatKr(r.realiseret)}</Td>
+                      <Td className="text-right font-medium">{formatKr(r.urealiseret)}</Td>
                     </Tr>
                   ))}
                 </Tbody>
               </Table>
               <p className="text-xs text-muted">
-                Kontroltjek (indbygget): Slutværdi + Salgssum − Startværdi − Købesum = Realiseret + Urealiseret.
+                Kontroltjek (indbygget): Ultimo værdi + Afgang beløb − Primo værdi − Tilgang beløb = Realiseret + Urealiseret.
+                Så I selv kan afstemme tallene, viser vi alle mellemresultaterne — ikke kun facit.
               </p>
             </>
           )}
