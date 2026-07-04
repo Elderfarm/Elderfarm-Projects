@@ -1,6 +1,10 @@
 """
 Streamlit-side: Beregning af udbytte (bruttoudbytte og kildeskat).
 
+Hovedvejen er direkte indtastning i en tabel (st.data_editor). Har man
+mange linjer, kan man i stedet uploade en Excel- eller CSV-fil, som
+udfylder tabellen automatisk — man kan stadig rette i den bagefter.
+
 Binder udbytte.py (parsing, validering, beregning) og csv_eksport.py
 (genbruger samme kassekladde-format som kursregulerings-siden) sammen.
 
@@ -14,47 +18,96 @@ import streamlit as st
 
 from csv_eksport import byg_udbytte_kassekladde_linjer, generer_csv, linjer_til_dataframe
 from udbytte import (
+    LANDE_NAVNE,
     beregn_alle_udbytter,
+    eksempel_indtastningsraekke,
+    fra_indtastningstabel,
     fund_til_dataframe,
     har_fejl,
-    indlaes_udbytte_excel,
+    indlaes_udbytte_fil,
     opsummering,
     resultater_til_dataframe,
+    til_indtastningstabel,
     valider_udbytte,
 )
 
 st.set_page_config(page_title="Udbytte", page_icon="💰", layout="wide")
 st.title("💰 Udbytte")
 st.caption(
-    "Regner ud, hvor meget der egentlig blev udloddet i udbytte (bruttobeløbet), "
-    "før landet trak skat, ud fra det beløb der endte på jeres bankkonto."
+    "Regner ud, hvor meget der egentlig blev udloddet i udbytte (bruttobeløbet) og hvor meget "
+    "der blev trukket i skat, uanset om I kender netto- eller bruttobeløbet."
 )
 st.write("")
 
+
+def _raekke_er_udfyldt(raekke: pd.Series) -> bool:
+    papir = str(raekke.get("Papir") or "").strip()
+    beloeb = raekke.get("Beløb (kr.)")
+    return bool(papir) or pd.notna(beloeb)
+
+
+if "udbytte_tabel" not in st.session_state:
+    st.session_state.udbytte_tabel = eksempel_indtastningsraekke()
+if "udbytte_upload_signatur" not in st.session_state:
+    st.session_state.udbytte_upload_signatur = None
+if "udbytte_editor_version" not in st.session_state:
+    st.session_state.udbytte_editor_version = 0
+
 # ---------------------------------------------------------------------------
-# 1. Upload
+# 1. Indtast eller upload
 # ---------------------------------------------------------------------------
 with st.container(border=True):
-    st.header("1️⃣ Upload jeres udbytteliste")
-    st.caption("Én linje pr. udbyttebetaling: papirnavn, land, dato og det beløb I fik ind på bankkontoen.")
-    uploaded = st.file_uploader("Vælg Excel-fil", type=["xlsx", "xls"], key="udbytte_upload")
+    st.header("1️⃣ Indtast jeres udbytter")
+    st.caption(
+        "Skriv direkte i tabellen nedenfor — én linje pr. udbyttebetaling. I kan angive ENTEN "
+        "netto- eller bruttobeløbet, alt efter hvad I kender. Tryk på + for at tilføje flere linjer."
+    )
 
-    if uploaded is None:
-        st.info("Upload en Excel-fil for at komme i gang. Der ligger et eksempel i `test_data/eksempel_udbytte.xlsx`.")
-        st.stop()
+    land_muligheder = sorted(set(LANDE_NAVNE.values()) | set(st.session_state.udbytte_tabel["Land"].dropna()))
 
-    parse_resultat = indlaes_udbytte_excel(uploaded)
+    redigeret = st.data_editor(
+        st.session_state.udbytte_tabel,
+        num_rows="dynamic",
+        use_container_width=True,
+        key=f"udbytte_editor_{st.session_state.udbytte_editor_version}",
+        column_config={
+            "Papir": st.column_config.TextColumn("Papir", required=True),
+            "Land": st.column_config.SelectboxColumn("Land", options=land_muligheder, required=True),
+            "Type": st.column_config.SelectboxColumn("Type", options=["Netto", "Brutto"], required=True),
+            "Beløb (kr.)": st.column_config.NumberColumn("Beløb (kr.)", format="%.2f", min_value=0.0),
+            "Dato": st.column_config.DateColumn("Dato", format="DD-MM-YYYY"),
+        },
+    )
 
-    if not parse_resultat.er_gyldig:
-        st.error("Filen kunne ikke læses korrekt:")
-        for fejl in parse_resultat.kritiske_fejl:
-            st.error(f"- {fejl}")
-        st.stop()
+    with st.expander("Har du mange linjer? Upload en Excel- eller CSV-fil i stedet"):
+        st.caption(
+            "Filen udfylder tabellen ovenfor automatisk — I kan stadig rette i den bagefter. "
+            "Eksempler ligger i `test_data/eksempel_udbytte.xlsx` og `.csv`."
+        )
+        uploaded = st.file_uploader("Vælg fil", type=["xlsx", "xls", "csv"], key="udbytte_upload")
 
-    for besked in parse_resultat.info:
-        st.info(besked)
+        if uploaded is not None:
+            signatur = (uploaded.name, uploaded.size)
+            if signatur != st.session_state.udbytte_upload_signatur:
+                parse_resultat = indlaes_udbytte_fil(uploaded, uploaded.name)
+                if not parse_resultat.er_gyldig:
+                    st.error("Filen kunne ikke læses korrekt:")
+                    for fejl in parse_resultat.kritiske_fejl:
+                        st.error(f"- {fejl}")
+                else:
+                    for besked in parse_resultat.info:
+                        st.info(besked)
+                    st.session_state.udbytte_tabel = til_indtastningstabel(parse_resultat.data)
+                    st.session_state.udbytte_upload_signatur = signatur
+                    st.session_state.udbytte_editor_version += 1
+                    st.rerun()
 
-data = parse_resultat.data
+data = fra_indtastningstabel(redigeret[redigeret.apply(_raekke_er_udfyldt, axis=1)].reset_index(drop=True))
+
+if data.empty:
+    st.info("Tilføj mindst én linje i tabellen for at komme videre.")
+    st.stop()
+
 st.write("")
 
 # ---------------------------------------------------------------------------
@@ -72,7 +125,7 @@ with st.container(border=True):
 
     blokeret = har_fejl(fund)
     if blokeret:
-        st.error("🚫 Der er mindst én fejl, der skal rettes først. Ret filen og upload den igen.")
+        st.error("🚫 Der er mindst én fejl, der skal rettes først. Ret i tabellen ovenfor.")
     elif not detaljer.empty:
         st.warning("Der er kun advarsler — I kan godt regne videre, men kig lige på dem først.")
 
@@ -84,9 +137,8 @@ st.write("")
 with st.container(border=True):
     st.header("3️⃣ Beregn bruttoudbytte og kildeskat")
     st.caption(
-        "Kort fortalt: I har fået et nettobeløb ind på kontoen. Vi 'ganger det op' med den kendte "
-        "skattesats for landet, så I kan se, hvad det oprindelige (brutto) udbytte var, og hvor "
-        "meget der blev trukket i skat undervejs."
+        "Kort fortalt: kender I nettobeløbet, 'ganger vi det op' til bruttobeløbet — og omvendt, "
+        "hvis I kender bruttobeløbet — ud fra den kendte skattesats for landet."
     )
 
     kan_beregne = st.button("Beregn", type="primary", disabled=blokeret, key="udbytte_beregn")
@@ -115,17 +167,19 @@ if resultater:
         st.header("4️⃣ Hent fil til e-conomic")
         st.caption(
             "Bruttoudbyttet bogføres som indtægt. Kildeskatten bogføres som et tilgodehavende "
-            "(I forventer at få den tilbage). Nettobeløbet er det, der allerede står på jeres bankkonto."
+            "(dansk kildeskat kan modregnes/tilbagesøges i Danmark, hjemlandet — udenlandsk kildeskat "
+            "kræver typisk en separat tilbagesøgning). Nettobeløbet er det, der allerede står på "
+            "jeres bankkonto."
         )
 
         col1, col2 = st.columns(2)
         with col1:
-            resultatkonto = st.text_input("Konto til udbytteindtægt", value="2100", key="udb_resultatkonto")
+            resultatkonto = st.text_input("Konto til udbytteindtægt (drift)", value="2100", key="udb_resultatkonto")
             bankkonto = st.text_input("Bankkonto", value="5820", key="udb_bankkonto")
             bilagstype = st.text_input("Bilagstype", value="Finansbilag", key="udb_bilagstype")
         with col2:
-            dansk_skattekonto = st.text_input("Konto til tilgodehavende dansk udbytteskat", value="6210", key="udb_dk_skat")
-            udenlandsk_skattekonto = st.text_input("Konto til tilgodehavende udenlandsk udbytteskat", value="6220", key="udb_udl_skat")
+            dansk_skattekonto = st.text_input("Konto til tilgodehavende udbytteskat, Danmark", value="6210", key="udb_dk_skat")
+            udenlandsk_skattekonto = st.text_input("Konto til tilgodehavende udbytteskat, udenlandsk", value="6220", key="udb_udl_skat")
             start_bilagsnummer = st.number_input("Start bilagsnummer", min_value=1, value=1, step=1, key="udb_bilagsnr")
 
         if all([resultatkonto, bankkonto, dansk_skattekonto, udenlandsk_skattekonto]):

@@ -65,18 +65,26 @@ genkendes fleksibelt, fx "Navn" eller "Papirnavn"):
 
 ## Input-format: Udbytte
 
-Excel-arket skal have én række pr. udbyttebetaling:
+Hovedvejen er at **indtaste direkte i en tabel i UI'en** — ingen fil
+nødvendig. Har man mange linjer, kan man i stedet uploade en Excel- eller
+CSV-fil, som udfylder tabellen automatisk (man kan stadig rette i den
+bagefter). Én linje pr. udbyttebetaling:
 
 | Kolonne | Beskrivelse |
 |---|---|
 | Papirnavn | Navnet på aktien |
 | Landekode / Land / ISIN | Landet udbyttet kommer fra (bruges til at slå skattesats op) |
+| Type | "Netto" eller "Brutto" — hvilken slags beløb man angiver (se nedenfor) |
+| Beløb | Netto- ELLER bruttoudbytte, afhængig af Type |
 | Dato | Betalingsdato (valgfri) |
-| Netto udbytte | Det beløb, der blev indsat på bankkontoen |
 
-Bruttoudbyttet beregnes ved at "gange nettobeløbet op" med en kendt
-nettoprocent pr. land (se `LANDE_NETTOPROCENT` i `udbytte.py` — ret eller
-udvid listen hvis et land mangler eller satsen er forkert).
+Man angiver ENTEN nettobeløbet (det der reelt blev indsat på
+bankkontoen) ELLER bruttobeløbet — det andet regnes automatisk ud fra en
+kendt nettoprocent pr. land (se `LANDE_NETTOPROCENT` i `udbytte.py` — ret
+eller udvid listen hvis et land mangler eller satsen er forkert).
+
+CSV-filer kan bruge komma eller semikolon som separator, og danske
+talformater (fx "18.823,41") — det opdages automatisk.
 
 **Bemærk:** Dette er en bevidst forenklet model. Den opdeler IKKE
 udenlandsk kildeskat i "tilbagesøges via selvangivelse" vs. "tilbagesøges
