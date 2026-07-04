@@ -18,6 +18,11 @@ sat op omvendt.
 Hver post (realiseret hhv. urealiseret regulering for ét papir) får sit eget
 bilagsnummer og fylder to linjer, så det altid er tydeligt hvad der hører
 sammen, og bilaget balancerer i sig selv.
+
+Udbyttebetalinger (byg_udbytte_kassekladde_linjer) bogføres tilsvarende:
+bruttoudbyttet krediteres resultatkontoen (indtægt), kildeskatten debiteres
+en tilgodehavende-konto (dansk hhv. udenlandsk), og nettobeløbet debiteres
+bankkontoen — de tre linjer summer altid til nul.
 """
 from __future__ import annotations
 
@@ -29,6 +34,7 @@ from datetime import date
 import pandas as pd
 
 from beregning import PapirBeregning
+from udbytte import UdbytteResultat
 
 TOLERANCE = 0.005  # under en halv øre anses for at være "ingen regulering"
 
@@ -99,6 +105,41 @@ def byg_kassekladde_linjer(
                 )
             )
             bilagsnr += 1
+
+    return linjer
+
+
+def byg_udbytte_kassekladde_linjer(
+    resultater: list[UdbytteResultat],
+    resultatkonto: str,
+    bankkonto: str,
+    dansk_skattekonto: str,
+    udenlandsk_skattekonto: str,
+    bilagstype: str = "Finansbilag",
+    start_bilagsnummer: int = 1,
+) -> list[KassekladdeLinje]:
+    """Bygger kassekladde-linjer for udbyttebetalinger. Hver betaling får sit
+    eget bilagsnummer med op til 3 linjer, der balancerer:
+    - Resultatkonto: kredit for bruttoudbytte (indtægt)
+    - Skattekonto (dansk eller udenlandsk): debit for kildeskat (tilgodehavende)
+    - Bankkonto: debit for det modtagne nettobeløb
+    Springer skattelinjen over hvis kildeskatten er ~0."""
+    linjer: list[KassekladdeLinje] = []
+    bilagsnr = start_bilagsnummer
+
+    for r in resultater:
+        dato = r.dato.date() if pd.notna(r.dato) else date.today()
+        tekst = f"Udbytte {r.papirnavn} ({r.landnavn})"
+
+        linjer.append(
+            KassekladdeLinje(bilagstype, bilagsnr, dato, resultatkonto, -r.brutto_udbytte, tekst)
+        )
+        if abs(r.kildeskat) >= TOLERANCE:
+            skattekonto = dansk_skattekonto if r.er_dansk else udenlandsk_skattekonto
+            linjer.append(KassekladdeLinje(bilagstype, bilagsnr, dato, skattekonto, r.kildeskat, tekst))
+        linjer.append(KassekladdeLinje(bilagstype, bilagsnr, dato, bankkonto, r.netto_udbytte, tekst))
+
+        bilagsnr += 1
 
     return linjer
 

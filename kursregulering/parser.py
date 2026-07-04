@@ -22,7 +22,7 @@ import pandas as pd
 _ISO_DATO_MOENSTER = re.compile(r"^\d{4}[-/]\d{1,2}[-/]\d{1,2}")
 
 
-def _parse_enkelt_dato(vaerdi):
+def parse_enkelt_dato(vaerdi):
     """Fortolker én dato-værdi robust.
 
     Excel-datoer kan enten komme som rigtige dato-objekter (når cellen er
@@ -193,7 +193,7 @@ def indlaes_excel(fil, ark: str | None = None) -> ParseResultat:
     # Datoer og tal konverteres til rigtige typer. Fejl i konverteringen
     # bliver til NaT/NaN, som valideringsmodulet efterfølgende fanger som
     # "manglende data" i stedet for at vælte hele programmet.
-    std["dato"] = std["dato"].apply(_parse_enkelt_dato)
+    std["dato"] = std["dato"].apply(parse_enkelt_dato)
     std["antal"] = pd.to_numeric(std["antal"], errors="coerce")
     std["kurs"] = pd.to_numeric(std["kurs"], errors="coerce")
 

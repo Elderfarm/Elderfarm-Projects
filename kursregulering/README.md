@@ -1,8 +1,13 @@
-# Kursregulering af noterede aktier
+# Aktier & Udbytte
 
-Streamlit-værktøj til at beregne realiseret og urealiseret kursgevinst/-tab
-på noterede aktier efter **lagerprincippet**, og generere en CSV-fil klar
-til import i e-conomics kassekladde.
+Streamlit-værktøj med to uafhængige beregninger:
+
+1. **Kursregulering** — realiseret/urealiseret kursgevinst-tab på noterede
+   aktier efter **lagerprincippet**.
+2. **Udbytte** — bruttoudbytte og kildeskat ud fra det nettobeløb, der er
+   modtaget på bankkontoen.
+
+Begge dele genererer en CSV-fil klar til import i e-conomics kassekladde.
 
 Scope: kun noterede aktier — ikke obligationer, finansielle kontrakter
 eller andre værdipapirtyper.
@@ -14,19 +19,25 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Upload din egen Excel-fil, eller test med eksempeldataet i
-`test_data/eksempel_transaktioner.xlsx` (generet af `test_data/generer_testdata.py`).
+Forsiden (`app.py`) er en simpel landingsside med to knapper. De to
+værktøjer ligger som separate sider i `pages/`, og Streamlit viser dem
+automatisk i menuen til venstre.
+
+Test med eksempeldataet i `test_data/` — der ligger én fil pr. værktøj.
 
 ## Filstruktur
 
-- `parser.py` — indlæser Excel-filen og genkender kolonner fleksibelt
-- `validering.py` — tjekker data for fejl/uoverensstemmelser før beregning
+- `parser.py` — indlæser Excel-fil med køb/salg og genkender kolonner fleksibelt
+- `validering.py` — tjekker køb/salg-data for fejl/uoverensstemmelser før beregning
 - `beregning.py` — selve lagerprincip/FIFO-beregningen (ren Python/pandas, testbar uafhængigt af UI)
-- `csv_eksport.py` — genererer den semikolon-separerede CSV-fil til e-conomic
-- `app.py` — Streamlit-UI'en, der binder det hele sammen
-- `test_data/` — eksempel-Excel med 6 værdipapirer, inkl. bevidste fejl og advarsler
+- `udbytte.py` — parsing, validering og beregning af udbytte (brutto/kildeskat), også testbar uafhængigt af UI
+- `csv_eksport.py` — genererer den semikolon-separerede CSV-fil til e-conomic, bruges af begge værktøjer
+- `app.py` — landingsside
+- `pages/1_📈_Kursregulering.py` — UI for kursregulering
+- `pages/2_💰_Udbytte.py` — UI for udbytte
+- `test_data/` — eksempeldata for begge værktøjer, inkl. bevidste fejl og advarsler
 
-## Input-format
+## Input-format: Kursregulering
 
 Excel-arket skal have én række pr. transaktion, med kolonner (navnene
 genkendes fleksibelt, fx "Navn" eller "Papirnavn"):
@@ -41,7 +52,7 @@ genkendes fleksibelt, fx "Navn" eller "Papirnavn"):
 | Beløb | Antal × Kurs — kan stå tom og udregnes automatisk |
 | Valuta | Default DKK, hvis kolonnen mangler |
 
-## Lagerprincippet kort fortalt
+### Lagerprincippet kort fortalt
 
 - **Primo kurs er IKKE anskaffelsessummen.** Det er sidste års ultimo-kurs
   (allerede beskattet én gang sidste år).
@@ -52,11 +63,38 @@ genkendes fleksibelt, fx "Navn" eller "Papirnavn"):
   **realiserede** del. Den resterende beholdning ved ultimo giver den
   **urealiserede** del.
 
+## Input-format: Udbytte
+
+Excel-arket skal have én række pr. udbyttebetaling:
+
+| Kolonne | Beskrivelse |
+|---|---|
+| Papirnavn | Navnet på aktien |
+| Landekode / Land / ISIN | Landet udbyttet kommer fra (bruges til at slå skattesats op) |
+| Dato | Betalingsdato (valgfri) |
+| Netto udbytte | Det beløb, der blev indsat på bankkontoen |
+
+Bruttoudbyttet beregnes ved at "gange nettobeløbet op" med en kendt
+nettoprocent pr. land (se `LANDE_NETTOPROCENT` i `udbytte.py` — ret eller
+udvid listen hvis et land mangler eller satsen er forkert).
+
+**Bemærk:** Dette er en bevidst forenklet model. Den opdeler IKKE
+udenlandsk kildeskat i "tilbagesøges via selvangivelse" vs. "tilbagesøges
+via banken" efter dobbeltbeskatningsoverenskomstens maks-sats — det er en
+tax-teknisk detalje, I/revisor skal vurdere manuelt efter behov. Al
+kildeskat bogføres som ét samlet tilgodehavende pr. land (dansk/udenlandsk).
+
 ## Fortegnskonvention i CSV-eksporten
 
-Balancekontoen (aktiv) får gevinst/tab-beløbet direkte (positivt = debet =
-værdistigning). Resultatkontoen får det modsatte fortegn, så hvert bilag
-balancerer. Tjek at det passer til jeres kontoplan — se docstring i
+**Kursregulering:** Balancekontoen (aktiv) får gevinst/tab-beløbet direkte
+(positivt = debet = værdistigning). Resultatkontoen får det modsatte
+fortegn, så hvert bilag balancerer.
+
+**Udbytte:** Bruttoudbyttet krediteres resultatkontoen (indtægt),
+kildeskatten debiteres en tilgodehavende-konto (dansk hhv. udenlandsk), og
+nettobeløbet debiteres bankkontoen.
+
+Tjek begge konventioner passer til jeres kontoplan — se docstring i
 `csv_eksport.py`.
 
 ## Deploy til Railway
@@ -71,6 +109,6 @@ starte appen automatisk (Nixpacks genkender `requirements.txt`).
 4. Når deployet er kørt, får du en `*.up.railway.app`-URL under fanen "Settings" → "Networking" → "Generate Domain"
 
 **Bemærk:** Appen har ingen login. Da den kan behandle interne
-kursreguleringsdata, bør I overveje adgangsbegrænsning (fx Railway's
-private networking, IP-begrænsning, eller en simpel adgangskode i appen),
-hvis URL'en ikke skal være offentligt tilgængelig.
+regnskabsdata, bør I overveje adgangsbegrænsning (fx Railway's private
+networking, IP-begrænsning, eller en simpel adgangskode i appen), hvis
+URL'en ikke skal være offentligt tilgængelig.
